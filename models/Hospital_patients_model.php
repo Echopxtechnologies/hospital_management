@@ -183,80 +183,97 @@ public function get_patients_for_dropdown($search = '')
     $this->db->order_by('created_at', 'DESC');
     return $this->db->get($this->table)->result_array();
 }
-    /**
- * Save patient (Add or Update) - UPDATED VERSION
+ /**
+ * Get all active membership types
+ */
+public function get_memberships()
+{
+    $this->db->select('*');
+    $this->db->where('is_active', 1);
+    $this->db->order_by('display_order', 'ASC');
+    return $this->db->get(db_prefix() . 'hospital_memberships')->result_array();
+}
+
+/**
+ * Save patient with membership_id
  */
 public function save($data, $files = [])
 {
     $id = isset($data['id']) && !empty($data['id']) ? $data['id'] : null;
     
-    // Validate required fields
-    $validation_errors = $this->validate_patient_data($data, $id);
-    if (!empty($validation_errors)) {
-        return [
-            'success' => false, 
-            'message' => implode('<br>', $validation_errors), 
-            'errors' => $validation_errors
-        ];
+    // Validation
+    $errors = [];
+    if (empty($data['name'])) $errors[] = 'Patient name is required';
+    if (empty($data['gender'])) $errors[] = 'Gender is required';
+    if (empty($data['mobile_number'])) $errors[] = 'Mobile number is required';
+    if (empty($data['patient_type'])) $errors[] = 'Patient type is required';
+    
+    if (!empty($errors)) {
+        return ['success' => false, 'message' => implode('<br>', $errors)];
     }
     
-    // Prepare save data
+    // Prepare patient data
    $save_data = [
-    'patient_number'              => $patient_number,
-    'name'                        => trim($data['name']),
-    'gender'                      => $data['gender'],
-    'dob'                         => !empty($data['dob']) ? $data['dob'] : null,
-    'age'                         => !empty($data['age']) ? (int)$data['age'] : null,
-    'patient_type'                => $data['patient_type'],  // ✅ BACK!
-    'address'                     => !empty($data['address']) ? trim($data['address']) : null,
-    'address_landmark'            => !empty($data['address_landmark']) ? trim($data['address_landmark']) : null,
-    'city'                        => !empty($data['city']) ? trim($data['city']) : null,
-    'state'                       => !empty($data['state']) ? trim($data['state']) : null,
-    'pincode'                     => !empty($data['pincode']) ? trim($data['pincode']) : null,
-    'phone'                       => !empty($data['phone']) ? trim($data['phone']) : null,
-    'mobile_number'               => trim($data['mobile_number']),
-    'email'                       => !empty($data['email']) ? trim($data['email']) : null,
-    'membership_id'               => !empty($data['membership_id']) ? (int)$data['membership_id'] : null,
-    'blood_group'                 => !empty($data['blood_group']) ? trim($data['blood_group']) : null,
-    'emergency_contact_name'      => !empty($data['emergency_contact_name']) ? trim($data['emergency_contact_name']) : null,
-    'emergency_contact_number'    => !empty($data['emergency_contact_number']) ? trim($data['emergency_contact_number']) : null,
-    'emergency_contact_relation'  => !empty($data['emergency_contact_relation']) ? trim($data['emergency_contact_relation']) : null,
-];
+        'name'                       => trim($data['name']),
+        'gender'                     => $data['gender'],
+        'mobile_number'              => $data['mobile_number'],
+        'patient_type'               => $data['patient_type'],
+        'dob'                        => !empty($data['dob']) ? $data['dob'] : null,
+        'age'                        => !empty($data['age']) ? (int)$data['age'] : null,
+        'phone'                      => !empty($data['phone']) ? $data['phone'] : null,
+        'email'                      => !empty($data['email']) ? $data['email'] : null,
+        'address'                    => !empty($data['address']) ? $data['address'] : null,
+        'address_landmark'           => !empty($data['address_landmark']) ? $data['address_landmark'] : null,
+        'city'                       => !empty($data['city']) ? $data['city'] : null,
+        'state'                      => !empty($data['state']) ? $data['state'] : null,
+        'pincode'                    => !empty($data['pincode']) ? $data['pincode'] : null,
+        
+        // Other Hospital Registration
+        'registered_other_hospital'  => isset($data['registered_other_hospital']) ? (int)$data['registered_other_hospital'] : 0,
+        'other_hospital_patient_id'  => !empty($data['other_hospital_patient_id']) ? $data['other_hospital_patient_id'] : null,
+        
+        // Membership
+        'membership_id'              => !empty($data['membership_id']) ? (int)$data['membership_id'] : null,
+        'membership_number'          => !empty($data['membership_number']) ? $data['membership_number'] : null,
+        'membership_start_date'      => !empty($data['membership_start_date']) ? $data['membership_start_date'] : null,
+        'membership_expiry_date'     => !empty($data['membership_expiry_date']) ? $data['membership_expiry_date'] : null,
+        
+        // ✅ CORRECT: Use 'recommended_by' not 'referred_by'
+        'recommended_to_hospital'    => isset($data['recommended_to_hospital']) ? (int)$data['recommended_to_hospital'] : 0,
+        'recommended_by'             => !empty($data['recommended_by']) ? $data['recommended_by'] : null,
+        
+        // Blood Group & Emergency Contact
+        'blood_group'                => !empty($data['blood_group']) ? $data['blood_group'] : null,
+        'emergency_contact_name'     => !empty($data['emergency_contact_name']) ? $data['emergency_contact_name'] : null,
+        'emergency_contact_number'   => !empty($data['emergency_contact_number']) ? $data['emergency_contact_number'] : null,
+        'emergency_contact_relation' => !empty($data['emergency_contact_relation']) ? $data['emergency_contact_relation'] : null,
+    ];
     
-    // Update or Insert
     if ($id) {
-        // Update
+        // UPDATE
         $save_data['updated_at'] = date('Y-m-d H:i:s');
         $this->db->where('id', $id);
         $this->db->update($this->table, $save_data);
         
-        $patient_id = $id;
-        log_activity('Hospital Patient Updated [ID: ' . $id . ', Name: ' . $save_data['name'] . ']');
-        $message = 'Patient updated successfully';
+        log_activity('Hospital Patient Updated [ID: ' . $id . ']');
     } else {
-        // Insert - Generate patient number
+        // INSERT
         $save_data['patient_number'] = $this->generate_patient_number();
         $save_data['created_by'] = get_staff_user_id();
         $save_data['created_at'] = date('Y-m-d H:i:s');
         
         $this->db->insert($this->table, $save_data);
-        $patient_id = $this->db->insert_id();
+        $id = $this->db->insert_id();
         
-        log_activity('Hospital Patient Created [ID: ' . $patient_id . ', Number: ' . $save_data['patient_number'] . ', Name: ' . $save_data['name'] . ']');
-        $message = 'Patient registered successfully';
+        log_activity('Hospital Patient Created [Number: ' . $save_data['patient_number'] . ']');
     }
     
-    // Handle document uploads (store in database as LONGBLOB)
-    if (!empty($files)) {
-        $this->save_patient_documents($patient_id, $files);
+    // Handle document uploads
+    if (!empty($files['recommendation_file'])) {
+        $this->save_patient_documents($id, $files['recommendation_file'], 'recommendation');
     }
     
-    return [
-        'success' => true, 
-        'message' => $message, 
-        'id' => $patient_id,
-        'patient_number' => isset($save_data['patient_number']) ? $save_data['patient_number'] : null
-    ];
+    return ['success' => true, 'message' => 'Patient saved successfully', 'id' => $id];
 }
 
 /**
@@ -403,7 +420,36 @@ public function update_patient_info($patient_id, $data, $files = [])
     }
     
     // Prepare update data (only update fields that are provided)
-    $update_data = [];
+   $update_data = [
+        'name'                       => trim($data['name']),
+        'gender'                     => $data['gender'],
+        'mobile_number'              => $data['mobile_number'],
+        'patient_type'               => $data['patient_type'],
+        'dob'                        => !empty($data['dob']) ? $data['dob'] : null,
+        'age'                        => !empty($data['age']) ? (int)$data['age'] : null,
+        'phone'                      => !empty($data['phone']) ? $data['phone'] : null,
+        'email'                      => !empty($data['email']) ? $data['email'] : null,
+        'address'                    => !empty($data['address']) ? $data['address'] : null,
+        'address_landmark'           => !empty($data['address_landmark']) ? $data['address_landmark'] : null,
+        'city'                       => !empty($data['city']) ? $data['city'] : null,
+        'state'                      => !empty($data['state']) ? $data['state'] : null,
+        'pincode'                    => !empty($data['pincode']) ? $data['pincode'] : null,
+        
+        'registered_other_hospital'  => isset($data['registered_other_hospital']) ? (int)$data['registered_other_hospital'] : 0,
+        'other_hospital_patient_id'  => !empty($data['other_hospital_patient_id']) ? $data['other_hospital_patient_id'] : null,
+        
+        'membership_id'              => !empty($data['membership_id']) ? (int)$data['membership_id'] : null,
+        'membership_number'          => !empty($data['membership_number']) ? $data['membership_number'] : null,
+        'membership_start_date'      => !empty($data['membership_start_date']) ? $data['membership_start_date'] : null,
+        'membership_expiry_date'     => !empty($data['membership_expiry_date']) ? $data['membership_expiry_date'] : null,
+        
+        // ✅ CORRECT: Use 'recommended_by' not 'referred_by'
+        'recommended_to_hospital'    => isset($data['recommended_to_hospital']) ? (int)$data['recommended_to_hospital'] : 0,
+        'recommended_by'             => !empty($data['recommended_by']) ? $data['recommended_by'] : null,
+        
+        'updated_at'                 => date('Y-m-d H:i:s'),
+    ];
+    
     
     // Patient mode and type
     if (isset($data['mode'])) {

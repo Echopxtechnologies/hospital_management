@@ -583,39 +583,54 @@
                                 </div>
                             </div>
                             
-                            <div id="membership_details" style="display:none;">
-                                <div class="row">
-                                    <div class="col-md-4">
-                                        <div class="form-group">
-                                            <label class="control-label">Membership Type</label>
-                                            <input type="text" name="membership_type" id="membership_type" class="form-control">
-                                        </div>
-                                    </div>
-                                    
-                                    <div class="col-md-4">
-                                        <div class="form-group">
-                                            <label class="control-label">Membership Number</label>
-                                            <input type="text" name="membership_number" id="membership_number" class="form-control">
-                                        </div>
-                                    </div>
-                                    
-                                    <div class="col-md-4">
-                                        <div class="form-group">
-                                            <label class="control-label">Expiry Date</label>
-                                            <input type="date" name="membership_expiry_date" id="membership_expiry_date" class="form-control">
-                                        </div>
-                                    </div>
-                                </div>
-                                
-                                <div class="row">
-                                    <div class="col-md-12">
-                                        <div class="form-group">
-                                            <label class="control-label">Membership Notes</label>
-                                            <textarea name="membership_notes" id="membership_notes" class="form-control" rows="2"></textarea>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
+                       <div id="membership_details" style="display:none;">
+    <div class="row">
+        <div class="col-md-6">
+            <div class="form-group">
+                <label class="control-label">Membership Type</label>
+                <select name="membership_id" id="membership_id" class="form-control selectpicker" data-width="100%">
+                    <option value="">-- Select Membership Type --</option>
+                    <?php 
+                    $this->load->model('hospital_patients_model');
+                    $memberships = $this->hospital_patients_model->get_memberships();
+                    foreach ($memberships as $membership) {
+                        echo '<option value="' . $membership['id'] . '">' . $membership['membership_name'];
+                        if (!empty($membership['validity_months'])) {
+                            echo ' (' . $membership['validity_months'] . ' months)';
+                        }
+                        echo '</option>';
+                    }
+                    ?>
+                </select>
+                <small class="text-muted">Select the type of membership</small>
+            </div>
+        </div>
+        
+        <div class="col-md-6">
+            <div class="form-group">
+                <label class="control-label">Membership Number</label>
+                <input type="text" name="membership_number" id="membership_number" class="form-control" placeholder="e.g., MEM2025001">
+                <small class="text-muted">Unique membership card number</small>
+            </div>
+        </div>
+    </div>
+    
+    <div class="row">
+        <div class="col-md-6">
+            <div class="form-group">
+                <label class="control-label">Start Date</label>
+                <input type="date" name="membership_start_date" id="membership_start_date" class="form-control">
+            </div>
+        </div>
+        
+        <div class="col-md-6">
+            <div class="form-group">
+                <label class="control-label">Expiry Date</label>
+                <input type="date" name="membership_expiry_date" id="membership_expiry_date" class="form-control">
+            </div>
+        </div>
+    </div>
+</div>
                         </div>
                     </div>
                     
@@ -1114,10 +1129,25 @@ function handleSaveAppointment() {
     console.log('Patient ID:', $('#patient_id').val());
     console.log('==================');
     
-    // Basic validation
-    if (isNewPatient == '0' && !$('#patient_id').val()) {
-        alert_float('warning', 'Please select a patient');
-        return;
+    // ✅ CRITICAL FIX: Remove patient data if existing patient
+    if (isNewPatient == '0') {
+        // Remove all patient-related fields for existing patients
+        const patientFields = [
+            'name', 'gender', 'age', 'dob', 'patient_type',
+            'mobile_number', 'phone', 'email', 
+            'address', 'address_landmark', 'city', 'state', 'pincode',
+            'registered_other_hospital', 'other_hospital_patient_id',
+            'recommended_to_hospital', 'recommended_by',
+            'membership_id', 'membership_number', 
+            'membership_start_date', 'membership_expiry_date',
+            'recommendation_file[]'
+        ];
+        
+        patientFields.forEach(field => {
+            formData.delete(field);
+        });
+        
+        console.log('Existing patient - removed patient data from submission');
     }
     
     if (!$('#appointment_date').val() || !$('#appointment_time').val() || !$('#consultant_id').val()) {

@@ -248,95 +248,120 @@ class Hospital_management extends AdminController
         
         $this->load->view('appointments', $data);
     }
-    
- public function save_appointment()
+public function save_appointment()
 {
     if (!$this->input->is_ajax_request()) {
         show_404();
     }
 
-    $this->load->model('hospital_appointments_model');
-    
-    $post = $this->input->post();
-    // Access the value:
-    $reason = $data['reason_for_appointment'];
-    // ========== BUILD APPOINTMENT DATA ARRAY ==========
-    $appointment_data = [
-        'patient_id'             => $post['patient_id'] ?? '',
-        'is_new_patient'         => $post['is_new_patient'] ?? 0,
-        'patient_mode'           => $post['patient_mode'] ?? 'appointment',
-        'appointment_date'       => $post['appointment_date'] ?? '',
-        'appointment_time'       => $post['appointment_time'] ?? '',
-       'reason_for_appointment' => !empty($post['reason_for_appointment']) ? $post['reason_for_appointment'] : '',
-        'consultant_id'          => $post['consultant_id'] ?? '',
-        'notes'                  => $post['notes'] ?? '',
-        'status'                 => $post['status'] ?? 'pending',
+    // Add error handling wrapper
+    try {
+        $this->load->model('hospital_appointments_model');
         
-        // Visit detail fields
-        'symptoms'               => $post['symptoms'] ?? null,
-        'referred_by'            => $post['referred_by'] ?? null,
-        'temperature'            => $post['temperature'] ?? null,
-        'blood_pressure'         => $post['blood_pressure'] ?? null,
-        'pulse_rate'             => $post['pulse_rate'] ?? null,
-        'weight'                 => $post['weight'] ?? null,
-        'fee_payment_status'     => $post['fee_payment_status'] ?? 'pending',
-        'fee_amount'             => $post['fee_amount'] ?? null,
-        'payment_method'         => $post['payment_method'] ?? null,
-        'follow_up_required'     => isset($post['follow_up_required']) ? 1 : 0,
-        'follow_up_date'         => $post['follow_up_date'] ?? null,
-    ];
+        $post = $this->input->post();
+        
+        // ========== BUILD APPOINTMENT DATA ARRAY ==========
+        $appointment_data = [
+            'patient_id'             => $post['patient_id'] ?? '',
+            'is_new_patient'         => $post['is_new_patient'] ?? 0,
+            'patient_mode'           => $post['patient_mode'] ?? 'appointment',
+            'appointment_date'       => $post['appointment_date'] ?? '',
+            'appointment_time'       => $post['appointment_time'] ?? '',
+            'reason_for_appointment' => !empty($post['reason_for_appointment']) ? $post['reason_for_appointment'] : '',
+            'consultant_id'          => $post['consultant_id'] ?? '',
+            'notes'                  => $post['notes'] ?? '',
+            'status'                 => $post['status'] ?? 'pending',
+            
+            // FIXED: Changed 'referred_by' to 'visit_referred_by'
+            'symptoms'               => $post['symptoms'] ?? null,
+            'visit_referred_by'      => $post['visit_referred_by'] ?? null,
+            'temperature'            => $post['temperature'] ?? null,
+            'blood_pressure'         => $post['blood_pressure'] ?? null,
+            'pulse_rate'             => $post['pulse_rate'] ?? null,
+            'weight'                 => $post['weight'] ?? null,
+            
+            // NEW: Add fee_payment radio field
+            'fee_payment'            => $post['fee_payment'] ?? 'not_applicable',
+            'fee_payment_status'     => $post['fee_payment_status'] ?? 'pending',
+            'fee_amount'             => $post['fee_amount'] ?? null,
+            'payment_method'         => $post['payment_method'] ?? null,
+            'follow_up_required'     => isset($post['follow_up_required']) ? 1 : 0,
+            'follow_up_date'         => $post['follow_up_date'] ?? null,
+        ];
 
-    // ========== BUILD PATIENT DATA ARRAY (only for new patients) ==========
-    $patient_data = [];
-    
-    if (isset($post['is_new_patient']) && $post['is_new_patient'] == 1) {
-        if (!empty($post['name']) || !empty($post['mobile_number'])) {
-            $patient_data = [
-                'name'                      => $post['name'] ?? '',
-                'gender'                    => $post['gender'] ?? '',
-                'age'                       => $post['age'] ?? null,
-                'dob'                       => $post['dob'] ?? null,
-                'patient_type'              => $post['patient_type'] ?? 'Regular',
-                'mobile_number'             => $post['mobile_number'] ?? '',
-                'phone'                     => $post['phone'] ?? null,
-                'email'                     => $post['email'] ?? null,
-                'address'                   => $post['address'] ?? null,
-                'address_landmark'          => $post['address_landmark'] ?? null,
-                'city'                      => $post['city'] ?? null,
-                'state'                     => $post['state'] ?? null,
-                'pincode'                   => $post['pincode'] ?? null,
-                'registered_other_hospital' => $post['registered_other_hospital'] ?? 0,
-                'other_hospital_patient_id' => $post['other_hospital_patient_id'] ?? null,
-                'fee_payment'               => $post['fee_payment'] ?? 'not_applicable',
-                'recommended_to_hospital'   => $post['recommended_to_hospital'] ?? 0,
-                'recommended_by'            => $post['recommended_by'] ?? null,
-                'has_membership'            => $post['has_membership'] ?? 0,
-                'membership_type'           => $post['membership_type'] ?? null,
-                'membership_number'         => $post['membership_number'] ?? null,
-                'membership_expiry_date'    => $post['membership_expiry_date'] ?? null,
-                'membership_notes'          => $post['membership_notes'] ?? null,
-            ];
+        // ========== BUILD PATIENT DATA ARRAY (only for new patients) ==========
+        $patient_data = [];
+        
+        if (isset($post['is_new_patient']) && $post['is_new_patient'] == 1) {
+            if (!empty($post['name']) || !empty($post['mobile_number'])) {
+                $patient_data = [
+                    // Basic Info
+                    'name'                      => $post['name'] ?? '',
+                    'gender'                    => $post['gender'] ?? '',
+                    'age'                       => $post['age'] ?? null,
+                    'dob'                       => $post['dob'] ?? null,
+                    'patient_type'              => $post['patient_type'] ?? 'Regular',
+                    
+                    // Contact
+                    'mobile_number'             => $post['mobile_number'] ?? '',
+                    'phone'                     => $post['phone'] ?? null,
+                    'email'                     => $post['email'] ?? null,
+                    
+                    // Address
+                    'address'                   => $post['address'] ?? null,
+                    'address_landmark'          => $post['address_landmark'] ?? null,
+                    'city'                      => $post['city'] ?? null,
+                    'state'                     => $post['state'] ?? null,
+                    'pincode'                   => $post['pincode'] ?? null,
+                    
+                    // Other Hospital Registration
+                    'registered_other_hospital' => $post['registered_other_hospital'] ?? 0,
+                    'other_hospital_patient_id' => $post['other_hospital_patient_id'] ?? null,
+                    
+                    // FIXED: Membership fields - now using membership_id
+                    'membership_id'             => !empty($post['membership_id']) ? (int)$post['membership_id'] : null,
+                    'membership_number'         => $post['membership_number'] ?? null,
+                    'membership_start_date'     => $post['membership_start_date'] ?? null,
+                    'membership_expiry_date'    => $post['membership_expiry_date'] ?? null,
+                    
+                    // Recommendation
+                    'recommended_to_hospital'   => $post['recommended_to_hospital'] ?? 0,
+                    'recommended_by'            => $post['recommended_by'] ?? null,
+                ];
+            }
         }
+
+        // ========== HANDLE FILE UPLOADS ==========
+        $files = [];
+        if (!empty($_FILES['recommendation_file']['name'][0])) {
+            $files['recommendation_file'] = $_FILES['recommendation_file'];
+        }
+
+        // ========== CALL MODEL ==========
+        $result = $this->hospital_appointments_model->save($appointment_data, $patient_data, $files);
+
+        // ========== RETURN JSON RESPONSE ==========
+        echo json_encode([
+            'success'            => $result['success'],
+            'message'            => $result['message'],
+            'id'                 => $result['id'] ?? null,
+            'appointment_number' => $result['appointment_number'] ?? null,
+            'csrf_token_name'    => $this->security->get_csrf_token_name(),
+            'csrf_token_hash'    => $this->security->get_csrf_hash(),
+        ]);
+        
+    } catch (Exception $e) {
+        // Log the error
+        log_activity('Appointment Save Error: ' . $e->getMessage());
+        
+        // Return error response
+        echo json_encode([
+            'success'         => false,
+            'message'         => 'Error: ' . $e->getMessage(),
+            'csrf_token_name' => $this->security->get_csrf_token_name(),
+            'csrf_token_hash' => $this->security->get_csrf_hash(),
+        ]);
     }
-
-    // ========== HANDLE FILE UPLOADS ==========
-    $files = [];
-    if (!empty($_FILES['recommendation_file']['name'][0])) {
-        $files['recommendation_file'] = $_FILES['recommendation_file'];
-    }
-
-    // ========== CALL MODEL ==========
-    $result = $this->hospital_appointments_model->save($appointment_data, $patient_data, $files);
-
-    // ========== RETURN JSON RESPONSE ==========
-    echo json_encode([
-        'success'           => $result['success'],
-        'message'           => $result['message'],
-        'id'                => $result['id'] ?? null,
-        'appointment_number' => $result['appointment_number'] ?? null,
-        'csrf_token_name'   => $this->security->get_csrf_token_name(),
-        'csrf_token_hash'   => $this->security->get_csrf_hash(),
-    ]);
 }
      /**
      * Get patients for dropdown (AJAX)
@@ -395,44 +420,78 @@ class Hospital_management extends AdminController
     }
     
 /**
- * Save/Update patient information
+ * Save patient (CREATE or UPDATE from manage_patient.php)
  */
 public function save_patient()
 {
-    if (!$this->input->is_ajax_request()) {
-        show_404();
+    if (!is_hospital_administrator() && !has_permission('hospital_management', '', 'create')) {
+        set_alert('danger', 'You do not have permission to perform this action');
+        redirect(admin_url('hospital_management/patients'));
     }
     
-    if (!is_receptionist() && !has_permission('reception_management', '', 'edit')) {
-        header('Content-Type: application/json');
-        echo json_encode(['success' => false, 'message' => 'No permission']);
-        return;
-    }
-    
-    $patient_id = $this->input->post('id');
-    
-    $data = [
-        'name'                      => $this->input->post('name'),
-        'gender'                    => $this->input->post('gender'),
-        'dob'                       => $this->input->post('dob'),
-        'age'                       => $this->input->post('age'),
-        'address'                   => $this->input->post('address'),
-        'address_landmark'          => $this->input->post('address_landmark'),
-        'city'                      => $this->input->post('city'),
-        'state'                     => $this->input->post('state'),
-        'pincode'                   => $this->input->post('pincode'),
-        'phone'                     => $this->input->post('phone'),
-        'mobile_number'             => $this->input->post('mobile_number'),
-        'email'                     => $this->input->post('email'),
-        'reason_for_appointment'    => $this->input->post('reason_for_appointment'),
-        'patient_type'              => $this->input->post('patient_type'),
-        'fee_payment'               => $this->input->post('fee_payment'),
+    // ✅ COLLECT ALL FORM FIELDS
+    $patient_data = [
+        'id' => $this->input->post('id'),
+        
+        // Basic Info
+        'name' => $this->input->post('name'),
+        'gender' => $this->input->post('gender'),
+        'dob' => $this->input->post('dob'),
+        'age' => $this->input->post('age'),
+        'blood_group' => $this->input->post('blood_group'),
+        'patient_type' => $this->input->post('patient_type'),
+        
+        // Contact Info
+        'mobile_number' => $this->input->post('mobile_number'),
+        'phone' => $this->input->post('phone'),
+        'email' => $this->input->post('email'),
+        
+        // Address Info
+        'address' => $this->input->post('address'),
+        'address_landmark' => $this->input->post('address_landmark'),
+        'city' => $this->input->post('city'),
+        'state' => $this->input->post('state'),
+        'pincode' => $this->input->post('pincode'),
+        
+        // Other Hospital
+        'registered_other_hospital' => $this->input->post('registered_other_hospital') ? 1 : 0,
+        'other_hospital_patient_id' => $this->input->post('other_hospital_patient_id'),
+        
+        // Fee Payment
+        'fee_payment' => $this->input->post('fee_payment'),
+        
+        // Recommendation
+        'recommended_to_hospital' => $this->input->post('recommended_to_hospital') ? 1 : 0,
+        'recommended_by' => $this->input->post('recommended_by'),
+        
+        // Membership
+        'has_membership' => $this->input->post('has_membership') ? 1 : 0,
+        'membership_id' => $this->input->post('membership_id'),
+        'membership_number' => $this->input->post('membership_number'),
+        'membership_start_date' => $this->input->post('membership_start_date'),
+        'membership_expiry_date' => $this->input->post('membership_expiry_date'),
     ];
     
-    $result = $this->hospital_patients_model->update_patient_info($patient_id, $data);
+    // Handle file upload
+    $files = [];
+    if (!empty($_FILES['document_file']['name'])) {
+        $files['document'] = [
+            'file' => $_FILES['document_file'],
+            'type' => $this->input->post('document_type')
+        ];
+    }
     
-    header('Content-Type: application/json');
-    echo json_encode($result);
+    // Save patient
+    $this->load->model('hospital_patients_model');
+    $result = $this->hospital_patients_model->save($patient_data, $files);
+    
+    if ($result['success']) {
+        set_alert('success', $result['message']);
+        redirect(admin_url('hospital_management/view_patient/' . $result['id']));
+    } else {
+        set_alert('danger', $result['message']);
+        redirect(admin_url('hospital_management/manage_patient' . (isset($patient_data['id']) ? '/' . $patient_data['id'] : '')));
+    }
 }
   /**
  * Download patient document (QUICK FIX)
@@ -892,70 +951,6 @@ public function save_visit()
     echo json_encode($result);
 }
 
-/**
- * Consultant: See Patient (Load Visit Form)
- */
-public function consultant_see_patient($appointment_id = '')
-{
-    if (!$this->check_consultant_access()) {
-        access_denied('Consultant Portal');
-    }
-    
-    if (empty($appointment_id)) {
-        redirect(admin_url('hospital_management/consultant_appointments'));
-    }
-    
-    // Load models
-    $this->load->model('consultant_portal_model');
-    $this->load->model('hospital_visits_model');
-    $this->load->model('hospital_patients_model');
-    
-    // Check access permission
-    if (!$this->consultant_portal_model->can_access($appointment_id, get_staff_user_id())) {
-        access_denied('This appointment is not assigned to you');
-    }
-    
-    // Get appointment details
-    $data['appointment'] = $this->consultant_portal_model->get($appointment_id);
-    
-    if (!$data['appointment']) {
-        set_alert('danger', 'Appointment not found');
-        redirect(admin_url('hospital_management/consultant_appointments'));
-    }
-    
-    // Get or create visit record
-    $visit = $this->consultant_portal_model->get_visit_by_appointment($appointment_id);
-    
-    if ($visit) {
-        $data['visit'] = $visit;
-        $data['visit_details'] = $this->hospital_visits_model->get_visit_details($visit['id']);
-    } else {
-        // Create visit if doesn't exist
-        $visit_data = [
-            'patient_id' => $data['appointment']['patient_id'],
-            'appointment_id' => $appointment_id,
-            'consultant_id' => $data['appointment']['consultant_id'],
-            'visit_date' => $data['appointment']['appointment_date'],
-            'visit_time' => $data['appointment']['appointment_time'],
-            'visit_type' => $data['appointment']['patient_mode'] === 'walk_in' ? 'walk_in' : 'appointment',
-            'reason' => $data['appointment']['reason_for_appointment'],
-            'status' => 'ongoing'
-        ];
-        
-        $result = $this->hospital_visits_model->save($visit_data);
-        
-        if ($result['success']) {
-            $data['visit'] = $this->hospital_visits_model->get($result['id']);
-            $data['visit_details'] = null;
-        }
-    }
-    
-    // Get patient types for dropdown
-    $data['patient_types'] = $this->hospital_patients_model->get_patient_types();
-    
-    $data['title'] = 'See Patient - ' . $data['appointment']['patient_name'];
-    $this->load->view('consultant/see_patient', $data);
-}
 
 /**
  * Consultant: Save Visit Details (AJAX)
@@ -1101,5 +1096,142 @@ public function delete_role($role_id)
         header('Content-Type: application/json');
         echo json_encode(['success' => false, 'message' => 'Failed to delete role']);
     }
+}
+
+/**
+ * Consultant sees patient - consultation interface
+ */
+public function consultant_see_patient($appointment_id)
+{
+    // Check if user is consultant or JC
+    if (!is_consultant() && !is_junior_consultant()) {
+        access_denied('Consultant Access Required');
+    }
+    
+    // Get appointment with patient details
+    $this->load->model('consultant_portal_model');
+    $data['appointment'] = $this->consultant_portal_model->get($appointment_id);
+    
+    if (!$data['appointment']) {
+        set_alert('danger', 'Appointment not found');
+        redirect(admin_url('hospital_management/consultant_appointments'));
+    }
+    
+    // Permission check - consultant can only see their own appointments
+    if (!is_junior_consultant() && $data['appointment']['consultant_id'] != get_staff_user_id()) {
+        access_denied('You can only view your own appointments');
+    }
+    
+    // Get patient details
+    $this->load->model('hospital_patients_model');
+    $data['patient'] = $this->hospital_patients_model->get($data['appointment']['patient_id']);
+    
+    // Get visit record for this appointment
+    $data['visit'] = $this->consultant_portal_model->get_visit_by_appointment($appointment_id);
+    
+    // Get previous visits for this patient
+    $this->load->model('hospital_visits_model');
+    $all_visits = $this->hospital_visits_model->get_by_patient($data['patient']->id);
+    
+    // Filter out current visit and limit to last 5
+    $data['previous_visits'] = [];
+    foreach ($all_visits as $visit) {
+        if ($visit->appointment_id != $appointment_id) {
+            $data['previous_visits'][] = [
+                'visit_date' => $visit->visit_date,
+                'visit_time' => $visit->visit_time,
+                'diagnosis' => $visit->diagnosis,
+                'treatment_given' => $visit->treatment_given,
+            ];
+        }
+        if (count($data['previous_visits']) >= 5) break;
+    }
+    
+    $data['title'] = 'Consultation - ' . $data['patient']->name;
+    $this->load->view('consultant_see_patient', $data);
+}
+
+/**
+ * Save consultation data (vitals, diagnosis, prescription, etc.)
+ */
+public function save_consultation()
+{
+    if (!is_consultant() && !is_junior_consultant()) {
+        ajax_access_denied();
+    }
+    
+    $appointment_id = $this->input->post('appointment_id');
+    $patient_id = $this->input->post('patient_id');
+    $visit_id = $this->input->post('visit_id');
+    $action = $this->input->post('action'); // 'save' or 'complete'
+    
+    // Prepare visit data
+    $visit_data = [
+        'id' => $visit_id,
+        'patient_id' => $patient_id,
+        'appointment_id' => $appointment_id,
+        'consultant_id' => get_staff_user_id(),
+        'visit_date' => date('Y-m-d'),
+        'visit_time' => date('H:i:s'),
+        'visit_type' => 'consultation',
+        'reason' => $this->input->post('chief_complaint'),
+        'chief_complaint' => $this->input->post('chief_complaint'),
+        'diagnosis' => $this->input->post('diagnosis'),
+        'treatment_given' => $this->input->post('treatment_given'),
+        'prescription' => $this->input->post('prescription'),
+        'notes' => $this->input->post('notes'),
+        'status' => $action === 'complete' ? 'completed' : 'ongoing',
+    ];
+    
+    // Prepare visit details data
+    $visit_details_data = [
+        'temperature' => $this->input->post('temperature'),
+        'blood_pressure' => $this->input->post('blood_pressure'),
+        'pulse_rate' => $this->input->post('pulse_rate'),
+        'weight' => $this->input->post('weight'),
+        'height' => $this->input->post('height'),
+        'spo2' => $this->input->post('spo2'),
+        'examination_notes' => $this->input->post('examination_notes'),
+        'investigations' => $this->input->post('investigations'),
+        'medical_advice' => $this->input->post('medical_advice'),
+        'follow_up_required' => $this->input->post('follow_up_required') ? 1 : 0,
+        'follow_up_date' => $this->input->post('follow_up_date'),
+    ];
+    
+    // Save visit
+    $this->load->model('hospital_visits_model');
+    $result = $this->hospital_visits_model->save($visit_data, $visit_details_data);
+    
+    if ($result['success']) {
+        // Update appointment status if completed
+        if ($action === 'complete') {
+            $this->load->model('hospital_appointments_model');
+            $this->hospital_appointments_model->update($appointment_id, ['status' => 'completed']);
+        }
+        
+        $message = $action === 'complete' ? 'Consultation completed successfully' : 'Consultation saved successfully';
+        set_alert('success', $message);
+        redirect(admin_url('hospital_management/consultant_appointments'));
+    } else {
+        set_alert('danger', $result['message']);
+        redirect(admin_url('hospital_management/consultant_see_patient/' . $appointment_id));
+    }
+}
+
+/**
+ * Auto-save consultation draft (AJAX)
+ */
+public function autosave_consultation()
+{
+    if (!is_consultant() && !is_junior_consultant()) {
+        echo json_encode(['success' => false, 'message' => 'Access denied']);
+        return;
+    }
+    
+    // Save draft to session or temp table
+    $draft_data = $this->input->post();
+    $this->session->set_userdata('consultation_draft_' . $draft_data['appointment_id'], $draft_data);
+    
+    echo json_encode(['success' => true, 'message' => 'Draft saved']);
 }
 }

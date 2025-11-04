@@ -287,21 +287,32 @@ public function save($data, $patient_data = [], $files = [])
             'status' => 'ongoing'
         ];
 
-        // Visit details data (patient_type and other fields from form)
-        $visit_details_data = [
-            'patient_type_for_visit' => $patient_type_for_visit, // Now safely set for all scenarios
-            'symptoms'               => !empty($data['symptoms']) ? $data['symptoms'] : null,
-            'referred_by'            => !empty($data['referred_by']) ? $data['referred_by'] : null,
-            'temperature'            => !empty($data['temperature']) ? $data['temperature'] : null,
-            'blood_pressure'         => !empty($data['blood_pressure']) ? $data['blood_pressure'] : null,
-            'pulse_rate'             => !empty($data['pulse_rate']) ? $data['pulse_rate'] : null,
-            'weight'                 => !empty($data['weight']) ? $data['weight'] : null,
-            'fee_payment_status'     => !empty($data['fee_payment_status']) ? $data['fee_payment_status'] : 'pending',
-            'fee_amount'             => !empty($data['fee_amount']) ? $data['fee_amount'] : null,
-            'payment_method'         => !empty($data['payment_method']) ? $data['payment_method'] : null,
-            'follow_up_required'     => !empty($data['follow_up_required']) ? 1 : 0,
-            'follow_up_date'         => !empty($data['follow_up_date']) ? $data['follow_up_date'] : null,
-        ];
+   // Visit details data
+$visit_details_data = [
+    'patient_type_for_visit' => $patient_type_for_visit,
+    
+    // NEW: Fee payment radio (from form)
+    'fee_payment'            => !empty($data['fee_payment']) ? $data['fee_payment'] : 'not_applicable',
+    
+    // Visit-specific referral
+    'visit_referred_by'      => !empty($data['visit_referred_by']) ? $data['visit_referred_by'] : null,
+    
+    // Vitals & Medical Data
+    'symptoms'               => !empty($data['symptoms']) ? $data['symptoms'] : null,
+    'temperature'            => !empty($data['temperature']) ? $data['temperature'] : null,
+    'blood_pressure'         => !empty($data['blood_pressure']) ? $data['blood_pressure'] : null,
+    'pulse_rate'             => !empty($data['pulse_rate']) ? $data['pulse_rate'] : null,
+    'weight'                 => !empty($data['weight']) ? $data['weight'] : null,
+    
+    // Fee Details
+    'fee_payment_status'     => !empty($data['fee_payment_status']) ? $data['fee_payment_status'] : 'pending',
+    'fee_amount'             => !empty($data['fee_amount']) ? $data['fee_amount'] : null,
+    'payment_method'         => !empty($data['payment_method']) ? $data['payment_method'] : null,
+    
+    // Follow-up
+    'follow_up_required'     => !empty($data['follow_up_required']) ? 1 : 0,
+    'follow_up_date'         => !empty($data['follow_up_date']) ? $data['follow_up_date'] : null,
+];
 
         // Save visit WITH details
         log_activity('Creating visit for appointment: ' . $insert_id);
