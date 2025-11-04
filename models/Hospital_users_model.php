@@ -1,50 +1,281 @@
 <?php
-
 defined('BASEPATH') or exit('No direct script access allowed');
 
+/**
+ * Hospital Users Model
+ * 
+ * Handles hospital user management including:
+ * - User CRUD operations
+ * - Role management
+ * - Staff record synchronization
+ * - Email validation
+ * - User statistics
+ * 
+ * @package Hospital_Management
+ * @version 2.0
+ */
 class Hospital_users_model extends App_Model
 {
     private $table;
+    private $roles_table;
+    private $staff_table;
     
     public function __construct()
     {
         parent::__construct();
         $this->table = db_prefix() . 'hospital_users';
+        $this->roles_table = db_prefix() . 'roles';
+        $this->staff_table = db_prefix() . 'staff';
     }
+    
+    // ==========================================
+    // USER CRUD OPERATIONS
+    // ==========================================
+    
+    /**
+     * Get user by ID with role name
+     */
+    public function get($id)
+    {
+        $this->db->select($this->table . '.*, ' . $this->roles_table . '.name as role_name');
+        $this->db->join($this->roles_table, $this->roles_table . '.roleid = ' . $this->table . '.role_id', 'left');
+        $this->db->where($this->table . '.id', $id);
+        return $this->db->get($this->table)->row();
+    }
+    
+    /**
+     * Get all users (excluding Admin role)
+     */
+    public function get_all_users()
+    {
+        $this->db->select($this->table . '.*, ' . $this->roles_table . '.name as role_name');
+        $this->db->join($this->roles_table, $this->roles_table . '.roleid = ' . $this->table . '.role_id', 'left');
+        $this->db->where($this->table . '.role_id !=', 6); // Exclude admin role
+        $this->db->order_by($this->table . '.created_at', 'DESC');
+        return $this->db->get($this->table)->result();
+    }
+    
+    /**
+     * Save user (CREATE or UPDATE)
+     * Also creates/updates linked staff record
+     * 
+     * @param array $data User data
+     * @return array ['success' => bool, 'message' => string, 'id' => int]
+     */
+    public function save($data)
+    {
+        $id = isset($data['id']) && !empty($data['id']) ? $data['id'] : null;
+        
+        // Prevent Admin role manipulation
+        if (isset($data['role_id']) && $data['role_id'] == 6) {
+            return ['success' => false, 'message' => 'Cannot create or modify Admin role users'];
+        }
+        
+        // Validate
+        $validation_result = $this->validate_user_data($data, $id);
+        if (!$validation_result['success']) {
+            return $validation_result;
+        }
+        
+        // Check email exists
+        if ($this->email_exists($data['email'], $id)) {
+            return [
+                'success' => false,
+                'message' => 'Email address already exists',
+                'errors' => ['email' => 'Email already exists']
+            ];
+        }
+        
+        // Prepare data
+        $save_data = $this->prepare_user_data($data);
+        
+        if ($id) {
+            // UPDATE
+            return $this->update_user($id, $save_data, $data);
+        } else {
+            // CREATE
+            return $this->create_user($save_data, $data);
+        }
+    }
+    
+    /**
+     * Delete user and linked staff record
+     */
+    public function delete($id)
+    {
+        $user = $this->get($id);
+        if (!$user) {
+            return ['success' => false, 'message' => 'User not found'];
+        }
+        
+        // Prevent deleting admin role users
+        if ($user->role_id == 6) {
+            return ['success' => false, 'message' => 'Cannot delete Admin role users'];
+        }
+        
+        // Delete staff record if exists
+        if (isset($user->staff_id) && $user->staff_id) {
+            $this->db->where('staffid', $user->staff_id);
+            $this->db->delete($this->staff_table);
+        }
+        
+        // Delete hospital user
+        $this->db->where('id', $id);
+        $this->db->delete($this->table);
+        
+        if ($this->db->affected_rows() > 0) {
+            log_activity('Hospital User Deleted [ID: ' . $id . ', Name: ' . $user->first_name . ' ' . $user->last_name . ']');
+            return ['success' => true, 'message' => 'User deleted successfully'];
+        }
+        
+        return ['success' => false, 'message' => 'Failed to delete user'];
+    }
+    
+    // ==========================================
+    // ROLE MANAGEMENT
+    // ==========================================
     
     /**
      * Get allowed roles (exclude Admin role ID 6)
      */
     public function get_allowed_roles()
     {
-        $this->db->where('roleid !=', 6); // Exclude Admin role
+        $this->db->where('roleid !=', 6);
         $this->db->order_by('name', 'ASC');
-        return $this->db->get(db_prefix() . 'roles')->result_array();
+        return $this->db->get($this->roles_table)->result_array();
     }
     
     /**
-     * Get user by ID
+     * Get all roles with user count (excluding admin)
      */
-    public function get($id)
+    public function get_roles_with_count()
     {
-        $this->db->select($this->table . '.*, ' . db_prefix() . 'roles.name as role_name');
-        $this->db->join(db_prefix() . 'roles', db_prefix() . 'roles.roleid = ' . $this->table . '.role_id', 'left');
-        $this->db->where($this->table . '.id', $id);
-        return $this->db->get($this->table)->row();
+        $sql = "SELECT 
+                    r.roleid, 
+                    r.name,
+                    COUNT(hu.id) as user_count
+                FROM " . $this->roles_table . " r
+                LEFT JOIN " . $this->table . " hu ON hu.role_id = r.roleid
+                WHERE r.roleid != 6
+                GROUP BY r.roleid, r.name
+                ORDER BY r.name ASC";
+        
+        return $this->db->query($sql)->result_array();
     }
     
     /**
-     * Get all users (for client-side DataTables)
-     * Simple approach - pulls all data with field names
+     * Get all roles with user count AND assigned users (IMPROVED - NEW METHOD)
+     * Used by the controller for the roles management page
+     * 
+     * @return array Roles with user count and user list
      */
-    public function get_all_users()
+    public function get_roles_with_users()
     {
-        $this->db->select($this->table . '.*, ' . db_prefix() . 'roles.name as role_name');
-        $this->db->join(db_prefix() . 'roles', db_prefix() . 'roles.roleid = ' . $this->table . '.role_id', 'left');
-        $this->db->where($this->table . '.role_id !=', 6); // Exclude admin role
-        $this->db->order_by($this->table . '.created_at', 'DESC');
-        return $this->db->get($this->table)->result();
+        $this->load->model('roles_model');
+        $all_roles = $this->roles_model->get();
+        
+        $roles_with_data = [];
+        foreach ($all_roles as $role) {
+            // Count users
+            $this->db->where('role_id', $role['roleid']);
+            $this->db->where('active', 1);
+            $role['total_users'] = $this->db->count_all_results($this->table);
+            
+            // Get assigned users
+            $this->db->select('id, first_name, last_name');
+            $this->db->where('role_id', $role['roleid']);
+            $this->db->where('active', 1);
+            $role['users'] = $this->db->get($this->table)->result_array();
+            
+            $roles_with_data[] = $role;
+        }
+        
+        return $roles_with_data;
     }
+    
+    /**
+     * Create new role with proper initialization
+     */
+    public function create_role($role_name)
+    {
+        $role_name = trim($role_name);
+        
+        // Prevent creating "Admin" role
+        if (strtolower($role_name) === 'admin') {
+            return ['success' => false, 'message' => 'Cannot create Admin role'];
+        }
+        
+        // Validate role name
+        if (empty($role_name)) {
+            return ['success' => false, 'message' => 'Role name is required'];
+        }
+        
+        if (strlen($role_name) > 150) {
+            return ['success' => false, 'message' => 'Role name too long (max 150 characters)'];
+        }
+        
+        // Check if role exists
+        $exists = $this->db->get_where($this->roles_table, ['name' => $role_name])->num_rows();
+        if ($exists > 0) {
+            return ['success' => false, 'message' => 'Role already exists'];
+        }
+        
+        // Prepare role data with proper Perfex structure
+        $role_data = [
+            'name' => $role_name,
+            'permissions' => serialize([])  // Initialize with empty serialized array
+        ];
+        
+        // Insert into database
+        $this->db->insert($this->roles_table, $role_data);
+        $role_id = $this->db->insert_id();
+        
+        if ($role_id) {
+            log_activity('New Role Created: ' . $role_name . ' [ID: ' . $role_id . ']');
+            return [
+                'success' => true,
+                'message' => 'Role created successfully',
+                'role_id' => $role_id,
+                'role_name' => $role_name
+            ];
+        }
+        
+        return ['success' => false, 'message' => 'Failed to create role'];
+    }
+    
+    /**
+     * Get role permissions (placeholder - implement as needed)
+     */
+    public function get_role_permissions($role_id)
+    {
+        $this->db->select('permissions');
+        $this->db->where('roleid', $role_id);
+        $role = $this->db->get($this->roles_table)->row();
+        
+        if ($role && !empty($role->permissions)) {
+            return unserialize($role->permissions);
+        }
+        
+        return [];
+    }
+    
+    /**
+     * Update role permissions (placeholder - implement as needed)
+     */
+    public function update_role_permissions($role_id, $permissions)
+    {
+        $this->db->where('roleid', $role_id);
+        $this->db->update($this->roles_table, [
+            'permissions' => serialize($permissions)
+        ]);
+        
+        log_activity('Role Permissions Updated [Role ID: ' . $role_id . ']');
+        return ['success' => true, 'message' => 'Permissions updated successfully'];
+    }
+    
+    // ==========================================
+    // STATISTICS & COUNTS
+    // ==========================================
     
     /**
      * Get total count
@@ -54,7 +285,7 @@ class Hospital_users_model extends App_Model
         if ($active_only) {
             $this->db->where('active', 1);
         }
-        $this->db->where('role_id !=', 6); // Exclude admin role
+        $this->db->where('role_id !=', 6);
         return $this->db->count_all_results($this->table);
     }
     
@@ -63,9 +294,9 @@ class Hospital_users_model extends App_Model
      */
     public function get_count_by_role()
     {
-        $this->db->select('role_id, COUNT(*) as count, ' . db_prefix() . 'roles.name as role_name');
-        $this->db->join(db_prefix() . 'roles', db_prefix() . 'roles.roleid = ' . $this->table . '.role_id', 'left');
-        $this->db->where($this->table . '.role_id !=', 6); // Exclude admin role
+        $this->db->select('role_id, COUNT(*) as count, ' . $this->roles_table . '.name as role_name');
+        $this->db->join($this->roles_table, $this->roles_table . '.roleid = ' . $this->table . '.role_id', 'left');
+        $this->db->where($this->table . '.role_id !=', 6);
         $this->db->group_by('role_id');
         return $this->db->get($this->table)->result();
     }
@@ -75,92 +306,43 @@ class Hospital_users_model extends App_Model
      */
     public function get_recent($limit = 5)
     {
-        $this->db->select($this->table . '.*, ' . db_prefix() . 'roles.name as role_name');
-        $this->db->join(db_prefix() . 'roles', db_prefix() . 'roles.roleid = ' . $this->table . '.role_id', 'left');
-        $this->db->where($this->table . '.role_id !=', 6); // Exclude admin role
+        $this->db->select($this->table . '.*, ' . $this->roles_table . '.name as role_name');
+        $this->db->join($this->roles_table, $this->roles_table . '.roleid = ' . $this->table . '.role_id', 'left');
+        $this->db->where($this->table . '.role_id !=', 6);
         $this->db->order_by('created_at', 'DESC');
         $this->db->limit($limit);
         return $this->db->get($this->table)->result();
     }
     
+    // ==========================================
+    // VALIDATION
+    // ==========================================
+    
     /**
-     * Save (Add or Update)
+     * Check if email exists
      */
-    public function save($data)
+    public function email_exists($email, $exclude_id = null)
     {
-        $id = isset($data['id']) && !empty($data['id']) ? $data['id'] : null;
-        
-        // Check if trying to create/edit admin role user
-        if (isset($data['role_id']) && $data['role_id'] == 6) {
-            return ['success' => false, 'message' => 'Cannot create or modify Admin role users'];
+        $this->db->where('email', trim(strtolower($email)));
+        if ($exclude_id) {
+            $this->db->where('id !=', $exclude_id);
         }
-        
-        // Server-side validation
-        $validation_errors = $this->validate_user_data($data, $id);
-        if (!empty($validation_errors)) {
-            return ['success' => false, 'message' => implode('<br>', $validation_errors), 'errors' => $validation_errors];
-        }
-        
-        // Check email exists
-        if ($this->email_exists($data['email'], $id)) {
-            return ['success' => false, 'message' => 'Email address already exists', 'errors' => ['email' => 'Email already exists']];
-        }
-        
-        // Prepare data for hospital_users table
-        $save_data = [
-            'role_id'         => $data['role_id'],
-            'first_name'      => trim($data['first_name']),
-            'last_name'       => trim($data['last_name']),
-            'email'           => trim(strtolower($data['email'])),
-            'phone_number'    => !empty($data['phone_number']) ? trim($data['phone_number']) : null,
-            'landline_number' => !empty($data['landline_number']) ? trim($data['landline_number']) : null,
-            'address'         => !empty($data['address']) ? trim($data['address']) : null,
-            'active'          => isset($data['active']) && $data['active'] == 1 ? 1 : 0,
-        ];
-        
-        // Hash password if provided
-        if (!empty($data['password'])) {
-            $save_data['password'] = app_hash_password($data['password']);
-        }
-        
-        // Update or Insert
-        if ($id) {
-            $save_data['updated_at'] = date('Y-m-d H:i:s');
-            $this->db->where('id', $id);
-            $this->db->update($this->table, $save_data);
-            
-            // Update staff record
-            $this->update_staff_record($id, $data);
-            
-            log_activity('Hospital User Updated [ID: ' . $id . ', Name: ' . $save_data['first_name'] . ' ' . $save_data['last_name'] . ']');
-            return ['success' => true, 'message' => 'User updated successfully'];
-        } else {
-            $save_data['created_at'] = date('Y-m-d H:i:s');
-            $this->db->insert($this->table, $save_data);
-            $insert_id = $this->db->insert_id();
-            
-            // Create staff record
-            $this->create_staff_record($insert_id, $data);
-            
-            log_activity('Hospital User Created [ID: ' . $insert_id . ', Name: ' . $save_data['first_name'] . ' ' . $save_data['last_name'] . ']');
-            return ['success' => true, 'message' => 'User created successfully', 'id' => $insert_id];
-        }
+        return $this->db->get($this->table)->num_rows() > 0;
     }
     
     /**
      * Validate user data
-     * UPDATED: Removed minimum length validation for names and password
      */
     private function validate_user_data($data, $id = null)
     {
         $errors = [];
         
-        // First name - Only check if not empty
+        // First name
         if (empty($data['first_name']) || strlen(trim($data['first_name'])) < 1) {
             $errors['first_name'] = 'First name is required';
         }
         
-        // Last name - Only check if not empty
+        // Last name
         if (empty($data['last_name']) || strlen(trim($data['last_name'])) < 1) {
             $errors['last_name'] = 'Last name is required';
         }
@@ -192,7 +374,71 @@ class Hospital_users_model extends App_Model
             $errors['landline_number'] = 'Invalid landline number format';
         }
         
-        return $errors;
+        if (!empty($errors)) {
+            return ['success' => false, 'message' => implode('<br>', $errors), 'errors' => $errors];
+        }
+        
+        return ['success' => true];
+    }
+    
+    // ==========================================
+    // HELPER METHODS (PRIVATE)
+    // ==========================================
+    
+    /**
+     * Prepare user data array
+     */
+    private function prepare_user_data($data)
+    {
+        $save_data = [
+            'role_id'         => $data['role_id'],
+            'first_name'      => trim($data['first_name']),
+            'last_name'       => trim($data['last_name']),
+            'email'           => trim(strtolower($data['email'])),
+            'phone_number'    => !empty($data['phone_number']) ? trim($data['phone_number']) : null,
+            'landline_number' => !empty($data['landline_number']) ? trim($data['landline_number']) : null,
+            'address'         => !empty($data['address']) ? trim($data['address']) : null,
+            'active'          => isset($data['active']) && $data['active'] == 1 ? 1 : 0,
+        ];
+        
+        // Hash password if provided
+        if (!empty($data['password'])) {
+            $save_data['password'] = app_hash_password($data['password']);
+        }
+        
+        return $save_data;
+    }
+    
+    /**
+     * Update user and staff record
+     */
+    private function update_user($id, $save_data, $data)
+    {
+        $save_data['updated_at'] = date('Y-m-d H:i:s');
+        $this->db->where('id', $id);
+        $this->db->update($this->table, $save_data);
+        
+        // Update staff record
+        $this->update_staff_record($id, $data);
+        
+        log_activity('Hospital User Updated [ID: ' . $id . ', Name: ' . $save_data['first_name'] . ' ' . $save_data['last_name'] . ']');
+        return ['success' => true, 'message' => 'User updated successfully'];
+    }
+    
+    /**
+     * Create user and staff record
+     */
+    private function create_user($save_data, $data)
+    {
+        $save_data['created_at'] = date('Y-m-d H:i:s');
+        $this->db->insert($this->table, $save_data);
+        $insert_id = $this->db->insert_id();
+        
+        // Create staff record
+        $this->create_staff_record($insert_id, $data);
+        
+        log_activity('Hospital User Created [ID: ' . $insert_id . ', Name: ' . $save_data['first_name'] . ' ' . $save_data['last_name'] . ']');
+        return ['success' => true, 'message' => 'User created successfully', 'id' => $insert_id];
     }
     
     /**
@@ -211,7 +457,7 @@ class Hospital_users_model extends App_Model
             'active'      => isset($data['active']) && $data['active'] == 1 ? 1 : 0,
         ];
         
-        $this->db->insert(db_prefix() . 'staff', $staff_data);
+        $this->db->insert($this->staff_table, $staff_data);
         $staff_id = $this->db->insert_id();
         
         // Link hospital_user with staff
@@ -248,119 +494,6 @@ class Hospital_users_model extends App_Model
         }
         
         $this->db->where('staffid', $hospital_user->staff_id);
-        $this->db->update(db_prefix() . 'staff', $staff_data);
+        $this->db->update($this->staff_table, $staff_data);
     }
-    
-    /**
-     * Delete user
-     */
-    public function delete($id)
-    {
-        $user = $this->get($id);
-        if (!$user) {
-            return ['success' => false, 'message' => 'User not found'];
-        }
-        
-        // Prevent deleting admin role users
-        if ($user->role_id == 6) {
-            return ['success' => false, 'message' => 'Cannot delete Admin role users'];
-        }
-        
-        // Delete staff record if exists
-        if (isset($user->staff_id) && $user->staff_id) {
-            $this->db->where('staffid', $user->staff_id);
-            $this->db->delete(db_prefix() . 'staff');
-        }
-        
-        // Delete hospital user
-        $this->db->where('id', $id);
-        $this->db->delete($this->table);
-        
-        if ($this->db->affected_rows() > 0) {
-            log_activity('Hospital User Deleted [ID: ' . $id . ', Name: ' . $user->first_name . ' ' . $user->last_name . ']');
-            return ['success' => true, 'message' => 'User deleted successfully'];
-        }
-        
-        return ['success' => false, 'message' => 'Failed to delete user'];
-    }
-    
-    /**
-     * Check if email exists
-     */
-    public function email_exists($email, $exclude_id = null)
-    {
-        $this->db->where('email', trim(strtolower($email)));
-        if ($exclude_id) {
-            $this->db->where('id !=', $exclude_id);
-        }
-        return $this->db->get($this->table)->num_rows() > 0;
-    }
-    
-    /**
-     * Create new role - FIXED VERSION
-     * Properly initializes permissions field with serialized empty array
-     */
-    public function create_role($role_name)
-    {
-        $role_name = trim($role_name);
-        
-        // Prevent creating "Admin" role
-        if (strtolower($role_name) === 'admin') {
-            return ['success' => false, 'message' => 'Cannot create Admin role'];
-        }
-        
-        // Validate role name
-        if (empty($role_name)) {
-            return ['success' => false, 'message' => 'Role name is required'];
-        }
-        
-        if (strlen($role_name) > 150) {
-            return ['success' => false, 'message' => 'Role name too long (max 150 characters)'];
-        }
-        
-        // Check if role exists
-        $exists = $this->db->get_where(db_prefix() . 'roles', ['name' => $role_name])->num_rows();
-        if ($exists > 0) {
-            return ['success' => false, 'message' => 'Role already exists'];
-        }
-        
-        // Prepare role data with proper Perfex structure
-        $role_data = [
-            'name' => $role_name,
-            'permissions' => serialize([])  // FIXED: Initialize with empty serialized array
-        ];
-        
-        // Insert into database
-        $this->db->insert(db_prefix() . 'roles', $role_data);
-        $role_id = $this->db->insert_id();
-        
-        if ($role_id) {
-            log_activity('New Role Created: ' . $role_name . ' [ID: ' . $role_id . ']');
-            return [
-                'success' => true, 
-                'message' => 'Role created successfully', 
-                'role_id' => $role_id, 
-                'role_name' => $role_name
-            ];
-        }
-        
-        return ['success' => false, 'message' => 'Failed to create role'];
-    }
-    /**
- * Get all roles with user count (excluding admin)
- */
-public function get_roles_with_count()
-{
-    $sql = "SELECT 
-                r.roleid, 
-                r.name,
-                COUNT(hu.id) as user_count
-            FROM " . db_prefix() . "roles r
-            LEFT JOIN " . $this->table . " hu ON hu.role_id = r.roleid
-            WHERE r.roleid != 6
-            GROUP BY r.roleid, r.name
-            ORDER BY r.name ASC";
-    
-    return $this->db->query($sql)->result_array();
-}
 }

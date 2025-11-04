@@ -1122,14 +1122,43 @@ function handleSaveAppointment() {
     const isNewPatient = $('#is_new_patient').val();
     const patientMode = $('#patient_mode').val();
     const reason = $('#reason_for_appointment').val();
+    
     console.log('=== SAVE DEBUG ===');
     console.log('Is New Patient:', isNewPatient);
     console.log('Patient Mode:', patientMode);
-    console.log('Reason for Appointment:', $('#reason_for_appointment').val());
+    console.log('Reason for Appointment:', reason);
     console.log('Patient ID:', $('#patient_id').val());
     console.log('==================');
     
-    // ✅ CRITICAL FIX: Remove patient data if existing patient
+    // Validate appointment fields first
+    if (!$('#appointment_date').val() || !$('#appointment_time').val() || !$('#consultant_id').val()) {
+        alert_float('warning', 'Please fill all required appointment fields (Date, Time, Consultant)');
+        return;
+    }
+    
+    // Validate patient data for new patients
+    if (isNewPatient == '1') {
+        const name = $('#name').val();
+        const mobile = $('#mobile_number').val();
+        
+        if (!name || !mobile) {
+            alert_float('warning', 'Please fill patient name and mobile number');
+            return;
+        }
+        
+        // Validate mobile format
+        if (!/^[6-9]\d{9}$/.test(mobile)) {
+            alert_float('warning', 'Please enter a valid 10-digit mobile number');
+            return;
+        }
+    }
+    
+    $btn.prop('disabled', true).html('<i class="fa fa-spinner fa-spin"></i> Processing...');
+    
+    // ✅ STEP 1: Create FormData FIRST
+    const formData = new FormData($('#appointmentForm')[0]);
+    
+    // ✅ STEP 2: Remove patient data if existing patient
     if (isNewPatient == '0') {
         // Remove all patient-related fields for existing patients
         const patientFields = [
@@ -1150,62 +1179,28 @@ function handleSaveAppointment() {
         console.log('Existing patient - removed patient data from submission');
     }
     
-    if (!$('#appointment_date').val() || !$('#appointment_time').val() || !$('#consultant_id').val()) {
-        alert_float('warning', 'Please fill all required appointment fields (Date, Time, Consultant)');
-        return;
-    }
-    
-    // CRITICAL FIX: Don't validate reason for walk-ins - let server handle it
-    
-
-    
-    // Validate patient data for new patients
-    if (isNewPatient == '1') {
-        const name = $('#name').val();
-        const mobile = $('#mobile_number').val();
-        
-        console.log('Patient Name:', name);
-        console.log('Patient Mobile:', mobile);
-        
-        if (!name || !mobile) {
-            alert_float('warning', 'Please fill patient name and mobile number');
-            return;
-        }
-        
-        // Validate mobile format
-        if (!/^[6-9]\d{9}$/.test(mobile)) {
-            alert_float('warning', 'Please enter a valid 10-digit mobile number');
-            return;
-        }
-    }
-    
-    $btn.prop('disabled', true).html('<i class="fa fa-spinner fa-spin"></i> Processing...');
-    
-    // Create FormData
-    const formData = new FormData($('#appointmentForm')[0]);
-    
-    // CRITICAL: Explicitly add hidden fields to ensure they're sent
+    // ✅ STEP 3: Explicitly add hidden fields
     formData.set('patient_id', $('#patient_id').val());
-    formData.set('is_new_patient', $('#is_new_patient').val());
-    formData.set('patient_mode', $('#patient_mode').val());
+    formData.set('is_new_patient', isNewPatient);
+    formData.set('patient_mode', patientMode);
     
-    // If reason is empty for walk-in, explicitly set to empty (server will default it)
+    // If reason is empty for walk-in, set to empty (server will default it)
     if (!reason && patientMode === 'walk_in') {
         formData.set('reason_for_appointment', '');
         console.log('Reason empty for walk-in - server will default');
     }
     
-    // Add CSRF token
+    // ✅ STEP 4: Add CSRF token
     formData.append(csrfTokenName, csrfTokenHash);
     
-    // Debug: Log what we're sending
+    // Debug log
     console.log('=== FORM DATA BEING SENT ===');
     for (let pair of formData.entries()) {
         console.log(pair[0] + ': ' + pair[1]);
     }
     console.log('============================');
     
-    // Submit
+    // ✅ STEP 5: Submit
     $.ajax({
         url: admin_url + 'hospital_management/save_appointment',
         type: 'POST',
@@ -1217,7 +1212,6 @@ function handleSaveAppointment() {
             console.log('Server Response:', response);
             
             if (response.success) {
-                // Update CSRF token
                 if (response.csrf_token_name && response.csrf_token_hash) {
                     csrfTokenName = response.csrf_token_name;
                     csrfTokenHash = response.csrf_token_hash;

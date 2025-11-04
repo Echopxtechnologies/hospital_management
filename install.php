@@ -175,9 +175,8 @@ if (!$CI->db->table_exists(db_prefix() . 'hospital_patients')) {
     
     log_activity('Hospital Management Module - Table Created: hospital_patients');
 }
-
 // ==========================================
-// TABLE 4: hospital_appointments
+// TABLE 4: hospital_appointments (CLEANED)
 // ==========================================
 if (!$CI->db->table_exists(db_prefix() . 'hospital_appointments')) {
     
@@ -185,13 +184,10 @@ if (!$CI->db->table_exists(db_prefix() . 'hospital_appointments')) {
         `id` INT(11) NOT NULL AUTO_INCREMENT,
         `appointment_number` VARCHAR(50) NOT NULL,
         `patient_id` INT(11) NOT NULL,
-        `patient_mode` ENUM('appointment', 'walk_in') NOT NULL DEFAULT 'appointment',
-        `is_new_patient` TINYINT(1) NOT NULL DEFAULT 1,
         
         -- Appointment Details
         `appointment_date` DATE NOT NULL,
         `appointment_time` TIME DEFAULT NULL,
-        `reason_for_appointment` ENUM('consultation', 'procedure', 'surgery') NOT NULL,
         `consultant_id` INT(11) NOT NULL COMMENT 'Staff ID from staff table',
         
         -- Status
