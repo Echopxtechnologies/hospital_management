@@ -75,36 +75,6 @@ if (!$CI->db->table_exists(db_prefix() . 'hospital_patient_types')) {
     log_activity('Hospital Management Module - Table Created: hospital_patient_types');
 }
 
-// ==========================================
-// TABLE 2.5: hospital_memberships (NEW - MASTER TABLE)
-// ==========================================
-if (!$CI->db->table_exists(db_prefix() . 'hospital_memberships')) {
-    
-    $CI->db->query("CREATE TABLE `" . db_prefix() . "hospital_memberships` (
-        `id` INT(11) NOT NULL AUTO_INCREMENT,
-        `membership_name` VARCHAR(100) NOT NULL COMMENT 'e.g., Gold, Silver, Platinum, Corporate',
-        `membership_code` VARCHAR(50) DEFAULT NULL,
-        `description` TEXT DEFAULT NULL,
-        `validity_months` INT(11) DEFAULT 12 COMMENT 'How many months membership is valid',
-        `benefits` TEXT DEFAULT NULL,
-        `is_active` TINYINT(1) NOT NULL DEFAULT 1,
-        `display_order` INT(11) DEFAULT 0,
-        `created_at` DATETIME DEFAULT CURRENT_TIMESTAMP,
-        PRIMARY KEY (`id`),
-        UNIQUE KEY `membership_name` (`membership_name`)
-    ) ENGINE=InnoDB DEFAULT CHARSET=" . $CI->db->char_set . ";");
-    
-    // Insert sample membership types
-    $CI->db->insert_batch(db_prefix() . 'hospital_memberships', [
-        ['membership_name' => 'Gold Membership', 'membership_code' => 'GOLD', 'validity_months' => 12, 'is_active' => 1, 'display_order' => 1],
-        ['membership_name' => 'Silver Membership', 'membership_code' => 'SILVER', 'validity_months' => 6, 'is_active' => 1, 'display_order' => 2],
-        ['membership_name' => 'Platinum Membership', 'membership_code' => 'PLATINUM', 'validity_months' => 24, 'is_active' => 1, 'display_order' => 3],
-        ['membership_name' => 'Corporate Membership', 'membership_code' => 'CORPORATE', 'validity_months' => 12, 'is_active' => 1, 'display_order' => 4],
-        ['membership_name' => 'Family Membership', 'membership_code' => 'FAMILY', 'validity_months' => 12, 'is_active' => 1, 'display_order' => 5],
-    ]);
-    
-    log_activity('Hospital Management Module - Table Created: hospital_memberships');
-}
 
 // ==========================================
 // TABLE 3: hospital_patients (UPDATED WITH MEMBERSHIP_ID)
@@ -141,11 +111,8 @@ if (!$CI->db->table_exists(db_prefix() . 'hospital_patients')) {
         `other_hospital_patient_id` VARCHAR(100) DEFAULT NULL COMMENT 'Patient ID from other hospital',
         
         -- Membership Details (ONLY FK + unique number + dates)
-        `membership_id` INT(11) DEFAULT NULL COMMENT 'FK to hospital_memberships table',
-        `membership_number` VARCHAR(100) DEFAULT NULL COMMENT 'Unique membership number for this patient',
-        `membership_start_date` DATE DEFAULT NULL,
-        `membership_expiry_date` DATE DEFAULT NULL,
-        
+       `membership_id` VARCHAR(100) DEFAULT NULL COMMENT 'Patient membership ID - simple text field',
+
         -- Recommendation (STATIC)
         `recommended_to_hospital` TINYINT(1) DEFAULT 0 COMMENT '0=No, 1=Yes',
         `recommended_by` VARCHAR(200) DEFAULT NULL COMMENT 'Who recommended patient to hospital',
@@ -166,11 +133,7 @@ if (!$CI->db->table_exists(db_prefix() . 'hospital_patients')) {
         KEY `mobile_number` (`mobile_number`),
         KEY `email` (`email`),
         KEY `patient_type` (`patient_type`),
-        KEY `membership_id` (`membership_id`),
         KEY `created_by` (`created_by`),
-        CONSTRAINT `fk_patient_membership` FOREIGN KEY (`membership_id`) 
-            REFERENCES `" . db_prefix() . "hospital_memberships` (`id`) 
-            ON DELETE SET NULL ON UPDATE CASCADE
     ) ENGINE=InnoDB DEFAULT CHARSET=" . $CI->db->char_set . ";");
     
     log_activity('Hospital Management Module - Table Created: hospital_patients');

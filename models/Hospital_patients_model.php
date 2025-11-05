@@ -183,16 +183,6 @@ public function get_patients_for_dropdown($search = '')
     $this->db->order_by('created_at', 'DESC');
     return $this->db->get($this->table)->result_array();
 }
- /**
- * Get all active membership types
- */
-public function get_memberships()
-{
-    $this->db->select('*');
-    $this->db->where('is_active', 1);
-    $this->db->order_by('display_order', 'ASC');
-    return $this->db->get(db_prefix() . 'hospital_memberships')->result_array();
-}
 
 /**
  * Save patient with membership_id
@@ -233,10 +223,7 @@ public function save($data, $files = [])
         'other_hospital_patient_id'  => !empty($data['other_hospital_patient_id']) ? $data['other_hospital_patient_id'] : null,
         
         // Membership
-        'membership_id'              => !empty($data['membership_id']) ? (int)$data['membership_id'] : null,
-        'membership_number'          => !empty($data['membership_number']) ? $data['membership_number'] : null,
-        'membership_start_date'      => !empty($data['membership_start_date']) ? $data['membership_start_date'] : null,
-        'membership_expiry_date'     => !empty($data['membership_expiry_date']) ? $data['membership_expiry_date'] : null,
+       'membership_id' => !empty($data['membership_id']) ? trim($data['membership_id']) : null,
         
         // ✅ CORRECT: Use 'recommended_by' not 'referred_by'
         'recommended_to_hospital'    => isset($data['recommended_to_hospital']) ? (int)$data['recommended_to_hospital'] : 0,
@@ -437,11 +424,7 @@ public function update_patient_info($patient_id, $data, $files = [])
         
         'registered_other_hospital'  => isset($data['registered_other_hospital']) ? (int)$data['registered_other_hospital'] : 0,
         'other_hospital_patient_id'  => !empty($data['other_hospital_patient_id']) ? $data['other_hospital_patient_id'] : null,
-        
-        'membership_id'              => !empty($data['membership_id']) ? (int)$data['membership_id'] : null,
-        'membership_number'          => !empty($data['membership_number']) ? $data['membership_number'] : null,
-        'membership_start_date'      => !empty($data['membership_start_date']) ? $data['membership_start_date'] : null,
-        'membership_expiry_date'     => !empty($data['membership_expiry_date']) ? $data['membership_expiry_date'] : null,
+        'membership_id' => !empty($data['membership_id']) ? trim($data['membership_id']) : null,
         
         // ✅ CORRECT: Use 'recommended_by' not 'referred_by'
         'recommended_to_hospital'    => isset($data['recommended_to_hospital']) ? (int)$data['recommended_to_hospital'] : 0,
@@ -534,25 +517,8 @@ public function update_patient_info($patient_id, $data, $files = [])
         $update_data['recommended_by'] = !empty($data['recommended_by']) ? trim($data['recommended_by']) : null;
     }
     
-    // Membership fields
-    if (isset($data['has_membership'])) {
-        $update_data['has_membership'] = (int)$data['has_membership'];
-    }
-    
-    if (isset($data['membership_type'])) {
-        $update_data['membership_type'] = !empty($data['membership_type']) ? trim($data['membership_type']) : null;
-    }
-    
-    if (isset($data['membership_number'])) {
-        $update_data['membership_number'] = !empty($data['membership_number']) ? trim($data['membership_number']) : null;
-    }
-    
-    if (isset($data['membership_expiry_date'])) {
-        $update_data['membership_expiry_date'] = !empty($data['membership_expiry_date']) ? $data['membership_expiry_date'] : null;
-    }
-    
-    if (isset($data['membership_notes'])) {
-        $update_data['membership_notes'] = !empty($data['membership_notes']) ? trim($data['membership_notes']) : null;
+    if (isset($data['membership_id'])) {
+        $update_data['membership_id'] = !empty($data['membership_id']) ? trim($data['membership_id']) : null;
     }
     
     // Update if there's data to update

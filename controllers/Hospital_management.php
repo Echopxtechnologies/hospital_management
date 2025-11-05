@@ -389,11 +389,7 @@ class Hospital_management extends AdminController
             'recommended_by' => $this->input->post('recommended_by'),
             
             // Membership
-            'has_membership' => $this->input->post('has_membership') ? 1 : 0,
-            'membership_id' => $this->input->post('membership_id'),
-            'membership_number' => $this->input->post('membership_number'),
-            'membership_start_date' => $this->input->post('membership_start_date'),
-            'membership_expiry_date' => $this->input->post('membership_expiry_date'),
+            'membership_id' => $this->input->post('membership_id') ?: null,
         ];
         
         // Handle file upload
@@ -573,10 +569,7 @@ class Hospital_management extends AdminController
                         'other_hospital_patient_id' => $post['other_hospital_patient_id'] ?? null,
                         
                         // Membership
-                        'membership_id'             => !empty($post['membership_id']) ? (int)$post['membership_id'] : null,
-                        'membership_number'         => $post['membership_number'] ?? null,
-                        'membership_start_date'     => $post['membership_start_date'] ?? null,
-                        'membership_expiry_date'    => $post['membership_expiry_date'] ?? null,
+                       'membership_id' => !empty($post['membership_id']) ? trim($post['membership_id']) : null,
                         
                         // Recommendation
                         'recommended_to_hospital'   => $post['recommended_to_hospital'] ?? 0,
@@ -886,17 +879,30 @@ class Hospital_management extends AdminController
         
         // Prepare visit details data
         $visit_details_data = [
-            'temperature' => $this->input->post('temperature'),
-            'blood_pressure' => $this->input->post('blood_pressure'),
-            'pulse_rate' => $this->input->post('pulse_rate'),
-            'weight' => $this->input->post('weight'),
-            'height' => $this->input->post('height'),
-            'spo2' => $this->input->post('spo2'),
-            'examination_notes' => $this->input->post('examination_notes'),
-            'investigations' => $this->input->post('investigations'),
-            'medical_advice' => $this->input->post('medical_advice'),
-            'follow_up_required' => $this->input->post('follow_up_required') ? 1 : 0,
-            'follow_up_date' => $this->input->post('follow_up_date'),
+          // Vitals
+    'temperature' => $this->input->post('temperature'),
+    'blood_pressure' => $this->input->post('blood_pressure'),
+    'pulse_rate' => $this->input->post('pulse_rate'),
+    'weight' => $this->input->post('weight'),
+    'height' => $this->input->post('height'),
+    'spo2' => $this->input->post('spo2'),
+    
+    // Medical Info (map your fields to existing columns)
+    'symptoms' => $this->input->post('symptoms'),
+    'medical_history' => $this->input->post('examination_notes'), // ✅ Map to existing column
+    'allergies' => $this->input->post('allergies'),
+    'current_medications' => $this->input->post('current_medications'),
+    
+    // Tests
+    'lab_tests_ordered' => $this->input->post('investigations'), // ✅ Map to existing column
+    'lab_results' => $this->input->post('lab_results'),
+    'imaging_ordered' => $this->input->post('imaging_ordered'),
+    'imaging_results' => $this->input->post('imaging_results'),
+    
+    // Follow-up
+    'follow_up_required' => $this->input->post('follow_up_required') ? 1 : 0,
+    'follow_up_date' => $this->input->post('follow_up_date'),
+    'follow_up_notes' => $this->input->post('medical_advice'), 
         ];
         
         // Save visit

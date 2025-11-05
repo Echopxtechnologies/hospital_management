@@ -564,74 +564,26 @@
                         </div>
                         
                         <!-- Membership Section -->
-                        <div id="membership_section">
-                            <div class="form-section-title"><i class="fa fa-id-card"></i> Membership Details</div>
-                            
-                            <div class="row">
-                                <div class="col-md-12">
-                                    <div class="form-group">
-                                        <label class="control-label">Do You Have Hospital Membership?</label>
-                                        <div>
-                                            <label class="radio-inline">
-                                                <input type="radio" name="has_membership" value="1" class="membership_toggle"> Yes
-                                            </label>
-                                            <label class="radio-inline">
-                                                <input type="radio" name="has_membership" value="0" class="membership_toggle" checked> No
-                                            </label>
+             
+                                <div id="membership_section">
+                                    <div class="form-section-title"><i class="fa fa-id-card"></i> Membership (Optional)</div>
+                                    
+                                    <div class="row">
+                                        <div class="col-md-6">
+                                            <div class="form-group">
+                                                <label>Membership ID</label>
+                                                <input type="text" 
+                                                    name="membership_id" 
+                                                    id="membership_id" 
+                                                    class="form-control" 
+                                                    placeholder="e.g., MEM2025001 or GOLD12345"
+                                                    maxlength="100">
+                                                <small class="text-muted">Enter patient's membership ID if they have one</small>
+                                            </div>
                                         </div>
                                     </div>
                                 </div>
-                            </div>
-                            
-                       <div id="membership_details" style="display:none;">
-    <div class="row">
-        <div class="col-md-6">
-            <div class="form-group">
-                <label class="control-label">Membership Type</label>
-                <select name="membership_id" id="membership_id" class="form-control selectpicker" data-width="100%">
-                    <option value="">-- Select Membership Type --</option>
-                    <?php 
-                    $this->load->model('hospital_patients_model');
-                    $memberships = $this->hospital_patients_model->get_memberships();
-                    foreach ($memberships as $membership) {
-                        echo '<option value="' . $membership['id'] . '">' . $membership['membership_name'];
-                        if (!empty($membership['validity_months'])) {
-                            echo ' (' . $membership['validity_months'] . ' months)';
-                        }
-                        echo '</option>';
-                    }
-                    ?>
-                </select>
-                <small class="text-muted">Select the type of membership</small>
-            </div>
-        </div>
-        
-        <div class="col-md-6">
-            <div class="form-group">
-                <label class="control-label">Membership Number</label>
-                <input type="text" name="membership_number" id="membership_number" class="form-control" placeholder="e.g., MEM2025001">
-                <small class="text-muted">Unique membership card number</small>
-            </div>
-        </div>
-    </div>
-    
-    <div class="row">
-        <div class="col-md-6">
-            <div class="form-group">
-                <label class="control-label">Start Date</label>
-                <input type="date" name="membership_start_date" id="membership_start_date" class="form-control">
-            </div>
-        </div>
-        
-        <div class="col-md-6">
-            <div class="form-group">
-                <label class="control-label">Expiry Date</label>
-                <input type="date" name="membership_expiry_date" id="membership_expiry_date" class="form-control">
-            </div>
-        </div>
-    </div>
-</div>
-                        </div>
+                    
                     </div>
                     
                     <!-- ========== SECTION 3: APPOINTMENT DETAILS (ALWAYS VISIBLE) ========== -->
@@ -839,15 +791,6 @@ $(document).ready(function() {
         } else {
             $('#other_hospital_id_section').slideUp();
             $('#other_hospital_patient_id').val(''); // Clear value when hidden
-        }
-    });
-    
-    // Membership Toggle
-    $('.membership_toggle').on('change', function() {
-        if ($('input[name="has_membership"]:checked').val() == '1') {
-            $('#membership_details').slideDown();
-        } else {
-            $('#membership_details').slideUp();
         }
     });
     
@@ -1167,8 +1110,7 @@ function handleSaveAppointment() {
             'address', 'address_landmark', 'city', 'state', 'pincode',
             'registered_other_hospital', 'other_hospital_patient_id',
             'recommended_to_hospital', 'recommended_by',
-            'membership_id', 'membership_number', 
-            'membership_start_date', 'membership_expiry_date',
+            'membership_id',
             'recommendation_file[]'
         ];
         
@@ -1261,7 +1203,7 @@ function resetModal() {
     $('#patientFormSection').hide();
     $('#existingPatientModeSection').hide();
     $('#recommendation_details').hide();
-    $('#membership_details').hide();
+    $('#membership_id').val('');
     
     $('.selectpicker').selectpicker('refresh');
     
