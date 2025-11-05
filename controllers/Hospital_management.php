@@ -308,112 +308,186 @@ class Hospital_management extends AdminController
         $this->load->view('patient_records', $data);
     }
 
-    /**
-     * Manage patient form (Edit)
-     */
-    public function manage_patient($id = null)
-    {
-        if (!$id) {
-            redirect(admin_url('hospital_management/patient_records'));
-        }
-        
-        $this->check_receptionist_access('reception_management', 'view');
-        
+   /**
+ * Manage patient form (Create/Edit)
+ */
+public function manage_patient($id = null)
+{
+    // Permission check
+    if ($id) {
+        $this->check_permission('hospital_management', 'edit');
         $data['patient'] = $this->hospital_patients_model->get($id);
+        
         if (!$data['patient']) {
             show_404();
         }
         
-        $data['patient_types'] = $this->hospital_patients_model->get_patient_types();
-        $data['title'] = 'Update Patient Information';
-        
-        $this->load->view('manage_patient', $data);
-    }
-
-    /**
-     * View patient details
-     */
-    public function view_patient($id)
-    {
-        $this->check_receptionist_access('reception_management', 'view');
-        
-        $data['patient'] = $this->hospital_patients_model->get($id);
-        if (!$data['patient']) {
-            show_404();
-        }
-        
-        $data['title'] = 'Patient Details - ' . $data['patient']->name;
-        $this->load->view('view_patient', $data);
-    }
-
-    /**
-     * Save patient (POST)
-     */
-    public function save_patient()
-    {
+        // Get patient documents if editing
+        $data['documents'] = $this->hospital_patients_model->get_patient_documents($id);
+        $data['title'] = 'Edit Patient';
+    } else {
         $this->check_permission('hospital_management', 'create');
+        $data['documents'] = [];
+        $data['title'] = 'Add New Patient';
+    }
+    
+    // Get patient types for dropdown
+    $data['patient_types'] = $this->hospital_patients_model->get_patient_types();
+    
+    $this->load->view('manage_patient', $data);
+}
+
+/**
+ * View patient details with all related data
+ */
+public function view_patient($id)
+{
+    $this->check_permission('hospital_management', 'view');
+    
+    // Get patient basic info
+    $data['patient'] = $this->hospital_patients_model->get($id);
+    if (!$data['patient']) {
+        show_404();
+    }
+    
+    // Get appointments for this patient
+    $this->db->select(
+        db_prefix() . 'hospital_appointments.*,' .
+        db_prefix() . 'staff.firstname as consultant_firstname,' .
+        db_prefix() . 'staff.lastname as consultant_lastname'
+    );
+    $this->db->from(db_prefix() . 'hospital_appointments');
+    $this->db->join(db_prefix() . 'staff', db_prefix() . 'staff.staffid = ' . db_prefix() . 'hospital_appointments.consultant_id', 'left');
+    $this->db->where(db_prefix() . 'hospital_appointments.patient_id', $id);
+    $this->db->order_by(db_prefix() . 'hospital_appointments.appointment_date', 'DESC');
+    $data['appointments'] = $this->db->get()->result();
+    
+    // Get visits for this patient
+    $this->db->select(
+        db_prefix() . 'hospital_visits.*,' .
+        db_prefix() . 'staff.firstname as consultant_firstname,' .
+        db_prefix() . 'staff.lastname as consultant_lastname'
+    );
+    $this->db->from(db_prefix() . 'hospital_visits');
+    $this->db->join(db_prefix() . 'staff', db_prefix() . 'staff.staffid = ' . db_prefix() . 'hospital_visits.consultant_id', 'left');
+    $this->db->where(db_prefix() . 'hospital_visits.patient_id', $id);
+    $this->db->order_by(db_prefix() . 'hospital_visits.visit_date', 'DESC');
+    $data['visits'] = $this->db->get()->result();
+    
+    // Get documents for this patient - USE result_array() because model returns array
+    $data['documents'] = $this->hospital_patients_model->get_patient_documents($id);
+    
+    $data['title'] = 'Patient Details - ' . $data['patient']->name;
+    $this->load->view('view_patient', $data);
+}
+
+/**
+ * Save patient (Create/Update)
+ */
+public function save_patient()
+{
+    // Permission check
+    $id = $this->input->post('id');
+    if ($id) {
+        $this->check_permission('hospital_management', 'edit');
+    } else {
+        $this->check_permission('hospital_management', 'create');
+    }
+    
+    // Collect form data
+    $patient_data = [
+        'id' => $id,
         
-        // Collect all form fields
-        $patient_data = [
-            'id' => $this->input->post('id'),
-            
-            // Basic Info
-            'name' => $this->input->post('name'),
-            'gender' => $this->input->post('gender'),
-            'dob' => $this->input->post('dob'),
-            'age' => $this->input->post('age'),
-            'blood_group' => $this->input->post('blood_group'),
-            'patient_type' => $this->input->post('patient_type'),
-            
-            // Contact Info
-            'mobile_number' => $this->input->post('mobile_number'),
-            'phone' => $this->input->post('phone'),
-            'email' => $this->input->post('email'),
-            
-            // Address Info
-            'address' => $this->input->post('address'),
-            'address_landmark' => $this->input->post('address_landmark'),
-            'city' => $this->input->post('city'),
-            'state' => $this->input->post('state'),
-            'pincode' => $this->input->post('pincode'),
-            
-            // Other Hospital
-            'registered_other_hospital' => $this->input->post('registered_other_hospital') ? 1 : 0,
-            'other_hospital_patient_id' => $this->input->post('other_hospital_patient_id'),
-            
-            // Fee Payment
-            'fee_payment' => $this->input->post('fee_payment'),
-            
-            // Recommendation
-            'recommended_to_hospital' => $this->input->post('recommended_to_hospital') ? 1 : 0,
-            'recommended_by' => $this->input->post('recommended_by'),
-            
-            // Membership
-            'membership_id' => $this->input->post('membership_id') ?: null,
-        ];
+        // Basic Info
+        'name' => $this->input->post('name'),
+        'gender' => $this->input->post('gender'),
+        'dob' => $this->input->post('dob'),
+        'age' => $this->input->post('age'),
+        'blood_group' => $this->input->post('blood_group'),
+        'patient_type' => $this->input->post('patient_type'),
         
-        // Handle file upload
-        $files = [];
-        if (!empty($_FILES['document_file']['name'])) {
-            $files['document'] = [
-                'file' => $_FILES['document_file'],
-                'type' => $this->input->post('document_type')
+        // Contact Info
+        'mobile_number' => $this->input->post('mobile_number'),
+        'phone' => $this->input->post('phone'),
+        'email' => $this->input->post('email'),
+        
+        // Address Info
+        'address' => $this->input->post('address'),
+        'address_landmark' => $this->input->post('address_landmark'),
+        'city' => $this->input->post('city'),
+        'state' => $this->input->post('state'),
+        'pincode' => $this->input->post('pincode'),
+        
+        // Membership
+        'membership_id' => $this->input->post('membership_id'),
+        
+        // Other Hospital
+        'registered_other_hospital' => $this->input->post('registered_other_hospital') ? 1 : 0,
+        'other_hospital_patient_id' => $this->input->post('other_hospital_patient_id'),
+        
+        // Recommendation
+        'recommended_to_hospital' => $this->input->post('recommended_to_hospital') ? 1 : 0,
+        'recommended_by' => $this->input->post('recommended_by'),
+        
+        // Emergency Contact
+        'emergency_contact_name' => $this->input->post('emergency_contact_name'),
+        'emergency_contact_number' => $this->input->post('emergency_contact_number'),
+        'emergency_contact_relation' => $this->input->post('emergency_contact_relation'),
+    ];
+    
+    // Handle document upload
+    $document_type = $this->input->post('document_type');
+    $uploaded_documents = [];
+    
+    if (!empty($_FILES['document_file']['name'])) {
+        $config['upload_path'] = TEMP_FOLDER;
+        $config['allowed_types'] = 'pdf|jpg|jpeg|png|doc|docx';
+        $config['max_size'] = 5120; // 5MB
+        
+        $this->load->library('upload', $config);
+        
+        if ($this->upload->do_upload('document_file')) {
+            $upload_data = $this->upload->data();
+            $uploaded_documents[$document_type] = [
+                'name' => $upload_data['file_name'],
+                'type' => $upload_data['file_type'],
+                'tmp_name' => $upload_data['full_path'],
+                'size' => $upload_data['file_size'] * 1024,
+                'error' => UPLOAD_ERR_OK
             ];
         }
-        
-        // Save patient
-        $result = $this->hospital_patients_model->save($patient_data, $files);
-        
-        if ($result['success']) {
-            set_alert('success', $result['message']);
-            redirect(admin_url('hospital_management/view_patient/' . $result['id']));
-        } else {
-            set_alert('danger', $result['message']);
-            redirect(admin_url('hospital_management/manage_patient' . (isset($patient_data['id']) ? '/' . $patient_data['id'] : '')));
-        }
     }
+    
+    // Save patient
+    $result = $this->hospital_patients_model->save($patient_data, $uploaded_documents);
+    
+    if ($result['success']) {
+        set_alert('success', $result['message']);
+        redirect(admin_url('hospital_management/view_patient/' . $result['id']));
+    } else {
+        set_alert('danger', $result['message']);
+        redirect(admin_url('hospital_management/manage_patient/' . $id));
+    }
+}
 
-    /**
+
+/**
+ * Delete patient document
+ */
+public function delete_document($document_id, $patient_id)
+{
+    $this->check_permission('hospital_management', 'delete');
+    
+    $result = $this->hospital_patients_model->delete_document($document_id);
+    
+    if ($result['success']) {
+        set_alert('success', $result['message']);
+    } else {
+        set_alert('danger', $result['message']);
+    }
+    
+    redirect(admin_url('hospital_management/manage_patient/' . $patient_id));
+}    /**
      * Delete patient (AJAX POST)
      */
     public function delete_patient($id)
@@ -465,18 +539,6 @@ class Hospital_management extends AdminController
         
         $this->load->helper('download');
         force_download($document->original_filename, $document->file_data);
-    }
-
-    /**
-     * Delete patient document (AJAX)
-     */
-    public function delete_document($document_id)
-    {
-        $this->ajax_only();
-        $this->check_receptionist_access('reception_management', 'delete');
-        
-        $result = $this->hospital_patients_model->delete_document($document_id);
-        return $this->json_response($result['success'], $result['message']);
     }
 
     // ==========================================

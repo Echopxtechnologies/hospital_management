@@ -436,7 +436,19 @@ class Hospital_appointments_model extends App_Model
         
         // AUTO-CREATE VISIT RECORD
         $visit_result = $this->create_visit_record($insert_id, $patient_id, $data, $patient_type_for_visit);
-        
+         // ✅ CHECK IF VISIT CREATION SUCCEEDED
+        if (!$visit_result['success']) {
+            log_activity('Hospital Appointment Created [Number: ' . $save_data['appointment_number'] . '] BUT Visit Creation Failed: ' . $visit_result['message']);
+            
+            // Return success for appointment but include warning about visit
+            return [
+                'success' => true,
+                'message' => 'Appointment created successfully, but visit creation failed: ' . $visit_result['message'],
+                'id' => $insert_id,
+                'appointment_number' => $save_data['appointment_number'],
+                'visit_error' => $visit_result['message']
+            ];
+        }
         log_activity('Hospital Appointment Created [Number: ' . $save_data['appointment_number'] . '] + Visit Auto-Created');
         
         return [
@@ -467,22 +479,17 @@ class Hospital_appointments_model extends App_Model
             'status' => 'ongoing'
         ];
         
-        // Visit details data
-        $visit_details_data = [
-            'patient_type_for_visit' => $patient_type_for_visit,
-            'fee_payment'            => !empty($data['fee_payment']) ? $data['fee_payment'] : 'not_applicable',
-            'visit_referred_by'      => !empty($data['visit_referred_by']) ? $data['visit_referred_by'] : null,
-            'symptoms'               => !empty($data['symptoms']) ? $data['symptoms'] : null,
-            'temperature'            => !empty($data['temperature']) ? $data['temperature'] : null,
-            'blood_pressure'         => !empty($data['blood_pressure']) ? $data['blood_pressure'] : null,
-            'pulse_rate'             => !empty($data['pulse_rate']) ? $data['pulse_rate'] : null,
-            'weight'                 => !empty($data['weight']) ? $data['weight'] : null,
-            'fee_payment_status'     => !empty($data['fee_payment_status']) ? $data['fee_payment_status'] : 'pending',
-            'fee_amount'             => !empty($data['fee_amount']) ? $data['fee_amount'] : null,
-            'payment_method'         => !empty($data['payment_method']) ? $data['payment_method'] : null,
-            'follow_up_required'     => !empty($data['follow_up_required']) ? 1 : 0,
-            'follow_up_date'         => !empty($data['follow_up_date']) ? $data['follow_up_date'] : null,
-        ];
+        // Visit details data - ONLY fields that exist in your table
+    $visit_details_data = [
+        'patient_type_for_visit' => $patient_type_for_visit,
+        'fee_payment'            => !empty($data['fee_payment']) ? $data['fee_payment'] : 'not_applicable',
+        'fee_payment_status'     => !empty($data['fee_payment_status']) ? $data['fee_payment_status'] : 'pending',
+        'fee_amount'             => !empty($data['fee_amount']) ? $data['fee_amount'] : null,
+        'payment_method'         => !empty($data['payment_method']) ? $data['payment_method'] : null,
+        'visit_referred_by'      => !empty($data['visit_referred_by']) ? $data['visit_referred_by'] : null,
+        'follow_up_required'     => !empty($data['follow_up_required']) ? 1 : 0,
+        'follow_up_date'         => !empty($data['follow_up_date']) ? $data['follow_up_date'] : null,
+    ];
         
         return $this->hospital_visits_model->save($visit_data, $visit_details_data);
     }

@@ -1,26 +1,71 @@
 <?php defined('BASEPATH') or exit('No direct script access allowed'); ?>
 <?php init_head(); ?>
 
+<style>
+    .medical-header {
+        background: linear-gradient(135deg, #17a2b8 0%, #20c9e7 100%);
+        color: white;
+        padding: 15px;
+        border-radius: 5px;
+        margin-bottom: 20px;
+    }
+    .section-header {
+        color: #17a2b8;
+        border-bottom: 2px solid #17a2b8;
+        padding-bottom: 10px;
+        margin-top: 20px;
+        margin-bottom: 15px;
+    }
+    .form-group label {
+        font-weight: 600;
+        color: #333;
+    }
+    .btn-medical {
+        background: #17a2b8;
+        color: white;
+        border: none;
+    }
+    .btn-medical:hover {
+        background: #138496;
+        color: white;
+    }
+    .required-star {
+        color: #dc3545;
+    }
+</style>
+
 <div id="wrapper">
     <div class="content">
         <div class="row">
             <div class="col-md-12">
                 <div class="panel_s">
                     <div class="panel-body">
-                        <div class="row">
-                            <div class="col-md-8">
-                                <h4 class="no-margin">
-                                    <i class="fa fa-users"></i> 
-                                    <?php echo isset($patient) ? 'Edit Patient' : 'Add New Patient'; ?>
-                                </h4>
-                            </div>
-                            <div class="col-md-4 text-right">
-                                <a href="<?php echo admin_url('hospital_management/patients'); ?>" class="btn btn-default">
-                                    <i class="fa fa-arrow-left"></i> Back to Patients
-                                </a>
+                        <!-- Header -->
+                        <div class="medical-header">
+                            <div class="row">
+                                <div class="col-md-8">
+                                    <h4 class="no-margin">
+                                        <i class="fa fa-users"></i> 
+                                        <?php echo isset($patient) ? 'Edit Patient' : 'Add New Patient'; ?>
+                                    </h4>
+                                </div>
+                                <div class="col-md-4 text-right">
+                                    <?php if (isset($patient)): ?>
+                                        <!-- If editing, go back to view patient -->
+                                        <a href="<?php echo admin_url('hospital_management/view_patient/' . $patient->id); ?>" 
+                                           class="btn btn-light" style="background: #f8fcfdff; color: black;">
+                                            <i class="fa fa-arrow-left"></i> Back to Patient Details
+                                        </a>
+                                    <?php else: ?>
+                                        <!-- If creating new, go back to patient list -->
+                                        <a href="<?php echo admin_url('hospital_management/patient_records'); ?>" 
+                                           class="btn btn-light" style="background: #f8fcfdff; color: black;">
+                                            <i class="fa fa-arrow-left"></i> Back to Patients
+                                        </a>
+                                    <?php endif; ?>
+                                </div>
                             </div>
                         </div>
-                        <hr class="hr-panel-heading">
 
                         <?php echo form_open_multipart(admin_url('hospital_management/save_patient'), ['id' => 'patient-form']); ?>
                         
@@ -29,13 +74,14 @@
                         <?php endif; ?>
 
                         <!-- Patient Basic Information -->
-                        <h4 class="bold">Patient Information</h4>
-                        <hr>
+                        <h4 class="section-header">
+                            <i class="fa fa-user"></i> Patient Information
+                        </h4>
                         
                         <div class="row">
                             <div class="col-md-4">
                                 <div class="form-group">
-                                    <label for="name">Full Name <span class="text-danger">*</span></label>
+                                    <label for="name">Full Name <span class="required-star">*</span></label>
                                     <input type="text" 
                                            class="form-control" 
                                            name="name" 
@@ -47,7 +93,7 @@
                             
                             <div class="col-md-2">
                                 <div class="form-group">
-                                    <label for="gender">Gender <span class="text-danger">*</span></label>
+                                    <label for="gender">Gender <span class="required-star">*</span></label>
                                     <select class="form-control selectpicker" name="gender" id="gender" required>
                                         <option value="">Select</option>
                                         <option value="male" <?php echo (isset($patient) && $patient->gender === 'male') ? 'selected' : ''; ?>>Male</option>
@@ -100,13 +146,14 @@
                         </div>
 
                         <!-- Contact Information -->
-                        <h4 class="bold mtop15">Contact Information</h4>
-                        <hr>
+                        <h4 class="section-header">
+                            <i class="fa fa-phone"></i> Contact Information
+                        </h4>
                         
                         <div class="row">
                             <div class="col-md-4">
                                 <div class="form-group">
-                                    <label for="mobile_number">Mobile Number <span class="text-danger">*</span></label>
+                                    <label for="mobile_number">Mobile Number <span class="required-star">*</span></label>
                                     <input type="text" 
                                            class="form-control" 
                                            name="mobile_number" 
@@ -140,8 +187,9 @@
                         </div>
 
                         <!-- Address Information -->
-                        <h4 class="bold mtop15">Address</h4>
-                        <hr>
+                        <h4 class="section-header">
+                            <i class="fa fa-map-marker"></i> Address
+                        </h4>
                         
                         <div class="row">
                             <div class="col-md-12">
@@ -201,14 +249,15 @@
                             </div>
                         </div>
 
-                        <!-- Patient Type -->
-                        <h4 class="bold mtop15">Patient Classification</h4>
-                        <hr>
+                        <!-- Patient Classification -->
+                        <h4 class="section-header">
+                            <i class="fa fa-tag"></i> Patient Classification
+                        </h4>
                         
                         <div class="row">
                             <div class="col-md-6">
                                 <div class="form-group">
-                                    <label for="patient_type">Patient Type <span class="text-danger">*</span></label>
+                                    <label for="patient_type">Patient Type <span class="required-star">*</span></label>
                                     <select class="form-control selectpicker" 
                                             name="patient_type" 
                                             id="patient_type" 
@@ -224,11 +273,111 @@
                                     </select>
                                 </div>
                             </div>
+                            
+                            <div class="col-md-6">
+                                <div class="form-group">
+                                    <label for="membership_id">Membership ID</label>
+                                    <input type="text" 
+                                           class="form-control" 
+                                           name="membership_id" 
+                                           id="membership_id"
+                                           value="<?php echo isset($patient) ? $patient->membership_id : ''; ?>"
+                                           placeholder="Enter membership ID if applicable">
+                                    <small class="text-muted">Optional: Patient's membership identification number</small>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Other Hospital Registration -->
+                        <h4 class="section-header">
+                            <i class="fa fa-hospital-o"></i> Other Hospital Registration
+                        </h4>
+                        
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="form-group">
+                                    <label>Registered at Other Hospital?</label>
+                                    <div>
+                                        <label class="radio-inline">
+                                            <input type="radio" 
+                                                   name="registered_other_hospital" 
+                                                   value="0" 
+                                                   id="registered_other_hospital_no"
+                                                   <?php echo (!isset($patient) || $patient->registered_other_hospital == 0) ? 'checked' : ''; ?>>
+                                            No
+                                        </label>
+                                        <label class="radio-inline">
+                                            <input type="radio" 
+                                                   name="registered_other_hospital" 
+                                                   value="1" 
+                                                   id="registered_other_hospital_yes"
+                                                   <?php echo (isset($patient) && $patient->registered_other_hospital == 1) ? 'checked' : ''; ?>>
+                                            Yes
+                                        </label>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="col-md-6">
+                                <div class="form-group" id="other_hospital_id_group" style="<?php echo (isset($patient) && $patient->registered_other_hospital == 1) ? '' : 'display: none;'; ?>">
+                                    <label for="other_hospital_patient_id">Patient ID at Other Hospital</label>
+                                    <input type="text" 
+                                           class="form-control" 
+                                           name="other_hospital_patient_id" 
+                                           id="other_hospital_patient_id"
+                                           value="<?php echo isset($patient) ? $patient->other_hospital_patient_id : ''; ?>"
+                                           placeholder="Enter patient ID from other hospital">
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Recommendation -->
+                        <h4 class="section-header">
+                            <i class="fa fa-user-md"></i> Recommendation Details
+                        </h4>
+                        
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="form-group">
+                                    <label>Recommended to Hospital?</label>
+                                    <div>
+                                        <label class="radio-inline">
+                                            <input type="radio" 
+                                                   name="recommended_to_hospital" 
+                                                   value="0" 
+                                                   id="recommended_to_hospital_no"
+                                                   <?php echo (!isset($patient) || $patient->recommended_to_hospital == 0) ? 'checked' : ''; ?>>
+                                            No
+                                        </label>
+                                        <label class="radio-inline">
+                                            <input type="radio" 
+                                                   name="recommended_to_hospital" 
+                                                   value="1" 
+                                                   id="recommended_to_hospital_yes"
+                                                   <?php echo (isset($patient) && $patient->recommended_to_hospital == 1) ? 'checked' : ''; ?>>
+                                            Yes
+                                        </label>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="col-md-6">
+                                <div class="form-group" id="recommended_by_group" style="<?php echo (isset($patient) && $patient->recommended_to_hospital == 1) ? '' : 'display: none;'; ?>">
+                                    <label for="recommended_by">Recommended By</label>
+                                    <input type="text" 
+                                           class="form-control" 
+                                           name="recommended_by" 
+                                           id="recommended_by"
+                                           value="<?php echo isset($patient) ? $patient->recommended_by : ''; ?>"
+                                           placeholder="Name of person/organization who recommended">
+                                </div>
+                            </div>
                         </div>
 
                         <!-- Emergency Contact -->
-                        <h4 class="bold mtop15">Emergency Contact</h4>
-                        <hr>
+                        <h4 class="section-header">
+                            <i class="fa fa-exclamation-triangle"></i> Emergency Contact
+                        </h4>
                         
                         <div class="row">
                             <div class="col-md-4">
@@ -238,7 +387,8 @@
                                            class="form-control" 
                                            name="emergency_contact_name" 
                                            id="emergency_contact_name"
-                                           value="<?php echo isset($patient) ? $patient->emergency_contact_name : ''; ?>">
+                                           value="<?php echo isset($patient) ? $patient->emergency_contact_name : ''; ?>"
+                                           placeholder="Emergency contact person name">
                                 </div>
                             </div>
                             
@@ -249,7 +399,8 @@
                                            class="form-control" 
                                            name="emergency_contact_number" 
                                            id="emergency_contact_number"
-                                           value="<?php echo isset($patient) ? $patient->emergency_contact_number : ''; ?>">
+                                           value="<?php echo isset($patient) ? $patient->emergency_contact_number : ''; ?>"
+                                           placeholder="Emergency contact phone number">
                                 </div>
                             </div>
                             
@@ -267,8 +418,9 @@
                         </div>
 
                         <!-- Document Upload -->
-                        <h4 class="bold mtop15">Documents</h4>
-                        <hr>
+                        <h4 class="section-header">
+                            <i class="fa fa-file"></i> Documents
+                        </h4>
                         
                         <div class="row">
                             <div class="col-md-6">
@@ -305,7 +457,7 @@
                                 <div class="col-md-12">
                                     <h5 class="bold">Existing Documents</h5>
                                     <table class="table table-bordered">
-                                        <thead>
+                                        <thead style="background: #17a2b8; color: white;">
                                             <tr>
                                                 <th>Type</th>
                                                 <th>File Name</th>
@@ -317,7 +469,7 @@
                                             <?php foreach ($documents as $doc): ?>
                                                 <tr>
                                                     <td>
-                                                        <span class="label label-info">
+                                                        <span class="label" style="background: #17a2b8;">
                                                             <?php echo ucwords(str_replace('_', ' ', $doc['document_type'])); ?>
                                                         </span>
                                                     </td>
@@ -325,7 +477,7 @@
                                                     <td><?php echo date('d M Y', strtotime($doc['uploaded_at'])); ?></td>
                                                     <td>
                                                         <a href="<?php echo admin_url('hospital_management/download_document/' . $doc['id']); ?>" 
-                                                           class="btn btn-primary btn-sm" 
+                                                           class="btn btn-sm btn-medical" 
                                                            target="_blank">
                                                             <i class="fa fa-download"></i> Download
                                                         </a>
@@ -347,12 +499,23 @@
                         <hr>
                         <div class="row">
                             <div class="col-md-12">
-                                <button type="submit" class="btn btn-primary pull-right">
+                                <button type="submit" class="btn btn-medical pull-right">
                                     <i class="fa fa-check"></i> <?php echo isset($patient) ? 'Update Patient' : 'Add Patient'; ?>
                                 </button>
-                                <a href="<?php echo admin_url('hospital_management/patients'); ?>" class="btn btn-default pull-right mright5">
-                                    Cancel
-                                </a>
+                                
+                                <?php if (isset($patient)): ?>
+                                    <!-- If editing, cancel goes back to view patient -->
+                                    <a href="<?php echo admin_url('hospital_management/view_patient/' . $patient->id); ?>" 
+                                       class="btn btn-default pull-right mright5">
+                                        <i class="fa fa-times"></i> Cancel
+                                    </a>
+                                <?php else: ?>
+                                    <!-- If creating new, cancel goes back to patient list -->
+                                    <a href="<?php echo admin_url('hospital_management/patient_records'); ?>" 
+                                       class="btn btn-default pull-right mright5">
+                                        <i class="fa fa-times"></i> Cancel
+                                    </a>
+                                <?php endif; ?>
                             </div>
                         </div>
 
@@ -371,6 +534,26 @@
 $(function() {
     'use strict';
     
+    // Show/hide other hospital patient ID field
+    $('input[name="registered_other_hospital"]').on('change', function() {
+        if ($(this).val() == '1') {
+            $('#other_hospital_id_group').slideDown();
+        } else {
+            $('#other_hospital_id_group').slideUp();
+            $('#other_hospital_patient_id').val('');
+        }
+    });
+    
+    // Show/hide recommended by field
+    $('input[name="recommended_to_hospital"]').on('change', function() {
+        if ($(this).val() == '1') {
+            $('#recommended_by_group').slideDown();
+        } else {
+            $('#recommended_by_group').slideUp();
+            $('#recommended_by').val('');
+        }
+    });
+    
     // Auto-calculate age from DOB
     $('#dob').on('change', function() {
         var dob = new Date($(this).val());
@@ -382,7 +565,9 @@ $(function() {
             age--;
         }
         
-        $('#age').val(age);
+        if (age >= 0) {
+            $('#age').val(age);
+        }
     });
     
     // Form validation

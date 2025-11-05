@@ -102,6 +102,98 @@ class Hospital_visits_model extends App_Model
         return (int)$visit_id;
     }
     
+/**
+ * Save visit with details
+ * Creates a new visit record and its associated details
+ * 
+ * @param array $visit_data Visit main data
+ * @param array $details_data Visit details data
+ * @return array ['success' => bool, 'message' => string, 'id' => int]
+/**
+ * Save visit with details
+ */
+public function save($visit_data, $visit_details_data = [])
+{
+    $id = isset($visit_data['id']) && !empty($visit_data['id']) ? $visit_data['id'] : null;
+    
+    // Prepare main visit data
+    $save_data = [
+        'patient_id'      => $visit_data['patient_id'],
+        'appointment_id'  => isset($visit_data['appointment_id']) ? $visit_data['appointment_id'] : null,
+        'consultant_id'   => $visit_data['consultant_id'],
+        'visit_date'      => $visit_data['visit_date'],
+        'visit_time'      => $visit_data['visit_time'],
+        'visit_type'      => $visit_data['visit_type'],
+        'reason'          => $visit_data['reason'],
+        'status'          => isset($visit_data['status']) ? $visit_data['status'] : 'ongoing',
+        'chief_complaint' => isset($visit_data['chief_complaint']) ? $visit_data['chief_complaint'] : null,
+        'diagnosis'       => isset($visit_data['diagnosis']) ? $visit_data['diagnosis'] : null,
+        'treatment_given' => isset($visit_data['treatment_given']) ? $visit_data['treatment_given'] : null,
+        'prescription'    => isset($visit_data['prescription']) ? $visit_data['prescription'] : null,
+        'notes'           => isset($visit_data['notes']) ? $visit_data['notes'] : null,
+    ];
+    
+    if ($id) {
+        // UPDATE VISIT
+        $save_data['updated_at'] = date('Y-m-d H:i:s');
+        $this->db->where('id', $id);
+        $this->db->update($this->visits_table, $save_data);
+        
+        // Update visit details if provided
+        if (!empty($visit_details_data)) {
+            $this->db->where('visit_id', $id);
+            $existing_details = $this->db->get($this->visit_details_table)->row();
+            
+            if ($existing_details) {
+                $visit_details_data['updated_at'] = date('Y-m-d H:i:s');
+                $this->db->where('visit_id', $id);
+                $this->db->update($this->visit_details_table, $visit_details_data);
+            } else {
+                $visit_details_data['visit_id'] = $id;
+                $visit_details_data['created_at'] = date('Y-m-d H:i:s');
+                $this->db->insert($this->visit_details_table, $visit_details_data);
+            }
+        }
+        
+        log_activity('Hospital Visit Updated [ID: ' . $id . ']');
+        return ['success' => true, 'message' => 'Visit updated successfully', 'id' => $id];
+        
+    } else {
+        // CREATE NEW VISIT
+        $save_data['visit_number'] = $this->generate_visit_number();
+        $save_data['created_by'] = get_staff_user_id();
+        $save_data['created_at'] = date('Y-m-d H:i:s');
+        
+        // Insert visit
+        $this->db->insert($this->visits_table, $save_data);
+        $visit_id = $this->db->insert_id();
+        
+        if (!$visit_id) {
+            $error = $this->db->error();
+            log_activity('Failed to insert visit: ' . json_encode($error));
+            return ['success' => false, 'message' => 'Failed to create visit: ' . $error['message']];
+        }
+        
+        // Insert visit details ONLY if data provided
+        if (!empty($visit_details_data)) {
+            $visit_details_data['visit_id'] = $visit_id;
+            $visit_details_data['created_at'] = date('Y-m-d H:i:s');
+            
+            $this->db->insert($this->visit_details_table, $visit_details_data);
+            $details_id = $this->db->insert_id();
+            
+            if (!$details_id) {
+                $error = $this->db->error();
+                log_activity('Failed to insert visit details for visit ' . $visit_id . ': ' . json_encode($error));
+                // Don't fail the whole operation - details can be added later
+            }
+        }
+        
+        log_activity('Hospital Visit Created [Number: ' . $save_data['visit_number'] . ', ID: ' . $visit_id . ']');
+        return ['success' => true, 'message' => 'Visit created successfully', 'id' => $visit_id];
+    }
+}
+
     /**
  * Get visit with details by visit ID
  * 
@@ -225,6 +317,7 @@ public function get_visit_with_details($visit_id)
         
         return $result;
     }
+    
     
     // ==========================================
     // VISIT DETAILS UPDATE
@@ -511,4 +604,6 @@ public function get_visit_with_details($visit_id)
         
         return $result;
     }
+
+    
 }
