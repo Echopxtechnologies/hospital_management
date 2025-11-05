@@ -795,150 +795,387 @@ class Hospital_management extends AdminController
         return $this->json_response(true, '', ['data' => $stats]);
     }
 
-    /**
-     * Consultant sees patient - consultation interface
-     */
-    public function consultant_see_patient($appointment_id)
-    {
-        // Check if user is consultant or JC
-        if (!is_consultant() && !is_junior_consultant()) {
-            access_denied('Consultant Access Required');
-        }
-        
-        // Get appointment with patient details
-        $data['appointment'] = $this->consultant_portal_model->get($appointment_id);
-        
-        if (!$data['appointment']) {
-            set_alert('danger', 'Appointment not found');
-            redirect(admin_url('hospital_management/consultant_appointments'));
-        }
-        
-        // Permission check - consultant can only see their own appointments
-        if (!is_junior_consultant() && $data['appointment']['consultant_id'] != get_staff_user_id()) {
-            access_denied('You can only view your own appointments');
-        }
-        
-        // Get patient details
-        $data['patient'] = $this->hospital_patients_model->get($data['appointment']['patient_id']);
-        
-        // Get visit record for this appointment
-        $data['visit'] = $this->consultant_portal_model->get_visit_by_appointment($appointment_id);
-        
-        // Get previous visits for this patient
-        $all_visits = $this->hospital_visits_model->get_by_patient($data['patient']->id);
-        
-        // Filter out current visit and limit to last 5
-        $data['previous_visits'] = [];
-        foreach ($all_visits as $visit) {
-            if ($visit->appointment_id != $appointment_id) {
-                $data['previous_visits'][] = [
-                    'visit_date' => $visit->visit_date,
-                    'visit_time' => $visit->visit_time,
-                    'diagnosis' => $visit->diagnosis,
-                    'treatment_given' => $visit->treatment_given,
-                ];
-            }
-            if (count($data['previous_visits']) >= 5) break;
-        }
-        
-        $data['title'] = 'Consultation - ' . $data['patient']->name;
-        $this->load->view('consultant_see_patient', $data);
+   /**
+ * Consultant see patient - Full visit form
+ */
+public function consultant_see_patient($appointment_id)
+{
+    // Check consultant access
+    $staff_id = get_staff_user_id();
+    
+    // Load appointment with patient details
+    $this->load->model('consultant_portal_model');
+    $appointment = $this->consultant_portal_model->get($appointment_id);
+    
+    if (!$appointment) {
+        show_404();
     }
+    
+    // Verify access
+    $access_check = $this->consultant_portal_model->verify_access($appointment_id, $staff_id);
+    if (!$access_check['has_access']) {
+        set_alert('danger', $access_check['message'] ?? 'Access denied');
+        redirect(admin_url('hospital_management/consultant_portal'));
+    }
+    
+    // Get existing visit if any
+    $visit = $this->consultant_portal_model->get_visit_by_appointment($appointment_id);
+    
+    // Get patient's visit history
+    $visit_history = $this->hospital_visits_model->get_patient_visits($appointment['patient_id']);
+    
+    // Get dropdown data
+    $data['icd_codes'] = $this->get_icd_codes(); // You'll create this
+    $data['medicine_drops'] = $this->get_medicine_drops(); // You'll create this
+    $data['surgery_types'] = $this->get_surgery_types(); // You'll create this
+    $data['lens_types'] = $this->get_lens_types(); // You'll create this
+    
+    $data['title'] = 'Patient Consultation - ' . $appointment['patient_name'];
+    $data['appointment'] = $appointment;
+    $data['visit'] = $visit;
+    $data['visit_history'] = $visit_history;
+    
+    $this->load->view('consultant_see_patient', $data);
+}
 
-    /**
-     * Save consultation data (POST)
-     */
-    public function save_consultation()
-    {
-        if (!is_consultant() && !is_junior_consultant()) {
-            ajax_access_denied();
+/**
+ * Get medicines by category (AJAX)
+ */
+public function get_medicines_by_category()
+{
+    if ($this->input->is_ajax_request()) {
+        $category = $this->input->get('category');
+        
+        $this->load->model('hospital_visits_model');
+        $medicines = $this->hospital_visits_model->get_medicines($category);
+        
+        echo json_encode([
+            'success' => true,
+            'medicines' => $medicines
+        ]);
+        exit;
+    }
+}
+/**
+ * Save visit details (AJAX)
+ */
+/**
+ * Save visit details (AJAX) - WITH DETAILED ERROR LOGGING
+ */
+public function save_visit_details()
+{
+    if ($this->input->is_ajax_request()) {
+        $this->load->model('hospital_visits_model');
+        
+        $visit_id = $this->input->post('visit_id');
+        $tab = $this->input->post('tab');
+        
+        // Validate visit_id
+        if (!$visit_id || !is_numeric($visit_id)) {
+            log_activity('Hospital Visit Details - ERROR: Invalid visit ID received: ' . var_export($visit_id, true));
+            echo json_encode([
+                'success' => false,
+                'message' => 'Invalid visit ID: ' . $visit_id,
+                'debug' => 'visit_id must be numeric'
+            ]);
+            exit;
         }
         
-        $appointment_id = $this->input->post('appointment_id');
-        $patient_id = $this->input->post('patient_id');
-        $visit_id = $this->input->post('visit_id');
-        $action = $this->input->post('action'); // 'save' or 'complete'
+        // Verify visit exists
+        $this->db->where('id', $visit_id);
+        $visit_exists = $this->db->get(db_prefix() . 'hospital_visits')->row();
         
-        // Prepare visit data
-        $visit_data = [
-            'id' => $visit_id,
-            'patient_id' => $patient_id,
-            'appointment_id' => $appointment_id,
-            'consultant_id' => get_staff_user_id(),
-            'visit_date' => date('Y-m-d'),
-            'visit_time' => date('H:i:s'),
-            'visit_type' => 'consultation',
-            'reason' => $this->input->post('chief_complaint'),
-            'chief_complaint' => $this->input->post('chief_complaint'),
-            'diagnosis' => $this->input->post('diagnosis'),
-            'treatment_given' => $this->input->post('treatment_given'),
-            'prescription' => $this->input->post('prescription'),
-            'notes' => $this->input->post('notes'),
-            'status' => $action === 'complete' ? 'completed' : 'ongoing',
-        ];
+        if (!$visit_exists) {
+            log_activity('Hospital Visit Details - ERROR: Visit ID ' . $visit_id . ' does not exist in database');
+            echo json_encode([
+                'success' => false,
+                'message' => 'Visit not found in database (ID: ' . $visit_id . ')',
+                'debug' => 'Visit record does not exist'
+            ]);
+            exit;
+        }
         
-        // Prepare visit details data
-        $visit_details_data = [
-          // Vitals
-    'temperature' => $this->input->post('temperature'),
-    'blood_pressure' => $this->input->post('blood_pressure'),
-    'pulse_rate' => $this->input->post('pulse_rate'),
-    'weight' => $this->input->post('weight'),
-    'height' => $this->input->post('height'),
-    'spo2' => $this->input->post('spo2'),
-    
-    // Medical Info (map your fields to existing columns)
-    'symptoms' => $this->input->post('symptoms'),
-    'medical_history' => $this->input->post('examination_notes'), // ✅ Map to existing column
-    'allergies' => $this->input->post('allergies'),
-    'current_medications' => $this->input->post('current_medications'),
-    
-    // Tests
-    'lab_tests_ordered' => $this->input->post('investigations'), // ✅ Map to existing column
-    'lab_results' => $this->input->post('lab_results'),
-    'imaging_ordered' => $this->input->post('imaging_ordered'),
-    'imaging_results' => $this->input->post('imaging_results'),
-    
-    // Follow-up
-    'follow_up_required' => $this->input->post('follow_up_required') ? 1 : 0,
-    'follow_up_date' => $this->input->post('follow_up_date'),
-    'follow_up_notes' => $this->input->post('medical_advice'), 
-        ];
+        log_activity('Hospital Visit Details - Saving tab "' . $tab . '" for visit ID: ' . $visit_id);
         
-        // Save visit
-        $result = $this->hospital_visits_model->save($visit_data, $visit_details_data);
+        // Prepare data based on tab
+        $data = [];
         
-        if ($result['success']) {
-            // Update appointment status if completed
-            if ($action === 'complete') {
-                $this->hospital_appointments_model->update($appointment_id, ['status' => 'completed']);
+        try {
+            switch($tab) {
+                case 'history':
+                    $data = [
+                        'allergies' => $this->input->post('allergies'),
+                        'systemic_history' => $this->input->post('systemic_history'),
+                        'family_history' => $this->input->post('family_history'),
+                        'ocular_diseases' => $this->input->post('ocular_diseases'),
+                        'surgical_history' => $this->input->post('surgical_history'),
+                        'medication' => $this->input->post('medication'),
+                        'present_complaint' => $this->input->post('present_complaint'),
+                        'dilating_drops' => $this->input->post('dilating_drops')
+                    ];
+                    break;
+                    
+                case 'examination':
+                    // Build examination data
+                    $examination = [
+                        'visual_acuity_aided' => [
+                            'right' => $this->input->post('visual_acuity_aided_right'),
+                            'left' => $this->input->post('visual_acuity_aided_left')
+                        ],
+                        'visual_acuity_unaided' => [
+                            'right' => $this->input->post('visual_acuity_unaided_right'),
+                            'left' => $this->input->post('visual_acuity_unaided_left')
+                        ],
+                        'gonioscopy' => [
+                            'right' => $this->input->post('gonioscopy_right'),
+                            'left' => $this->input->post('gonioscopy_left')
+                        ],
+                        'near_vision' => [
+                            'right' => $this->input->post('near_vision_right'),
+                            'left' => $this->input->post('near_vision_left')
+                        ],
+                        'auto_ref' => [
+                            'right' => $this->input->post('auto_ref_right'),
+                            'left' => $this->input->post('auto_ref_left')
+                        ],
+                        'lids_adnexa_orbit' => [
+                            'right' => $this->input->post('lids_adnexa_orbit_right'),
+                            'left' => $this->input->post('lids_adnexa_orbit_left')
+                        ],
+                        'anterior_segment' => [
+                            'right' => $this->input->post('anterior_segment_right'),
+                            'left' => $this->input->post('anterior_segment_left')
+                        ],
+                        'pupil' => [
+                            'right' => $this->input->post('pupil_right'),
+                            'left' => $this->input->post('pupil_left')
+                        ],
+                        'iop' => [
+                            'right' => $this->input->post('iop_right'),
+                            'left' => $this->input->post('iop_left')
+                        ],
+                        'fundus' => [
+                            'right' => $this->input->post('fundus_right'),
+                            'left' => $this->input->post('fundus_left')
+                        ],
+                        'ocnm' => [
+                            'right' => $this->input->post('ocnm_right'),
+                            'left' => $this->input->post('ocnm_left')
+                        ],
+                        'lacrimal_syringing' => [
+                            'right' => $this->input->post('lacrimal_syringing_right'),
+                            'left' => $this->input->post('lacrimal_syringing_left')
+                        ]
+                    ];
+                    
+                    $data = ['examination_data' => json_encode($examination)];
+                    break;
+                    
+                case 'retinoscopy':
+                    $retinoscopy = [
+                        'right' => [
+                            'ds' => $this->input->post('right_ds'),
+                            'dc' => $this->input->post('right_dc'),
+                            'axis' => $this->input->post('right_axis'),
+                            'add' => $this->input->post('right_add')
+                        ],
+                        'left' => [
+                            'ds' => $this->input->post('left_ds'),
+                            'dc' => $this->input->post('left_dc'),
+                            'axis' => $this->input->post('left_axis'),
+                            'add' => $this->input->post('left_add')
+                        ],
+                        'type_of_dilatation' => $this->input->post('type_of_dilatation')
+                    ];
+                    
+                    $data = ['retinoscopy_data' => json_encode($retinoscopy)];
+                    break;
+                    
+                case 'diagnosis':
+                    $icd_codes = $this->input->post('icd_codes');
+                    $data = [
+                        'opinion_plan_of_care' => $this->input->post('opinion_plan_of_care'),
+                        'icd_codes' => is_array($icd_codes) ? implode(',', $icd_codes) : $icd_codes,
+                        'review_required' => $this->input->post('review_required'),
+                        'review_period' => $this->input->post('review_period'),
+                        'systematic_exam_ordered' => $this->input->post('systematic_exam_ordered')
+                    ];
+                    break;
+                    
+                case 'medicine':
+                    $medicines_raw = $this->input->post('medicines');
+                    $medicines_detailed = [];
+                    $total_fee = 0.00;
+                    
+                    if (!empty($medicines_raw) && is_array($medicines_raw)) {
+                        foreach ($medicines_raw as $med) {
+                            if (!empty($med['medicine_id'])) {
+                                $medicine_info = $this->hospital_visits_model->get_medicine($med['medicine_id']);
+                                
+                                if ($medicine_info) {
+                                    $medicine_entry = [
+                                        'medicine_id' => $medicine_info['id'],
+                                        'medicine_name' => $medicine_info['medicine_name'],
+                                        'generic_name' => $medicine_info['generic_name'],
+                                        'category' => $medicine_info['category'],
+                                        'strength' => $medicine_info['strength'],
+                                        'price' => (float)$medicine_info['price'],
+                                        'eye' => $med['eye'] ?? 'both',
+                                        'dose' => $med['dose'] ?? '1',
+                                        'unit' => $med['unit'] ?? 'drop',
+                                        'interval' => $med['interval'] ?? '',
+                                        'frequency' => $med['frequency'] ?? 'day',
+                                        'instructions' => $med['instructions'] ?? ''
+                                    ];
+                                    
+                                    $medicines_detailed[] = $medicine_entry;
+                                    $total_fee += $medicine_entry['price'];
+                                }
+                            }
+                        }
+                    }
+                    
+                    $data = [
+                        'medicine_prescription_details' => json_encode($medicines_detailed),
+                        'fee_amount' => $total_fee,
+                        'total_fee' => $total_fee
+                    ];
+                    break;
+                    
+                case 'spectacle':
+                    $data = [
+                        'spectacle_right_sph' => $this->input->post('right_sph'),
+                        'spectacle_right_cyl' => $this->input->post('right_cyl'),
+                        'spectacle_right_axis' => $this->input->post('right_axis'),
+                        'spectacle_right_near_vision' => $this->input->post('right_near_vision'),
+                        'spectacle_right_distance_vision' => $this->input->post('right_distance_vision'),
+                        'spectacle_left_sph' => $this->input->post('left_sph'),
+                        'spectacle_left_cyl' => $this->input->post('left_cyl'),
+                        'spectacle_left_axis' => $this->input->post('left_axis'),
+                        'spectacle_left_near_vision' => $this->input->post('left_near_vision'),
+                        'spectacle_left_distance_vision' => $this->input->post('left_distance_vision'),
+                        'bifocals' => $this->input->post('bifocals'),
+                        'back_vertex' => $this->input->post('back_vertex'),
+                        'interpupillary' => $this->input->post('interpupillary'),
+                        'spectacle_remarks' => $this->input->post('spectacle_remarks'),
+                        'lens_type' => $this->input->post('lens_type')
+                    ];
+                    break;
+                    
+                case 'pediatric':
+                    $data = ['pediatric_notes' => $this->input->post('pediatric_notes')];
+                    break;
+                    
+                default:
+                    log_activity('Hospital Visit Details - ERROR: Invalid tab specified: ' . $tab);
+                    echo json_encode([
+                        'success' => false,
+                        'message' => 'Invalid tab specified: ' . $tab
+                    ]);
+                    exit;
             }
             
-            $message = $action === 'complete' ? 'Consultation completed successfully' : 'Consultation saved successfully';
-            set_alert('success', $message);
-            redirect(admin_url('hospital_management/consultant_appointments'));
-        } else {
-            set_alert('danger', $result['message']);
-            redirect(admin_url('hospital_management/consultant_see_patient/' . $appointment_id));
-        }
-    }
-
-    /**
-     * Auto-save consultation draft (AJAX)
-     */
-    public function autosave_consultation()
-    {
-        if (!is_consultant() && !is_junior_consultant()) {
-            return $this->json_response(false, 'Access denied');
+            // Log what we're trying to save
+            log_activity('Hospital Visit Details - Data to save: ' . json_encode($data));
+            
+            // Update visit details
+            $success = $this->hospital_visits_model->update_visit_details($visit_id, $data);
+            
+            // Get database error if failed
+            $db_error = $this->db->error();
+            
+            if (!$success) {
+                log_activity('Hospital Visit Details - ERROR: Failed to save. DB Error: ' . json_encode($db_error));
+            }
+            
+            echo json_encode([
+                'success' => $success,
+                'message' => $success ? 'Saved successfully' : 'Failed to save. Check logs for details.',
+                'total_fee' => $total_fee ?? null,
+                'db_error' => !$success ? $db_error : null,
+                'csrf_token_name' => $this->security->get_csrf_token_name(),
+                'csrf_token_hash' => $this->security->get_csrf_hash()
+            ]);
+            
+        } catch (Exception $e) {
+            log_activity('Hospital Visit Details - EXCEPTION: ' . $e->getMessage());
+            echo json_encode([
+                'success' => false,
+                'message' => 'Exception occurred: ' . $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
         }
         
-        // Save draft to session
-        $draft_data = $this->input->post();
-        $this->session->set_userdata('consultation_draft_' . $draft_data['appointment_id'], $draft_data);
-        
-        return $this->json_response(true, 'Draft saved');
+        exit;
     }
+}
 
+/**
+ * Complete visit (AJAX)
+ */
+public function complete_visit()
+{
+    if ($this->input->is_ajax_request()) {
+        $visit_id = $this->input->post('visit_id');
+        $appointment_id = $this->input->post('appointment_id');
+        
+        $this->load->model('hospital_visits_model');
+        
+        // Mark visit as completed
+        $success = $this->hospital_visits_model->complete_visit($visit_id, get_staff_user_id());
+        
+        // Also update appointment status to completed
+        if ($success) {
+            $this->hospital_appointments_model->update($appointment_id, ['status' => 'completed']);
+        }
+        
+        echo json_encode([
+            'success' => $success,
+            'message' => $success ? 'Visit completed successfully' : 'Failed to complete visit',
+            'redirect' => admin_url('hospital_management/consultant_appointments')
+        ]);
+        exit;
+    }
+}
+
+// Helper methods for dropdowns
+private function get_icd_codes() {
+    // Return array of ICD codes - you can create a table or return static array
+    return [
+        'H35.0' => 'Background retinopathy',
+        'H40.1' => 'Primary open-angle glaucoma',
+        'H25.9' => 'Cataract, unspecified',
+        // Add more codes...
+    ];
+}
+
+private function get_medicine_drops() {
+    return [
+        'Moxifloxacin 0.5%',
+        'Timolol 0.5%',
+        'Latanoprost 0.005%',
+        'Prednisolone 1%',
+        // Add more...
+    ];
+}
+
+private function get_surgery_types() {
+    return [
+        'Camp Cataract LE',
+        'Camp Cataract RE',
+        'Camp Cataract BE',
+        // Add all 31 types...
+    ];
+}
+
+private function get_lens_types() {
+    return [
+        'Single Vision',
+        'Bifocal',
+        'Progressive',
+        'Anti-Reflective Coating'
+    ];
+}
     // ==========================================
     // VISIT MANAGEMENT
     // ==========================================
@@ -1149,4 +1386,6 @@ class Hospital_management extends AdminController
         echo json_encode($response);
         exit;
     }
+
+    
 }
