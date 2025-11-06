@@ -64,12 +64,14 @@ class Hospital_appointments_model extends App_Model
             $this->patients_table . '.mobile_number as patient_mobile, ' .
             $this->patients_table . '.patient_number as patient_number, ' .
             'COALESCE(' . $this->staff_table . '.firstname, "Not Assigned") as consultant_firstname, ' .
-            'COALESCE(' . $this->staff_table . '.lastname, "") as consultant_lastname'
+            'COALESCE(' . $this->staff_table . '.lastname, "") as consultant_lastname,'.
+            db_prefix() . 'hospital_visits.reason as visit_reason, ' .
+            db_prefix() . 'hospital_visits.visit_type as visit_type'
         );
         
         $this->db->join($this->patients_table, $this->patients_table . '.id = ' . $this->table . '.patient_id', 'left');
         $this->db->join($this->staff_table, $this->staff_table . '.staffid = ' . $this->table . '.consultant_id', 'left');
-        
+         $this->db->join(db_prefix() . 'hospital_visits', db_prefix() . 'hospital_visits.appointment_id = ' . $this->table . '.id', 'left');
         $this->db->order_by($this->table . '.appointment_date', 'DESC');
         $this->db->order_by($this->table . '.appointment_time', 'DESC');
         
@@ -141,9 +143,12 @@ class Hospital_appointments_model extends App_Model
     /**
      * Confirm appointment
      */
-    public function confirm($id)
+   public function confirm($id)
     {
-        return $this->update($id, ['status' => 'confirmed']);
+        return $this->update($id, [
+            'status' => 'confirmed',
+            'time_reported' => date('Y-m-d H:i:s')
+        ]);
     }
     
     /**

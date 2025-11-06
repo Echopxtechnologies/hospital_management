@@ -156,6 +156,7 @@ if (!$CI->db->table_exists(db_prefix() . 'hospital_appointments')) {
         -- Status
         `status` ENUM('pending', 'confirmed', 'cancelled', 'completed') NOT NULL DEFAULT 'pending',
         `notes` TEXT DEFAULT NULL,
+        `time_reported` DATETIME NULL DEFAULT NULL,
         `cancellation_reason` TEXT DEFAULT NULL,
         
         -- System Fields

@@ -29,7 +29,7 @@
     background: linear-gradient(135deg, #FFFFFF 0%, #E0F7FA 100%);
     border-left: 4px solid var(--hospital-primary);
     border-radius: 4px;
-    padding: 20px;
+    padding: 10px;
     box-shadow: 0 2px 4px rgba(0, 172, 193, 0.1);
     transition: all 0.3s ease;
 }
@@ -320,25 +320,25 @@
                 <!-- Statistics -->
                 <div class="stats-grid">
                     <div class="stat-card today">
-                        <i class="fa fa-calendar"></i>
+                       
                         <h3><?php echo $statistics['today']; ?></h3>
                         <p>Today's Appointments</p>
                     </div>
                     
                     <div class="stat-card pending">
-                        <i class="fa fa-clock-o"></i>
+                 
                         <h3><?php echo $statistics['pending']; ?></h3>
                         <p>Pending</p>
                     </div>
                     
                     <div class="stat-card confirmed">
-                        <i class="fa fa-check-circle"></i>
+                    
                         <h3><?php echo $statistics['confirmed']; ?></h3>
                         <p>Confirmed</p>
                     </div>
                     
                     <div class="stat-card">
-                        <i class="fa fa-list"></i>
+                       
                         <h3><?php echo $statistics['total']; ?></h3>
                         <p>Total Appointments</p>
                     </div>
@@ -358,6 +358,8 @@
                                     <th>Consultant</th>
                                     <th>Reason</th>
                                     <th>Mode</th>
+                                    <th>Appointment Time</th>
+                                    <th>Time Reported</th>
                                     <th>Status</th>
                                     <th>Actions</th>
                                 </tr>
@@ -375,11 +377,29 @@
                                     </td>
                                     <td><?php echo date('d M Y', strtotime($apt->appointment_date)); ?></td>
                                     <td><?php echo $apt->consultant_firstname . ' ' . $apt->consultant_lastname; ?></td>
-                                    <td><?php echo ucfirst($apt->reason_for_appointment); ?></td>
+                                    <td><?php echo !empty($apt->visit_reason) ? ucfirst($apt->visit_reason) : '-'; ?></td>
+                                        <td>
+                                            <span class="label label-default">
+                                                <?php echo !empty($apt->visit_type) ? ucfirst(str_replace('_', '-', $apt->visit_type)) : '-'; ?>
+                                            </span>
+                                        </td>
                                     <td>
-                                        <span class="label label-default">
-                                            <?php echo $apt->patient_mode == 'appointment' ? 'Appointment' : 'Walk-in'; ?>
+                                        <span class="text-info">
+                                            <i class="fa fa-clock-o"></i> 
+                                            <?php echo date('h:i A', strtotime($apt->appointment_time)); ?>
                                         </span>
+                                    </td>
+                                    <td>
+                                        <?php 
+                                        if (!empty($apt->time_reported)) {
+                                            echo '<span class="text-success">';
+                                            echo '<i class="fa fa-clock-o"></i> ';
+                                            echo date('d-M-Y h:i A', strtotime($apt->time_reported));
+                                            echo '</span>';
+                                        } else {
+                                            echo '<span class="text-muted">-</span>';
+                                        }
+                                        ?>
                                     </td>
                                     <td>
                                         <?php
