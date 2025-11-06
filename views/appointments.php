@@ -2,85 +2,246 @@
 <?php init_head(); ?>
 
 <style>
+/* =====================================================
+   HOSPITAL THEME - AQUA BLUE & WHITE
+   ===================================================== */
+:root {
+    --hospital-primary: #00ACC1;      /* Aqua Blue */
+    --hospital-primary-dark: #0097A7;
+    --hospital-primary-light: #B2EBF2;
+    --hospital-secondary: #FFFFFF;
+    --hospital-success: #26A69A;
+    --hospital-warning: #FF9800;
+    --hospital-danger: #E53935;
+    --hospital-info: #42A5F5;
+    --hospital-border: #E0F7FA;
+}
+
+/* Stats Grid - Simple Rectangular Design */
 .stats-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-    gap: 15px;
-    margin-bottom: 25px;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 20px;
+    margin-bottom: 30px;
 }
 
 .stat-card {
-    background: #fff;
-    border: 1px solid #e0e0e0;
-    border-radius: 6px;
+    background: linear-gradient(135deg, #FFFFFF 0%, #E0F7FA 100%);
+    border-left: 4px solid var(--hospital-primary);
+    border-radius: 4px;
     padding: 20px;
-    text-align: center;
+    box-shadow: 0 2px 4px rgba(0, 172, 193, 0.1);
+    transition: all 0.3s ease;
+}
+
+.stat-card:hover {
+    box-shadow: 0 4px 12px rgba(0, 172, 193, 0.2);
+    transform: translateY(-2px);
+}
+
+.stat-card i {
+    font-size: 28px;
+    color: var(--hospital-primary);
+    margin-bottom: 10px;
+    display: block;
 }
 
 .stat-card h3 {
     font-size: 32px;
     font-weight: 700;
-    margin: 10px 0;
+    margin: 8px 0;
+    color: #263238;
 }
 
-.stat-card.pending h3 { color: #ff9800; }
-.stat-card.confirmed h3 { color: #4caf50; }
-.stat-card.today h3 { color: #2196f3; }
+.stat-card p {
+    font-size: 13px;
+    color: #546E7A;
+    margin: 0;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
 
+/* Specific stat card colors */
+.stat-card.today { border-left-color: var(--hospital-info); }
+.stat-card.today i { color: var(--hospital-info); }
+
+.stat-card.pending { border-left-color: var(--hospital-warning); }
+.stat-card.pending i { color: var(--hospital-warning); }
+
+.stat-card.confirmed { border-left-color: var(--hospital-success); }
+.stat-card.confirmed i { color: var(--hospital-success); }
+
+/* Header Section */
 .appointment-header {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-bottom: 25px;
+    margin-bottom: 30px;
+    padding-bottom: 15px;
+    border-bottom: 2px solid var(--hospital-border);
 }
 
+.appointment-header h3 {
+    color: var(--hospital-primary);
+    font-weight: 600;
+    margin: 0;
+}
+
+.appointment-header h3 i {
+    margin-right: 10px;
+}
+
+/* Button Styling */
 .btn-new-appointment {
-    background: #333;
+    background: var(--hospital-primary);
     color: #fff;
-    padding: 10px 20px;
+    padding: 12px 24px;
     border-radius: 4px;
     text-decoration: none;
+    border: none;
+    font-weight: 500;
+    transition: all 0.3s ease;
+    box-shadow: 0 2px 4px rgba(0, 172, 193, 0.3);
 }
 
 .btn-new-appointment:hover {
-    background: #000;
+    background: var(--hospital-primary-dark);
     color: #fff;
     text-decoration: none;
+    box-shadow: 0 4px 8px rgba(0, 172, 193, 0.4);
+    transform: translateY(-1px);
+}
+
+.btn-new-appointment i {
+    margin-right: 8px;
 }
 
 .modal-lg {
     max-width: 900px;
 }
 
+/* Modal Styling */
+.modal-header {
+    background: linear-gradient(135deg, var(--hospital-primary) 0%, var(--hospital-primary-dark) 100%);
+    color: white;
+    border-radius: 4px 4px 0 0;
+}
+
+.modal-header .modal-title {
+    font-weight: 600;
+}
+
+.modal-header .close {
+    color: white;
+    opacity: 0.8;
+}
+
+.modal-header .close:hover {
+    opacity: 1;
+}
+
+/* Form Sections */
 .patient-type-section {
-    background: #f8f9fa;
-    padding: 15px;
-    border-radius: 6px;
+    background: linear-gradient(135deg, #E0F7FA 0%, #B2EBF2 100%);
+    padding: 18px;
+    border-radius: 4px;
     margin-bottom: 20px;
+    border: 1px solid var(--hospital-border);
 }
 
 .form-section-divider {
-    border-top: 2px solid #e0e0e0;
+    border-top: 2px solid var(--hospital-border);
     margin: 25px 0;
     padding-top: 20px;
 }
 
 .patient-search-info {
-    background: #e3f2fd;
-    padding: 10px;
+    background: #E1F5FE;
+    padding: 12px 15px;
     border-radius: 4px;
     margin-bottom: 15px;
     font-size: 13px;
-    color: #1976d2;
+    color: #01579B;
+    border-left: 3px solid var(--hospital-info);
 }
 
 .form-section-title {
     font-size: 15px;
     font-weight: 600;
-    color: #333;
+    color: var(--hospital-primary);
     margin-bottom: 15px;
     padding-bottom: 8px;
-    border-bottom: 2px solid #e0e0e0;
+    border-bottom: 2px solid var(--hospital-border);
+}
+
+/* Action Buttons */
+.btn-success {
+    background: var(--hospital-success);
+    border-color: var(--hospital-success);
+}
+
+.btn-success:hover {
+    background: #1E7C6E;
+    border-color: #1E7C6E;
+}
+
+.btn-warning {
+    background: var(--hospital-warning);
+    border-color: var(--hospital-warning);
+}
+
+.btn-danger {
+    background: var(--hospital-danger);
+    border-color: var(--hospital-danger);
+}
+
+.btn-primary {
+    background: var(--hospital-primary);
+    border-color: var(--hospital-primary);
+}
+
+.btn-primary:hover {
+    background: var(--hospital-primary-dark);
+    border-color: var(--hospital-primary-dark);
+}
+
+/* Form Controls */
+.form-control:focus {
+    border-color: var(--hospital-primary);
+    box-shadow: 0 0 0 0.2rem rgba(0, 172, 193, 0.25);
+}
+
+.selectpicker.btn-default:focus {
+    border-color: var(--hospital-primary) !important;
+    box-shadow: 0 0 0 0.2rem rgba(0, 172, 193, 0.25) !important;
+}
+
+/* Table Styling */
+.panel_s {
+    border-radius: 4px;
+    box-shadow: 0 2px 4px rgba(0, 172, 193, 0.08);
+}
+
+.table thead {
+    background: linear-gradient(135deg, #E0F7FA 0%, #B2EBF2 100%);
+}
+
+.table thead th {
+    color: var(--hospital-primary-dark);
+    font-weight: 600;
+    border-bottom: 2px solid var(--hospital-primary);
+}
+
+/* Alert Messages */
+.alert-info {
+    background: #E1F5FE;
+    border-color: var(--hospital-info);
+    color: #01579B;
+}
+
+/* Modal Footer */
+.modal-footer {
+    border-top: 2px solid var(--hospital-border);
 }
 
 /* ============ TIME PICKER STYLES ============ */
@@ -784,6 +945,38 @@ $(document).ready(function() {
             $('#recommendation_details').slideUp();
         }
     });
+    
+    // DOB change - Auto calculate age
+    $('#dob').on('change', function() {
+        const dob = $(this).val();
+        if (dob) {
+            const age = calculateAge(dob);
+            $('#age').val(age);
+            if (age < 18) {
+                alert_float('info', 'Patient is a minor (Age: ' + age + ')');
+            }
+        } else {
+            $('#age').val('');
+        }
+    });
+    
+    // Mobile number formatting
+    $('#mobile_number').on('input', function() {
+        let value = $(this).val().replace(/\D/g, ''); // Remove non-digits
+        if (value.length > 10) {
+            value = value.substring(0, 10);
+        }
+        $(this).val(value);
+    });
+    
+    // Pincode formatting
+    $('#pincode').on('input', function() {
+        let value = $(this).val().replace(/\D/g, ''); // Remove non-digits
+        if (value.length > 6) {
+            value = value.substring(0, 6);
+        }
+        $(this).val(value);
+    });
     // Other Hospital Registration Toggle
     $('input[name="registered_other_hospital"]').on('change', function() {
         if ($(this).val() == '1') {
@@ -1058,10 +1251,163 @@ function initializeTimePicker() {
 }
 
 // ============================================================================
+// AGE CALCULATION
+// ============================================================================
+function calculateAge(dob) {
+    if (!dob) return '';
+    
+    const birthDate = new Date(dob);
+    const today = new Date();
+    
+    let age = today.getFullYear() - birthDate.getFullYear();
+    const monthDiff = today.getMonth() - birthDate.getMonth();
+    
+    if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
+        age--;
+    }
+    
+    return age >= 0 ? age : '';
+}
+
+// ============================================================================
+// VALIDATION FUNCTIONS
+// ============================================================================
+function validateMobileNumber(mobile) {
+    // Indian mobile number: starts with 6-9, has 10 digits
+    const mobileRegex = /^[6-9]\d{9}$/;
+    return mobileRegex.test(mobile);
+}
+
+function validateEmail(email) {
+    if (!email) return true; // Optional
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    return emailRegex.test(email);
+}
+
+function validatePincode(pincode) {
+    if (!pincode) return true; // Optional
+    const pincodeRegex = /^\d{6}$/;
+    return pincodeRegex.test(pincode);
+}
+
+function validateAppointmentForm() {
+    const isNewPatient = $('#is_new_patient').val();
+    const patientMode = $('#patient_mode').val();
+    
+    // Validate appointment fields (always required)
+    if (!$('#appointment_date').val()) {
+        alert_float('warning', 'Please select appointment date');
+        $('#appointment_date').focus();
+        return false;
+    }
+    
+    if (!$('#appointment_time').val()) {
+        alert_float('warning', 'Please select appointment time');
+        return false;
+    }
+    
+    if (!$('#consultant_id').val()) {
+        alert_float('warning', 'Please select a consultant');
+        $('#consultant_id').selectpicker('toggle');
+        return false;
+    }
+    
+    if (!$('#reason_for_appointment').val()) {
+        alert_float('warning', 'Please select reason for appointment');
+        $('#reason_for_appointment').selectpicker('toggle');
+        return false;
+    }
+    
+    // Validate patient data for new patients
+    if (isNewPatient == '1') {
+        const name = $('#name').val().trim();
+        const mobile = $('#mobile_number').val().trim();
+        const gender = $('#gender').val();
+        
+        // Name validation
+        if (!name) {
+            alert_float('warning', 'Please enter patient name');
+            $('#name').focus();
+            return false;
+        }
+        
+        if (name.length < 3) {
+            alert_float('warning', 'Patient name must be at least 3 characters');
+            $('#name').focus();
+            return false;
+        }
+        
+        // Mobile validation
+        if (!mobile) {
+            alert_float('warning', 'Please enter mobile number');
+            $('#mobile_number').focus();
+            return false;
+        }
+        
+        if (!validateMobileNumber(mobile)) {
+            alert_float('warning', 'Please enter a valid 10-digit mobile number starting with 6-9');
+            $('#mobile_number').focus();
+            return false;
+        }
+        
+        // Walk-in specific validations
+        if (patientMode === 'walk_in') {
+            if (!gender) {
+                alert_float('warning', 'Please select gender for walk-in');
+                $('#gender').focus();
+                return false;
+            }
+            
+            const patientType = $('#patient_type').val();
+            if (!patientType) {
+                alert_float('warning', 'Please select patient type for walk-in');
+                $('#patient_type').focus();
+                return false;
+            }
+        }
+        
+        // Email validation (if provided)
+        const email = $('#email').val().trim();
+        if (email && !validateEmail(email)) {
+            alert_float('warning', 'Please enter a valid email address');
+            $('#email').focus();
+            return false;
+        }
+        
+        // Pincode validation (if provided)
+        const pincode = $('#pincode').val().trim();
+        if (pincode && !validatePincode(pincode)) {
+            alert_float('warning', 'Please enter a valid 6-digit pincode');
+            $('#pincode').focus();
+            return false;
+        }
+    } else {
+        // Existing patient validation
+        if (!$('#patient_id').val()) {
+            alert_float('warning', 'Please select a patient');
+            $('#existing_patient_dropdown').selectpicker('toggle');
+            return false;
+        }
+    }
+    
+    return true;
+}
+
+// ============================================================================
 // SAVE APPOINTMENT
 // ============================================================================
 function handleSaveAppointment() {
     const $btn = $(this);
+    
+    // Validate form before submission
+    if (!validateAppointmentForm()) {
+        return;
+    }
+    // Validate form before submission
+    if (!validateAppointmentForm()) {
+        return;
+    }
+    
     const isNewPatient = $('#is_new_patient').val();
     const patientMode = $('#patient_mode').val();
     const reason = $('#reason_for_appointment').val();
@@ -1072,29 +1418,6 @@ function handleSaveAppointment() {
     console.log('Reason for Appointment:', reason);
     console.log('Patient ID:', $('#patient_id').val());
     console.log('==================');
-    
-    // Validate appointment fields first
-    if (!$('#appointment_date').val() || !$('#appointment_time').val() || !$('#consultant_id').val()) {
-        alert_float('warning', 'Please fill all required appointment fields (Date, Time, Consultant)');
-        return;
-    }
-    
-    // Validate patient data for new patients
-    if (isNewPatient == '1') {
-        const name = $('#name').val();
-        const mobile = $('#mobile_number').val();
-        
-        if (!name || !mobile) {
-            alert_float('warning', 'Please fill patient name and mobile number');
-            return;
-        }
-        
-        // Validate mobile format
-        if (!/^[6-9]\d{9}$/.test(mobile)) {
-            alert_float('warning', 'Please enter a valid 10-digit mobile number');
-            return;
-        }
-    }
     
     $btn.prop('disabled', true).html('<i class="fa fa-spinner fa-spin"></i> Processing...');
     
