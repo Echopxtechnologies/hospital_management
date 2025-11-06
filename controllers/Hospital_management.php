@@ -727,20 +727,92 @@ public function delete_document($document_id, $patient_id)
     /**
      * Consultant appointments list
      */
-    public function consultant_appointments()
-    {
-        $this->check_consultant_access('consultant_portal', 'view');
-        
-        $staff_id = get_staff_user_id();
-        $is_jc = $this->is_jc_or_admin();
-        
-        $data['appointments'] = $this->consultant_portal_model->get_appointments($staff_id, $is_jc);
-        $data['statistics'] = $this->consultant_portal_model->get_statistics($staff_id, $is_jc);
-        $data['title'] = 'My Appointments';
-        $data['is_jc'] = $is_jc;
-        
-        $this->load->view('consultant_appointments', $data);
+   /**
+ * Consultant Appointments List with Date Filtering
+ */
+public function consultant_appointments()
+{
+    // Check if user is consultant
+    if (!is_consultant() && !is_junior_consultant()) {
+        access_denied('Consultant Portal');
     }
+    
+    $staff_id = get_staff_user_id();
+    $is_jc = is_junior_consultant();
+    
+    // Get filter parameters from GET request
+    $filter_type = $this->input->get('filter_type') ?: 'today';
+    $from_date = $this->input->get('from_date') ?: date('Y-m-d');
+    $to_date = $this->input->get('to_date') ?: date('Y-m-d');
+    
+    // Calculate date range based on filter type
+    switch ($filter_type) {
+        case 'today':
+            $from_date = date('Y-m-d');
+            $to_date = date('Y-m-d');
+            $filter_info = "Showing: Today's appointments";
+            break;
+            
+        case 'week':
+            // Get current week (Sunday to Saturday)
+            $from_date = date('Y-m-d', strtotime('sunday this week'));
+            $to_date = date('Y-m-d', strtotime('saturday this week'));
+            $filter_info = "Showing: This week's appointments";
+            break;
+            
+        case 'month':
+            // Get current month
+            $from_date = date('Y-m-01'); // First day of month
+            $to_date = date('Y-m-t'); // Last day of month
+            $filter_info = "Showing: This month's appointments";
+            break;
+            
+        case 'all':
+            $from_date = null;
+            $to_date = null;
+            $filter_info = "Showing: All appointments";
+            break;
+            
+        case 'custom':
+            // Use the dates from input
+            if (empty($from_date) || empty($to_date)) {
+                $from_date = date('Y-m-d');
+                $to_date = date('Y-m-d');
+                $filter_info = "Showing: Today's appointments";
+            } else {
+                $filter_info = "Showing: " . date('d M Y', strtotime($from_date)) . " to " . date('d M Y', strtotime($to_date));
+            }
+            break;
+            
+        default:
+            $from_date = date('Y-m-d');
+            $to_date = date('Y-m-d');
+            $filter_info = "Showing: Today's appointments";
+            $filter_type = 'today';
+    }
+    
+    // Load model
+    $this->load->model('consultant_portal_model');
+    
+    // Get filtered appointments
+    $appointments = $this->consultant_portal_model->get_appointments($staff_id, $is_jc, $from_date, $to_date);
+    
+    // Get statistics
+    $statistics = $this->consultant_portal_model->get_statistics($staff_id, $is_jc);
+    
+    // Prepare data for view
+    $data = [
+        'appointments' => $appointments,
+        'statistics' => $statistics,
+        'filter_type' => $filter_type,
+        'from_date' => $from_date ?: date('Y-m-d'),
+        'to_date' => $to_date ?: date('Y-m-d'),
+        'filter_info' => $filter_info,
+        'title' => 'My Appointments'
+    ];
+    
+    $this->load->view('consultant_appointments', $data);
+}
 
     /**
      * Get consultant appointments (AJAX)
