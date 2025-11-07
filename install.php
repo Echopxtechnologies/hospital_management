@@ -77,7 +77,7 @@ if (!$CI->db->table_exists(db_prefix() . 'hospital_patient_types')) {
 
 
 // ==========================================
-// TABLE 3: hospital_patients (UPDATED WITH MEMBERSHIP_ID)
+// TABLE 3: hospital_patients (WITH MEMBERSHIP_ID)
 // ==========================================
 if (!$CI->db->table_exists(db_prefix() . 'hospital_patients')) {
     
@@ -111,7 +111,7 @@ if (!$CI->db->table_exists(db_prefix() . 'hospital_patients')) {
         `other_hospital_patient_id` VARCHAR(100) DEFAULT NULL COMMENT 'Patient ID from other hospital',
         
         -- Membership Details (ONLY FK + unique number + dates)
-       `membership_id` VARCHAR(100) DEFAULT NULL COMMENT 'Patient membership ID - simple text field',
+        `membership_id` VARCHAR(100) DEFAULT NULL COMMENT 'Patient membership ID - simple text field',
 
         -- Recommendation (STATIC)
         `recommended_to_hospital` TINYINT(1) DEFAULT 0 COMMENT '0=No, 1=Yes',
@@ -133,13 +133,14 @@ if (!$CI->db->table_exists(db_prefix() . 'hospital_patients')) {
         KEY `mobile_number` (`mobile_number`),
         KEY `email` (`email`),
         KEY `patient_type` (`patient_type`),
-        KEY `created_by` (`created_by`),
-    ) ENGINE=InnoDB DEFAULT CHARSET=" . $CI->db->char_set . ";");
+        KEY `created_by` (`created_by`)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;");
     
     log_activity('Hospital Management Module - Table Created: hospital_patients');
 }
+
 // ==========================================
-// TABLE 4: hospital_appointments (CLEANED)
+// TABLE 4: hospital_appointments (FIXED - Added updated_at)
 // ==========================================
 if (!$CI->db->table_exists(db_prefix() . 'hospital_appointments')) {
     
@@ -155,8 +156,8 @@ if (!$CI->db->table_exists(db_prefix() . 'hospital_appointments')) {
         
         -- Status
         `status` ENUM('pending', 'confirmed', 'cancelled', 'completed') NOT NULL DEFAULT 'pending',
-        `notes` TEXT DEFAULT NULL,
         `time_reported` DATETIME NULL DEFAULT NULL,
+        `notes` TEXT DEFAULT NULL,
         `cancellation_reason` TEXT DEFAULT NULL,
         
         -- System Fields
@@ -176,7 +177,7 @@ if (!$CI->db->table_exists(db_prefix() . 'hospital_appointments')) {
         CONSTRAINT `fk_appointment_consultant` FOREIGN KEY (`consultant_id`) 
             REFERENCES `" . db_prefix() . "staff` (`staffid`) 
             ON DELETE RESTRICT ON UPDATE CASCADE
-    ) ENGINE=InnoDB DEFAULT CHARSET=" . $CI->db->char_set . ";");
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;");
     
     log_activity('Hospital Management Module - Table Created: hospital_appointments');
 }
@@ -257,13 +258,13 @@ if (!$CI->db->table_exists(db_prefix() . 'hospital_visits')) {
         CONSTRAINT `fk_visit_consultant` FOREIGN KEY (`consultant_id`) 
             REFERENCES `" . db_prefix() . "staff` (`staffid`) 
             ON DELETE RESTRICT ON UPDATE CASCADE
-    ) ENGINE=InnoDB DEFAULT CHARSET=" . $CI->db->char_set . ";");
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb3 COLLATE=utf8mb3_general_ci;");
     
     log_activity('Hospital Management Module - Table Created: hospital_visits');
 }
 
 // ==========================================
-// TABLE 7: hospital_visit_details (UPDATED)
+// TABLE 7: hospital_visit_details (COMPLETELY REWRITTEN - ALL 58 COLUMNS)
 // ==========================================
 if (!$CI->db->table_exists(db_prefix() . 'hospital_visit_details')) {
     
@@ -274,36 +275,23 @@ if (!$CI->db->table_exists(db_prefix() . 'hospital_visit_details')) {
         -- Patient Type FOR THIS VISIT
         `patient_type_for_visit` VARCHAR(100) DEFAULT NULL,
         
-        -- Fee Payment FOR THIS VISIT (NEW FIELD)
-        `fee_payment` ENUM('yes', 'no', 'not_applicable') DEFAULT 'not_applicable' COMMENT 'Fee payment radio for this visit',
+        -- Fee Payment FOR THIS VISIT
+        `fee_payment` ENUM('yes', 'no', 'not_applicable') DEFAULT 'not_applicable' COMMENT 'Fee payment status for this visit',
         `fee_payment_status` ENUM('paid', 'pending', 'waived', 'insurance') DEFAULT 'pending',
         `fee_amount` DECIMAL(10,2) DEFAULT NULL,
+        `additional_fee` DECIMAL(10,2) DEFAULT 0.00 COMMENT 'Additional consultation/procedure fee',
+        `total_fee` DECIMAL(10,2) DEFAULT 0.00 COMMENT 'Total = fee_amount + additional_fee',
         `payment_method` VARCHAR(50) DEFAULT NULL,
         `insurance_details` TEXT DEFAULT NULL,
         
-        -- Referral FOR THIS VISIT (renamed for clarity)
+        -- Referral FOR THIS VISIT
         `visit_referred_by` VARCHAR(200) DEFAULT NULL COMMENT 'Who referred for THIS specific visit',
         `referral_source` VARCHAR(200) DEFAULT NULL,
         
-        -- Medical Info
+        -- Medical History Info
         `symptoms` TEXT DEFAULT NULL,
         `medical_history` TEXT DEFAULT NULL,
         `allergies` TEXT DEFAULT NULL,
-        `current_medications` TEXT DEFAULT NULL,
-        
-        -- Vitals
-        `temperature` VARCHAR(20) DEFAULT NULL,
-        `blood_pressure` VARCHAR(20) DEFAULT NULL,
-        `pulse_rate` VARCHAR(20) DEFAULT NULL,
-        `weight` VARCHAR(20) DEFAULT NULL,
-        `height` VARCHAR(20) DEFAULT NULL,
-        `spo2` VARCHAR(20) DEFAULT NULL,
-        
-        -- Tests
-        `lab_tests_ordered` TEXT DEFAULT NULL,
-        `lab_results` TEXT DEFAULT NULL,
-        `imaging_ordered` TEXT DEFAULT NULL,
-        `imaging_results` TEXT DEFAULT NULL,
         
         -- Follow-up
         `follow_up_required` TINYINT(1) DEFAULT 0,
@@ -313,12 +301,226 @@ if (!$CI->db->table_exists(db_prefix() . 'hospital_visit_details')) {
         `created_at` DATETIME DEFAULT CURRENT_TIMESTAMP,
         `updated_at` DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
         
+        -- Additional Ophthalmology History Fields
+        `systemic_history` TEXT DEFAULT NULL,
+        `family_history` TEXT DEFAULT NULL,
+        `ocular_diseases` TEXT DEFAULT NULL,
+        `surgical_history` TEXT DEFAULT NULL,
+        `medication` TEXT DEFAULT NULL,
+        `present_complaint` TEXT DEFAULT NULL,
+        `dilating_drops` VARCHAR(255) DEFAULT NULL,
+        
+        -- Examination Data (JSON)
+        `examination_data` LONGTEXT DEFAULT NULL COMMENT 'JSON: {visual_acuity_aided: {right: \"\", left: \"\"}, visual_acuity_unaided: {...}, ...}',
+        `retinoscopy_data` LONGTEXT DEFAULT NULL COMMENT 'JSON: {right: {ds, dc, axis, add}, left: {...}, type_of_dilatation}',
+        
+        -- Opinion & Diagnosis
+        `opinion_plan_of_care` TEXT DEFAULT NULL,
+        `icd_codes` TEXT DEFAULT NULL COMMENT 'Comma-separated ICD codes',
+        `review_required` ENUM('yes', 'no') DEFAULT 'no',
+        `review_period` DATE DEFAULT NULL,
+        `systematic_exam_ordered` TEXT DEFAULT NULL,
+        
+        -- Medicine Prescription (JSON)
+        `medicine_prescription` LONGTEXT DEFAULT NULL COMMENT 'JSON array of medicines',
+        `medicine_prescription_details` LONGTEXT DEFAULT NULL COMMENT 'JSON array: [{medicine_id, medicine_name, category, price, eye, dose, unit, frequency, instructions}]',
+        
+        -- Spectacle Prescription - Right Eye
+        `spectacle_right_sph` VARCHAR(20) DEFAULT NULL,
+        `spectacle_right_cyl` VARCHAR(20) DEFAULT NULL,
+        `spectacle_right_axis` VARCHAR(20) DEFAULT NULL,
+        `spectacle_right_near_vision` VARCHAR(20) DEFAULT NULL,
+        `spectacle_right_distance_vision` VARCHAR(20) DEFAULT NULL,
+        
+        -- Spectacle Prescription - Left Eye
+        `spectacle_left_sph` VARCHAR(20) DEFAULT NULL,
+        `spectacle_left_cyl` VARCHAR(20) DEFAULT NULL,
+        `spectacle_left_axis` VARCHAR(20) DEFAULT NULL,
+        `spectacle_left_near_vision` VARCHAR(20) DEFAULT NULL,
+        `spectacle_left_distance_vision` VARCHAR(20) DEFAULT NULL,
+        
+        -- Spectacle Additional Details
+        `bifocals` ENUM('yes', 'no') DEFAULT 'no',
+        `back_vertex` VARCHAR(50) DEFAULT NULL,
+        `interpupillary` VARCHAR(50) DEFAULT NULL,
+        `spectacle_remarks` TEXT DEFAULT NULL,
+        `lens_type` VARCHAR(100) DEFAULT NULL,
+        
+        -- Pediatric Notes
+        `pediatric_notes` TEXT DEFAULT NULL,
+        
+        -- Lab Tests & Procedures (JSON)
+        `lab_tests` LONGTEXT DEFAULT NULL COMMENT 'JSON: {blood_investigation: [], biochemistry: [], ...}',
+        `procedure_diagnostics` LONGTEXT DEFAULT NULL COMMENT 'JSON array of selected procedures',
+        `procedure_treatment` LONGTEXT DEFAULT NULL COMMENT 'JSON array',
+        `surgical_counselling` LONGTEXT DEFAULT NULL COMMENT 'JSON: {simple: {...}, detailed: {...}}',
+        
+        -- Visit Completion Status
+        `is_completed` TINYINT(1) DEFAULT 0 COMMENT '1 = Visit completed and saved',
+        `completed_by` INT(11) DEFAULT NULL,
+        
         PRIMARY KEY (`id`),
         KEY `visit_id` (`visit_id`),
         CONSTRAINT `fk_visit_detail` FOREIGN KEY (`visit_id`) 
             REFERENCES `" . db_prefix() . "hospital_visits` (`id`) 
             ON DELETE CASCADE ON UPDATE CASCADE
-    ) ENGINE=InnoDB DEFAULT CHARSET=" . $CI->db->char_set . ";");
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb3 COLLATE=utf8mb3_general_ci;");
     
     log_activity('Hospital Management Module - Table Created: hospital_visit_details');
+}
+
+// ==========================================
+// TABLE 8: hospital_request_categories
+// ==========================================
+if (!$CI->db->table_exists(db_prefix() . 'hospital_request_categories')) {
+    
+    $CI->db->query("CREATE TABLE `" . db_prefix() . "hospital_request_categories` (
+        `id` INT(11) NOT NULL AUTO_INCREMENT,
+        `category_name` VARCHAR(100) NOT NULL,
+        `category_code` VARCHAR(50) NOT NULL,
+        `description` TEXT DEFAULT NULL,
+        `display_order` INT(11) DEFAULT 0,
+        `is_active` TINYINT(1) NOT NULL DEFAULT 1,
+        `created_at` DATETIME DEFAULT CURRENT_TIMESTAMP,
+        PRIMARY KEY (`id`),
+        UNIQUE KEY `category_code` (`category_code`)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb3 COLLATE=utf8mb3_general_ci;");
+    
+    $CI->db->insert_batch(db_prefix() . 'hospital_request_categories', [
+        ['category_name' => 'Lab Tests', 'category_code' => 'LAB_TESTS', 'display_order' => 1, 'is_active' => 1],
+        ['category_name' => 'Procedure Diagnostics', 'category_code' => 'PROCEDURE_DIAGNOSTICS', 'display_order' => 2, 'is_active' => 1],
+        ['category_name' => 'Procedure Treatment', 'category_code' => 'PROCEDURE_TREATMENT', 'display_order' => 3, 'is_active' => 1],
+        ['category_name' => 'Surgical Counselling', 'category_code' => 'SURGICAL_COUNSELLING', 'display_order' => 4, 'is_active' => 1]
+    ]);
+    
+    log_activity('Hospital Management - Table Created: hospital_request_categories');
+}
+
+// ==========================================
+// TABLE 9: hospital_request_items
+// ==========================================
+if (!$CI->db->table_exists(db_prefix() . 'hospital_request_items')) {
+    
+    $CI->db->query("CREATE TABLE `" . db_prefix() . "hospital_request_items` (
+        `id` INT(11) NOT NULL AUTO_INCREMENT,
+        `category_id` INT(11) NOT NULL,
+        `subcategory_name` VARCHAR(150) DEFAULT NULL,
+        `item_name` VARCHAR(255) NOT NULL,
+        `item_code` VARCHAR(100) DEFAULT NULL,
+        `price` DECIMAL(10,2) NOT NULL DEFAULT 0.00,
+        `description` TEXT DEFAULT NULL,
+        `display_order` INT(11) DEFAULT 0,
+        `is_active` TINYINT(1) NOT NULL DEFAULT 1,
+        `created_at` DATETIME DEFAULT CURRENT_TIMESTAMP,
+        PRIMARY KEY (`id`),
+        KEY `category_id` (`category_id`),
+        KEY `subcategory_name` (`subcategory_name`),
+        KEY `item_code` (`item_code`),
+        CONSTRAINT `fk_request_item_category` FOREIGN KEY (`category_id`) 
+            REFERENCES `" . db_prefix() . "hospital_request_categories` (`id`) 
+            ON DELETE CASCADE ON UPDATE CASCADE
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb3 COLLATE=utf8mb3_general_ci;");
+    
+    log_activity('Hospital Management - Table Created: hospital_request_items');
+}
+
+// ==========================================
+// TABLE 10: hospital_visit_requests
+// ==========================================
+if (!$CI->db->table_exists(db_prefix() . 'hospital_visit_requests')) {
+    
+    $CI->db->query("CREATE TABLE `" . db_prefix() . "hospital_visit_requests` (
+        `id` INT(11) NOT NULL AUTO_INCREMENT,
+        `visit_id` INT(11) NOT NULL,
+        `request_number` VARCHAR(50) NOT NULL,
+        `category_id` INT(11) NOT NULL,
+        `total_amount` DECIMAL(10,2) NOT NULL DEFAULT 0.00,
+        `discount_amount` DECIMAL(10,2) DEFAULT 0.00,
+        `final_amount` DECIMAL(10,2) NOT NULL DEFAULT 0.00,
+        `status` ENUM('pending', 'approved', 'in_progress', 'completed', 'cancelled') NOT NULL DEFAULT 'pending',
+        `priority` ENUM('normal', 'urgent', 'emergency') DEFAULT 'normal',
+        `doctor_notes` TEXT DEFAULT NULL,
+        `lab_notes` TEXT DEFAULT NULL,
+        `surgery_type` VARCHAR(100) DEFAULT NULL,
+        `surgery_details` TEXT DEFAULT NULL,
+        `requested_by` INT(11) DEFAULT NULL,
+        `approved_by` INT(11) DEFAULT NULL,
+        `approved_at` DATETIME DEFAULT NULL,
+        `completed_at` DATETIME DEFAULT NULL,
+        `created_at` DATETIME DEFAULT CURRENT_TIMESTAMP,
+        `updated_at` DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+        PRIMARY KEY (`id`),
+        UNIQUE KEY `request_number` (`request_number`),
+        KEY `visit_id` (`visit_id`),
+        KEY `category_id` (`category_id`),
+        KEY `status` (`status`),
+        CONSTRAINT `fk_visit_request_visit` FOREIGN KEY (`visit_id`) 
+            REFERENCES `" . db_prefix() . "hospital_visits` (`id`) 
+            ON DELETE CASCADE ON UPDATE CASCADE,
+        CONSTRAINT `fk_visit_request_category` FOREIGN KEY (`category_id`) 
+            REFERENCES `" . db_prefix() . "hospital_request_categories` (`id`) 
+            ON DELETE RESTRICT ON UPDATE CASCADE
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb3 COLLATE=utf8mb3_general_ci;");
+    
+    log_activity('Hospital Management - Table Created: hospital_visit_requests');
+}
+
+// ==========================================
+// TABLE 11: hospital_visit_request_items
+// ==========================================
+if (!$CI->db->table_exists(db_prefix() . 'hospital_visit_request_items')) {
+    
+    $CI->db->query("CREATE TABLE `" . db_prefix() . "hospital_visit_request_items` (
+        `id` INT(11) NOT NULL AUTO_INCREMENT,
+        `request_id` INT(11) NOT NULL,
+        `item_id` INT(11) NOT NULL,
+        `quantity` INT(11) NOT NULL DEFAULT 1,
+        `unit_price` DECIMAL(10,2) NOT NULL,
+        `total_price` DECIMAL(10,2) NOT NULL,
+        `notes` TEXT DEFAULT NULL,
+        `result` TEXT DEFAULT NULL,
+        `result_date` DATETIME DEFAULT NULL,
+        `result_by` INT(11) DEFAULT NULL,
+        `created_at` DATETIME DEFAULT CURRENT_TIMESTAMP,
+        PRIMARY KEY (`id`),
+        KEY `request_id` (`request_id`),
+        KEY `item_id` (`item_id`),
+        CONSTRAINT `fk_request_item_request` FOREIGN KEY (`request_id`) 
+            REFERENCES `" . db_prefix() . "hospital_visit_requests` (`id`) 
+            ON DELETE CASCADE ON UPDATE CASCADE,
+        CONSTRAINT `fk_request_item_item` FOREIGN KEY (`item_id`) 
+            REFERENCES `" . db_prefix() . "hospital_request_items` (`id`) 
+            ON DELETE RESTRICT ON UPDATE CASCADE
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb3 COLLATE=utf8mb3_general_ci;");
+    
+    log_activity('Hospital Management - Table Created: hospital_visit_request_items');
+}
+
+// ==========================================
+// TABLE 12: hospital_medicines (If you have this table)
+// ==========================================
+if (!$CI->db->table_exists(db_prefix() . 'hospital_medicines')) {
+    
+    $CI->db->query("CREATE TABLE `" . db_prefix() . "hospital_medicines` (
+        `id` INT(11) NOT NULL AUTO_INCREMENT,
+        `medicine_name` VARCHAR(255) NOT NULL,
+        `generic_name` VARCHAR(255) DEFAULT NULL,
+        `category` ENUM('eye_drop', 'tablet', 'capsule', 'injection', 'ointment', 'syrup', 'other') NOT NULL DEFAULT 'eye_drop',
+        `strength` VARCHAR(100) DEFAULT NULL COMMENT 'e.g., 0.5%, 500mg',
+        `unit` VARCHAR(50) DEFAULT NULL COMMENT 'e.g., ml, mg, drops',
+        `manufacturer` VARCHAR(255) DEFAULT NULL,
+        `price` DECIMAL(10,2) NOT NULL DEFAULT 0.00,
+        `description` TEXT DEFAULT NULL,
+        `side_effects` TEXT DEFAULT NULL,
+        `is_active` TINYINT(1) NOT NULL DEFAULT 1,
+        `display_order` INT(11) DEFAULT 0,
+        `created_at` DATETIME DEFAULT CURRENT_TIMESTAMP,
+        `updated_at` DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+        PRIMARY KEY (`id`),
+        KEY `medicine_name` (`medicine_name`),
+        KEY `category` (`category`),
+        KEY `is_active` (`is_active`)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb3 COLLATE=utf8mb3_general_ci;");
+    
+    log_activity('Hospital Management - Table Created: hospital_medicines');
 }

@@ -959,17 +959,32 @@ public function consultant_see_patient($appointment_id)
     $visit_history = $this->hospital_visits_model->get_patient_visits($appointment['patient_id']);
     
     // Get dropdown data
-    $data['icd_codes'] = $this->get_icd_codes(); // You'll create this
-    $data['medicine_drops'] = $this->get_medicine_drops(); // You'll create this
-    $data['surgery_types'] = $this->get_surgery_types(); // You'll create this
-    $data['lens_types'] = $this->get_lens_types(); // You'll create this
+    $data['icd_codes'] = $this->get_icd_codes();
+    $data['medicine_drops'] = $this->get_medicine_drops();
+    $data['surgery_types'] = $this->get_surgery_types();
+    $data['lens_types'] = $this->get_lens_types();
+
+    // ADD THIS NEW CODE - Load all request categories and items
+    $data['request_categories'] = $this->consultant_portal_model->get_request_categories();
+    $data['request_items_grouped'] = [];
+
+    foreach ($data['request_categories'] as $category) {
+        $data['request_items_grouped'][$category['id']] = $this->consultant_portal_model->get_request_items_by_category($category['id']);
+    }
+
+    // Load existing requests for this visit
+    if (!empty($visit)) {
+        $data['existing_requests'] = $this->consultant_portal_model->get_visit_requests($visit['id']);
+    } else {
+        $data['existing_requests'] = [];
+    }
+
+ $data['title'] = 'Patient Consultation - ' . $appointment['patient_name'];
+$data['appointment'] = $appointment;  // ADD THIS LINE
+$data['visit'] = $visit;              // ADD THIS LINE
+$data['visit_history'] = $visit_history;  // ADD THIS LINE
     
-    $data['title'] = 'Patient Consultation - ' . $appointment['patient_name'];
-    $data['appointment'] = $appointment;
-    $data['visit'] = $visit;
-    $data['visit_history'] = $visit_history;
-    
-    $this->load->view('consultant_see_patient', $data);
+$this->load->view('consultant_see_patient', $data);
 }
 
 /**
@@ -990,6 +1005,67 @@ public function get_medicines_by_category()
         exit;
     }
 }
+// ==========================================
+// REQUEST SYSTEM AJAX METHODS
+// ==========================================
+
+/**
+ * Get request items by category (AJAX)
+ */
+public function get_request_items()
+{
+    if ($this->input->is_ajax_request()) {
+        $category_id = $this->input->post('category_id');
+        
+        $items = $this->consultant_portal_model->get_request_items_by_category($category_id);
+        
+        echo json_encode([
+            'success' => true,
+            'items' => $items
+        ]);
+    }
+}
+
+/**
+ * Save visit request (AJAX)
+ */
+public function save_visit_request()
+{
+    if ($this->input->is_ajax_request()) {
+        $data = [
+            'visit_id' => $this->input->post('visit_id'),
+            'category_id' => $this->input->post('category_id'),
+            'selected_items' => json_decode($this->input->post('selected_items'), true),
+            'total_amount' => $this->input->post('total_amount'),
+            'final_amount' => $this->input->post('final_amount'),
+            'priority' => $this->input->post('priority'),
+            'doctor_notes' => $this->input->post('doctor_notes')
+        ];
+        
+        $result = $this->consultant_portal_model->save_visit_request($data);
+        
+        echo json_encode($result);
+    }
+}
+
+/**
+ * Get visit requests (AJAX)
+ */
+public function get_visit_requests()
+{
+    if ($this->input->is_ajax_request()) {
+        $visit_id = $this->input->post('visit_id');
+        
+        $requests = $this->consultant_portal_model->get_visit_requests($visit_id);
+        
+        echo json_encode([
+            'success' => true,
+            'requests' => $requests
+        ]);
+    }
+}
+
+
 /**
  * Save visit details (AJAX)
  */

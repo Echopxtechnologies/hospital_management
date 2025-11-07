@@ -251,4 +251,169 @@ public function get_appointments($staff_id, $is_jc = false, $from_date = null, $
         
         return $this->db->get()->row_array();
     }
+
+
+    // ==========================================
+// REQUEST SYSTEM METHODS
+// ==========================================
+
+/**
+ * Get all active categories
+ */
+public function get_request_categories()
+{
+    return $this->db->where('is_active', 1)
+                    ->order_by('display_order', 'ASC')
+                    ->get(db_prefix() . 'hospital_request_categories')
+                    ->result_array();
+}
+
+/**
+ * Get items by category with subcategory grouping
+ */
+public function get_request_items_by_category($category_id)
+{
+    $items = $this->db->where('category_id', $category_id)
+                      ->where('is_active', 1)
+                      ->order_by('subcategory_name, display_order', 'ASC')
+                      ->get(db_prefix() . 'hospital_request_items')
+                      ->result_array();
+    
+    // Group by subcategory
+    $grouped = [];
+    foreach ($items as $item) {
+        $subcategory = $item['subcategory_name'] ?? 'Other';
+        if (!isset($grouped[$subcategory])) {
+            $grouped[$subcategory] = [];
+        }
+        $grouped[$subcategory][] = $item;
+    }
+    
+    return $grouped;
+}
+
+/**
+ * Save visit request
+ */
+public function save_visit_request($data)
+{
+    $this->db->trans_start();
+    
+    // Generate request number
+    $request_number = $this->generate_request_number();
+    
+    // Prepare request header
+    $request_data = [
+        'visit_id' => $data['visit_id'],
+        'request_number' => $request_number,
+        'category_id' => $data['category_id'],
+        'total_amount' => $data['total_amount'] ?? 0,
+        'final_amount' => $data['final_amount'] ?? 0,
+        'status' => 'pending',
+        'priority' => $data['priority'] ?? 'normal',
+        'doctor_notes' => $data['doctor_notes'] ?? null,
+        'requested_by' => get_staff_user_id()
+    ];
+    
+    // Insert request header
+    $this->db->insert(db_prefix() . 'hospital_visit_requests', $request_data);
+    $request_id = $this->db->insert_id();
+    
+    // Insert selected items
+    if (!empty($data['selected_items'])) {
+        $items_batch = [];
+        foreach ($data['selected_items'] as $item) {
+            $items_batch[] = [
+                'request_id' => $request_id,
+                'item_id' => $item['item_id'],
+                'quantity' => $item['quantity'] ?? 1,
+                'unit_price' => $item['unit_price'],
+                'total_price' => ($item['quantity'] ?? 1) * $item['unit_price']
+            ];
+        }
+        
+        if (!empty($items_batch)) {
+            $this->db->insert_batch(db_prefix() . 'hospital_visit_request_items', $items_batch);
+        }
+    }
+    
+    $this->db->trans_complete();
+    
+    if ($this->db->trans_status() === FALSE) {
+        return ['success' => false, 'message' => 'Failed to save request'];
+    }
+    
+    return [
+        'success' => true,
+        'message' => 'Request saved successfully',
+        'request_id' => $request_id,
+        'request_number' => $request_number
+    ];
+}
+
+/**
+ * Generate unique request number
+ */
+private function generate_request_number()
+{
+    $prefix = 'REQ-';
+    $date = date('Ymd');
+    
+    // Get last request number for today
+    $last = $this->db->select('request_number')
+                     ->like('request_number', $prefix . $date, 'after')
+                     ->order_by('id', 'DESC')
+                     ->limit(1)
+                     ->get(db_prefix() . 'hospital_visit_requests')
+                     ->row();
+    
+    if ($last) {
+        $last_number = intval(substr($last->request_number, -4));
+        $new_number = str_pad($last_number + 1, 4, '0', STR_PAD_LEFT);
+    } else {
+        $new_number = '0001';
+    }
+    
+    return $prefix . $date . '-' . $new_number;
+}
+
+/**
+ * Get visit requests
+ */
+public function get_visit_requests($visit_id)
+{
+    return $this->db->select('r.*, c.category_name, s.firstname, s.lastname')
+                    ->from(db_prefix() . 'hospital_visit_requests r')
+                    ->join(db_prefix() . 'hospital_request_categories c', 'c.id = r.category_id', 'left')
+                    ->join(db_prefix() . 'staff s', 's.staffid = r.requested_by', 'left')
+                    ->where('r.visit_id', $visit_id)
+                    ->order_by('r.created_at', 'DESC')
+                    ->get()
+                    ->result_array();
+}
+
+/**
+ * Get request details with items
+ */
+public function get_request_details($request_id)
+{
+    $request = $this->db->select('r.*, c.category_name')
+                        ->from(db_prefix() . 'hospital_visit_requests r')
+                        ->join(db_prefix() . 'hospital_request_categories c', 'c.id = r.category_id', 'left')
+                        ->where('r.id', $request_id)
+                        ->get()
+                        ->row_array();
+    
+    if ($request) {
+        // Get items
+        $request['items'] = $this->db->select('ri.*, i.item_name, i.item_code, i.subcategory_name')
+                                     ->from(db_prefix() . 'hospital_visit_request_items ri')
+                                     ->join(db_prefix() . 'hospital_request_items i', 'i.id = ri.item_id', 'left')
+                                     ->where('ri.request_id', $request_id)
+                                     ->get()
+                                     ->result_array();
+    }
+    
+    return $request;
+}
 }

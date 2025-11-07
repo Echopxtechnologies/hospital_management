@@ -3,10 +3,22 @@
 
 <style>
 /* ============================================
+   AQUA BLUE HOSPITAL THEME
+============================================ */
+:root {
+    --primary-aqua: #00bcd4;
+    --secondary-aqua: #0097a7;
+    --light-aqua: #b2ebf2;
+    --dark-aqua: #006064;
+    --white: #ffffff;
+    --light-bg: #e0f7fa;
+}
+
+/* ============================================
    PATIENT HEADER BAR
 ============================================ */
 .patient-header {
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    background: linear-gradient(135deg, #00bcd4 0%, #0097a7 100%);
     color: white;
     padding: 15px 20px;
     border-radius: 8px;
@@ -49,12 +61,12 @@
 }
 
 .consultation-tabs .nav-tabs > li > a:hover {
-    background: #f5f5f5;
+    background: #e0f7fa;
     border: none;
 }
 
 .consultation-tabs .nav-tabs > li.active > a {
-    background: #667eea;
+    background: #00bcd4;
     color: white;
     border: none;
 }
@@ -77,7 +89,7 @@
     color: #333;
     margin-bottom: 15px;
     padding-bottom: 8px;
-    border-bottom: 2px solid #e0e0e0;
+    border-bottom: 2px solid #00bcd4;
 }
 
 /* ============================================
@@ -90,12 +102,12 @@
 }
 
 .examination-table th {
-    background: #17a2b8;
+    background: #00bcd4;
     color: white;
     padding: 12px;
     text-align: center;
     font-weight: 600;
-    border: 1px solid #138496;
+    border: 1px solid #0097a7;
 }
 
 .examination-table td {
@@ -125,7 +137,7 @@
 }
 
 .eye-header {
-    background: #17a2b8;
+    background: #00bcd4;
     color: white;
     text-align: center;
     padding: 12px;
@@ -151,7 +163,7 @@
 .retino-input-box {
     position: absolute;
     background: #fff9c4;
-    border: 2px solid #f57c00;
+    border: 2px solid #00bcd4;
     border-radius: 6px;
     padding: 10px;
     width: 140px;
@@ -170,7 +182,7 @@
 .retino-input-box input {
     width: 100%;
     padding: 8px;
-    border: 2px solid #f57c00;
+    border: 2px solid #00bcd4;
     border-radius: 4px;
     text-align: center;
     font-weight: 600;
@@ -189,7 +201,7 @@
     position: absolute;
     width: 3px;
     height: 100%;
-    background: #d81b60;
+    background: #00bcd4;
     left: 50%;
     transform: translateX(-50%);
 }
@@ -198,7 +210,7 @@
     position: absolute;
     height: 3px;
     width: 100%;
-    background: #d81b60;
+    background: #00bcd4;
     top: 50%;
     transform: translateY(-50%);
 }
@@ -207,11 +219,11 @@
    MEDICINE ROWS
 ============================================ */
 .medicine-row {
-    background: #f8f9fa;
+    background: #e0f7fa;
     padding: 15px;
     border-radius: 6px;
     margin-bottom: 15px;
-    border-left: 4px solid #667eea;
+    border-left: 4px solid #00bcd4;
 }
 
 .medicine-row .form-group {
@@ -228,12 +240,12 @@
    ACTION BUTTONS
 ============================================ */
 .action-buttons {
-    background: #f8f9fa;
+    background: #e0f7fa;
     padding: 20px;
     border-radius: 8px;
     text-align: center;
     margin-top: 30px;
-    border: 2px solid #e0e0e0;
+    border: 2px solid #b2ebf2;
 }
 
 .action-buttons .btn {
@@ -252,22 +264,28 @@
     top: 150px;
     z-index: 999;
     box-shadow: 0 4px 6px rgba(0,0,0,0.2);
+    background: #00bcd4 !important;
+    border-color: #00bcd4 !important;
+}
+
+.history-btn:hover {
+    background: #0097a7 !important;
 }
 
 /* ============================================
    VISITS BANNER
 ============================================ */
 .visits-banner {
-    background: #e8eaf6;
+    background: #e0f7fa;
     padding: 10px 15px;
     border-radius: 4px;
     margin-bottom: 15px;
-    border-left: 4px solid #667eea;
+    border-left: 4px solid #00bcd4;
 }
 
 .visits-banner strong {
     font-size: 15px;
-    color: #333;
+    color: #006064;
 }
 
 /* ============================================
@@ -285,6 +303,163 @@
 .total-fee-box strong {
     font-size: 16px;
     color: #2e7d32;
+}
+
+/* ============================================
+   REQUEST SECTION - ALL CATEGORIES VISIBLE
+============================================ */
+.request-categories-container {
+    margin-top: 20px;
+}
+
+.request-category-panel {
+    background: white;
+    border: 2px solid #b2ebf2;
+    border-radius: 8px;
+    margin-bottom: 20px;
+    overflow: hidden;
+}
+
+.request-category-header {
+    background: linear-gradient(135deg, #00bcd4 0%, #0097a7 100%);
+    color: white;
+    padding: 15px 20px;
+    font-weight: 600;
+    font-size: 16px;
+}
+
+.request-category-header i {
+    margin-right: 10px;
+}
+
+.request-category-body {
+    padding: 20px;
+}
+
+/* Subcategory header - NO CHECKBOX, only title */
+.subcategory-header {
+    background: #00bcd4;
+    color: white;
+    padding: 10px 15px;
+    border-radius: 6px;
+    margin-bottom: 15px;
+    cursor: pointer;
+    transition: all 0.3s;
+    display: flex;
+    align-items: center;
+    font-weight: 600;
+    font-size: 15px;
+}
+
+.subcategory-header:hover {
+    background: #0097a7;
+}
+
+.subcategory-arrow {
+    margin-right: 10px;
+    transition: transform 0.3s;
+    font-size: 12px;
+}
+
+.subcategory-header.collapsed .subcategory-arrow {
+    transform: rotate(0deg);
+}
+
+.subcategory-header:not(.collapsed) .subcategory-arrow {
+    transform: rotate(90deg);
+}
+
+.subcategory-title {
+    flex: 1;
+}
+
+.subcategory-count {
+    background: rgba(255,255,255,0.3);
+    color: white;
+    padding: 3px 10px;
+    border-radius: 12px;
+    font-size: 12px;
+    font-weight: 600;
+}
+
+/* Subcategory items - 2 COLUMNS, ALWAYS VISIBLE */
+.subcategory-items {
+    padding: 15px;
+    background: #f8f9fa;
+    border-radius: 6px;
+    margin-bottom: 15px;
+}
+
+.subcategory-items.collapsed {
+    display: none;
+}
+
+/* 2 COLUMN GRID for items */
+.items-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 10px;
+}
+
+/* Individual item checkbox - SMALL */
+.request-item-box {
+    padding: 8px 12px;
+    background: white;
+    border-radius: 4px;
+    border: 1px solid #e0e0e0;
+    transition: all 0.2s;
+    display: flex;
+    align-items: center;
+}
+
+.request-item-box:hover {
+    background: #e0f7fa;
+    border-color: #00bcd4;
+    transform: translateX(3px);
+}
+
+.request-item-box label {
+    margin: 0;
+    cursor: pointer;
+    font-weight: normal;
+    flex: 1;
+    display: flex;
+    align-items: center;
+    font-size: 13px;
+}
+
+.request-item-box input[type="checkbox"] {
+    margin-right: 8px;
+    width: 16px;
+    height: 16px;
+    cursor: pointer;
+    flex-shrink: 0;
+}
+
+.item-name {
+    flex: 1;
+}
+
+.item-price {
+    font-weight: 600;
+    color: #00bcd4;
+    margin-left: 8px;
+    white-space: nowrap;
+}
+
+/* Request summary box */
+.request-summary {
+    background: #e0f7fa;
+    padding: 20px;
+    border-radius: 6px;
+    border: 2px solid #00bcd4;
+    margin-top: 30px;
+}
+
+.request-summary h5 {
+    color: #006064;
+    margin-bottom: 15px;
+    font-weight: 600;
 }
 </style>
 
@@ -477,7 +652,7 @@
                 </div>
                 
                 <!-- ============================================
-                     TAB 3: RETINOSCOPY (WITH EDITABLE YELLOW BOXES)
+                     TAB 3: RETINOSCOPY
                 ============================================ -->
                 <div role="tabpanel" class="tab-pane" id="retinoscopy">
                     <button class="btn btn-info pull-right" onclick="saveTab('retinoscopy')">
@@ -812,20 +987,255 @@
                 </div>
                 
                 <!-- ============================================
-                     TAB 8: REQUEST (Lab Tests, Procedures, Surgery)
+                     TAB 8: REQUEST - FIXED LAYOUT
                 ============================================ -->
                 <div role="tabpanel" class="tab-pane" id="request">
-                    <div class="alert alert-info">
-                        <i class="fa fa-info-circle"></i> <strong>Request Section</strong> - Lab Tests, Procedure Diagnostics, and Surgical Counselling forms will be implemented in the next phase.
-                    </div>
+                    <h4 class="form-section-title">
+                        <i class="fa fa-file-text"></i> Medical Requests - Select Items from Any Category
+                    </h4>
                     
-                    <p class="text-muted">This section will include:</p>
-                    <ul class="text-muted">
-                        <li>Lab Tests (Blood Investigation, Biochemistry, Serology, Urine, Microbiology, PCR, Packages, Pathology Biopsy)</li>
-                        <li>Procedure Diagnostics (Glaucoma Package, OCT, FDT, Topography, etc.)</li>
-                        <li>Procedure Treatment</li>
-                        <li>Surgical Counselling (Simple & Detailed Surgery Requests)</li>
-                    </ul>
+                    <form id="request_form">
+                        <input type="hidden" name="visit_id" value="<?php echo $visit['id'] ?? 0; ?>">
+                        
+                        <div class="request-categories-container">
+                            
+                            <!-- ==================== CATEGORY 1: LAB TESTS ==================== -->
+                            <div class="request-category-panel">
+                                <div class="request-category-header">
+                                    <i class="fa fa-flask"></i> Lab Tests
+                                </div>
+                                <div class="request-category-body">
+                                    <?php if (isset($request_items_grouped[1]) && !empty($request_items_grouped[1])): ?>
+                                        <?php foreach ($request_items_grouped[1] as $subcategory => $items): 
+                                            $subcat_id = 'subcat_' . md5($subcategory);
+                                        ?>
+                                            <div class="subcategory-wrapper">
+                                                <!-- Subcategory Header - NO CHECKBOX -->
+                                                <div class="subcategory-header" onclick="toggleSubcategory('<?php echo $subcat_id; ?>')">
+                                                    <i class="fa fa-chevron-right subcategory-arrow"></i>
+                                                    <span class="subcategory-title"><?php echo $subcategory; ?></span>
+                                                    <span class="subcategory-count"><?php echo count($items); ?> items</span>
+                                                </div>
+                                                
+                                                <!-- Subcategory Items - 2 COLUMNS -->
+                                                <div class="subcategory-items" id="<?php echo $subcat_id; ?>">
+                                                    <div class="items-grid">
+                                                        <?php foreach ($items as $item): ?>
+                                                            <div class="request-item-box">
+                                                                <label>
+                                                                    <input type="checkbox" 
+                                                                           class="request-item-checkbox"
+                                                                           data-category-id="1"
+                                                                           data-item-id="<?php echo $item['id']; ?>"
+                                                                           data-item-name="<?php echo htmlspecialchars($item['item_name']); ?>"
+                                                                           data-price="<?php echo $item['price']; ?>"
+                                                                           onchange="calculateRequestTotal()">
+                                                                    <span class="item-name"><?php echo $item['item_name']; ?></span>
+                                                                    <span class="item-price">₹<?php echo number_format($item['price'], 2); ?></span>
+                                                                </label>
+                                                            </div>
+                                                        <?php endforeach; ?>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        <?php endforeach; ?>
+                                    <?php else: ?>
+                                        <div class="alert alert-info">
+                                            <i class="fa fa-info-circle"></i> No lab test items available.
+                                        </div>
+                                    <?php endif; ?>
+                                </div>
+                            </div>
+                            
+                            <!-- ==================== CATEGORY 2: PROCEDURE DIAGNOSTICS ==================== -->
+                            <div class="request-category-panel">
+                                <div class="request-category-header">
+                                    <i class="fa fa-stethoscope"></i> Procedure Diagnostics
+                                </div>
+                                <div class="request-category-body">
+                                    <?php if (isset($request_items_grouped[2]) && !empty($request_items_grouped[2])): ?>
+                                        <div class="items-grid">
+                                            <?php 
+                                            foreach ($request_items_grouped[2] as $subcategory => $items):
+                                                foreach ($items as $item): 
+                                            ?>
+                                                <div class="request-item-box">
+                                                    <label>
+                                                        <input type="checkbox" 
+                                                               class="request-item-checkbox"
+                                                               data-category-id="2"
+                                                               data-item-id="<?php echo $item['id']; ?>"
+                                                               data-item-name="<?php echo htmlspecialchars($item['item_name']); ?>"
+                                                               data-price="<?php echo $item['price']; ?>"
+                                                               onchange="calculateRequestTotal()">
+                                                        <span class="item-name"><?php echo $item['item_name']; ?></span>
+                                                        <span class="item-price">₹<?php echo number_format($item['price'], 2); ?></span>
+                                                    </label>
+                                                </div>
+                                            <?php 
+                                                endforeach;
+                                            endforeach; 
+                                            ?>
+                                        </div>
+                                    <?php else: ?>
+                                        <div class="alert alert-info">
+                                            <i class="fa fa-info-circle"></i> No procedure diagnostic items available.
+                                        </div>
+                                    <?php endif; ?>
+                                </div>
+                            </div>
+                            
+                            <!-- ==================== CATEGORY 3: PROCEDURE TREATMENT ==================== -->
+                            <div class="request-category-panel">
+                                <div class="request-category-header">
+                                    <i class="fa fa-medkit"></i> Procedure Treatment
+                                </div>
+                                <div class="request-category-body">
+                                    <?php if (isset($request_items_grouped[3]) && !empty($request_items_grouped[3])): ?>
+                                        <div class="items-grid">
+                                            <?php 
+                                            foreach ($request_items_grouped[3] as $subcategory => $items):
+                                                foreach ($items as $item): 
+                                            ?>
+                                                <div class="request-item-box">
+                                                    <label>
+                                                        <input type="checkbox" 
+                                                               class="request-item-checkbox"
+                                                               data-category-id="3"
+                                                               data-item-id="<?php echo $item['id']; ?>"
+                                                               data-item-name="<?php echo htmlspecialchars($item['item_name']); ?>"
+                                                               data-price="<?php echo $item['price']; ?>"
+                                                               onchange="calculateRequestTotal()">
+                                                        <span class="item-name"><?php echo $item['item_name']; ?></span>
+                                                        <span class="item-price">₹<?php echo number_format($item['price'], 2); ?></span>
+                                                    </label>
+                                                </div>
+                                            <?php 
+                                                endforeach;
+                                            endforeach; 
+                                            ?>
+                                        </div>
+                                    <?php else: ?>
+                                        <div class="alert alert-info">
+                                            <i class="fa fa-info-circle"></i> No procedure treatment items available.
+                                        </div>
+                                    <?php endif; ?>
+                                </div>
+                            </div>
+                            
+                            <!-- ==================== CATEGORY 4: SURGICAL COUNSELLING ==================== -->
+                            <div class="request-category-panel">
+                                <div class="request-category-header">
+                                    <i class="fa fa-scissors"></i> Surgical Counselling
+                                </div>
+                                <div class="request-category-body">
+                                    <div class="alert alert-info">
+                                        <i class="fa fa-info-circle"></i> Surgical counselling form will be added in next phase
+                                    </div>
+                                </div>
+                            </div>
+                            
+                        </div>
+                        
+                        <!-- ==================== REQUEST SUMMARY & SUBMIT ==================== -->
+                        <div class="request-summary">
+                            <h5><i class="fa fa-list"></i> Request Summary & Submission</h5>
+                            
+                            <div class="row">
+                                <div class="col-md-3">
+                                    <div class="form-group">
+                                        <label>Priority</label>
+                                        <select class="form-control" name="priority" id="request_priority">
+                                            <option value="normal">Normal</option>
+                                            <option value="urgent">Urgent</option>
+                                            <option value="emergency">Emergency</option>
+                                        </select>
+                                    </div>
+                                </div>
+                                <div class="col-md-3">
+                                    <div class="form-group">
+                                        <label><strong>Total Selected Items</strong></label>
+                                        <input type="text" class="form-control" id="selected_items_count" readonly value="0 items">
+                                    </div>
+                                </div>
+                                <div class="col-md-3">
+                                    <div class="form-group">
+                                        <label><strong>Total Amount</strong></label>
+                                        <input type="text" class="form-control" id="request_total_amount" readonly value="₹0.00">
+                                    </div>
+                                </div>
+                                <div class="col-md-3">
+                                    <label>&nbsp;</label>
+                                    <button type="button" class="btn btn-primary btn-block btn-lg" onclick="submitRequest()">
+                                        <i class="fa fa-paper-plane"></i> Submit Request
+                                    </button>
+                                </div>
+                            </div>
+                            
+                            <div class="form-group">
+                                <label>Doctor's Notes / Special Instructions</label>
+                                <textarea class="form-control" name="doctor_notes" id="request_doctor_notes" rows="2" placeholder="Any specific instructions for lab/procedure team..."></textarea>
+                            </div>
+                        </div>
+                    </form>
+                    
+                    <!-- ==================== EXISTING REQUESTS ==================== -->
+                    <div style="margin-top: 30px;">
+                        <h4 class="form-section-title">
+                            <i class="fa fa-history"></i> Previous Requests for This Visit
+                        </h4>
+                        
+                        <?php if (!empty($existing_requests)): ?>
+                            <table class="table table-bordered table-striped">
+                                <thead>
+                                    <tr>
+                                        <th>Request #</th>
+                                        <th>Category</th>
+                                        <th>Amount</th>
+                                        <th>Status</th>
+                                        <th>Priority</th>
+                                        <th>Created</th>
+                                        <th>Action</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <?php foreach ($existing_requests as $req): ?>
+                                        <tr>
+                                            <td><strong><?php echo $req['request_number']; ?></strong></td>
+                                            <td><?php echo $req['category_name']; ?></td>
+                                            <td><strong>₹<?php echo number_format($req['final_amount'], 2); ?></strong></td>
+                                            <td>
+                                                <span class="label label-<?php 
+                                                    echo $req['status'] == 'completed' ? 'success' : 
+                                                         ($req['status'] == 'cancelled' ? 'danger' : 'warning'); 
+                                                ?>">
+                                                    <?php echo ucfirst($req['status']); ?>
+                                                </span>
+                                            </td>
+                                            <td>
+                                                <span class="label label-<?php 
+                                                    echo $req['priority'] == 'emergency' ? 'danger' : 
+                                                         ($req['priority'] == 'urgent' ? 'warning' : 'default'); 
+                                                ?>">
+                                                    <?php echo ucfirst($req['priority']); ?>
+                                                </span>
+                                            </td>
+                                            <td><?php echo date('d-M-Y H:i', strtotime($req['created_at'])); ?></td>
+                                            <td>
+                                                <button class="btn btn-xs btn-info" onclick="viewRequestDetails(<?php echo $req['id']; ?>)">
+                                                    <i class="fa fa-eye"></i> View
+                                                </button>
+                                            </td>
+                                        </tr>
+                                    <?php endforeach; ?>
+                                </tbody>
+                            </table>
+                        <?php else: ?>
+                            <div class="alert alert-info">
+                                <i class="fa fa-info-circle"></i> No previous requests for this visit
+                            </div>
+                        <?php endif; ?>
+                    </div>
                 </div>
                 
                 <!-- ============================================
@@ -918,41 +1328,108 @@
 ============================================ -->
 <script>
 // ============================================
-// DEFINE GLOBAL VARIABLES (available immediately)
+// GLOBAL VARIABLES
 // ============================================
-// Use visit_id first (the actual visit ID), fallback to id
 var visitId = <?php 
     if (!empty($visit['visit_id'])) {
         echo $visit['visit_id'];
     } elseif (!empty($visit['id'])) {
-        // Check if this is actually a visit ID or details ID
-        // Visit IDs should match records in tblhospital_visits
         echo $visit['id'];
     } else {
         echo 'null';
     }
 ?>;
-
-// Debug output
-console.log('Visit data from PHP:', {
-    'visit_id': '<?php echo $visit['visit_id'] ?? 'not set'; ?>',
-    'id': '<?php echo $visit['id'] ?? 'not set'; ?>',
-    'details_id': '<?php echo $visit['details_id'] ?? 'not set'; ?>'
-});
 var appointmentId = <?php echo $appointment['id']; ?>;
 var adminUrl = '<?php echo admin_url(); ?>';
 var csrfTokenName = '<?php echo $this->security->get_csrf_token_name(); ?>';
 var csrfTokenHash = '<?php echo $this->security->get_csrf_hash(); ?>';
-
-// Medicine data
 var allMedicines = <?php echo json_encode($this->hospital_visits_model->get_medicines()); ?>;
 var medicineCounter = <?php echo count($medicines_saved); ?>;
 
 // ============================================
-// GLOBAL FUNCTIONS (for onclick handlers)
+// REQUEST SECTION FUNCTIONS
 // ============================================
 
-// Calculate total medicine fee
+// Toggle subcategory visibility (expand/collapse)
+function toggleSubcategory(subcatId) {
+    var $items = jQuery('#' + subcatId);
+    var $header = $items.prev('.subcategory-header');
+    
+    $items.toggleClass('collapsed');
+    $header.toggleClass('collapsed');
+}
+
+// Calculate total for request
+function calculateRequestTotal() {
+    var total = 0;
+    var count = 0;
+    
+    jQuery('.request-item-checkbox:checked').each(function() {
+        var price = parseFloat(jQuery(this).data('price')) || 0;
+        total += price;
+        count++;
+    });
+    
+    jQuery('#selected_items_count').val(count + ' items');
+    jQuery('#request_total_amount').val('₹' + total.toFixed(2));
+}
+
+// Submit request
+function submitRequest() {
+    var selectedItems = [];
+    
+    jQuery('.request-item-checkbox:checked').each(function() {
+        selectedItems.push({
+            category_id: jQuery(this).data('category-id'),
+            item_id: jQuery(this).data('item-id'),
+            item_name: jQuery(this).data('item-name'),
+            price: jQuery(this).data('price')
+        });
+    });
+    
+    if (selectedItems.length === 0) {
+        alert_float('warning', 'Please select at least one item');
+        return;
+    }
+    
+    var formData = {
+        visit_id: visitId,
+        items: selectedItems,
+        priority: jQuery('#request_priority').val(),
+        doctor_notes: jQuery('#request_doctor_notes').val()
+    };
+    formData[csrfTokenName] = csrfTokenHash;
+    
+    jQuery.ajax({
+        url: adminUrl + 'hospital_management/save_request',
+        type: 'POST',
+        data: formData,
+        dataType: 'json',
+        success: function(response) {
+            if (response.success) {
+                alert_float('success', response.message);
+                setTimeout(function() {
+                    location.reload();
+                }, 1000);
+            } else {
+                alert_float('danger', response.message);
+            }
+        },
+        error: function() {
+            alert_float('danger', 'Error submitting request');
+        }
+    });
+}
+
+// View request details
+function viewRequestDetails(requestId) {
+    window.open(adminUrl + 'hospital_management/view_request/' + requestId, '_blank');
+}
+
+// ============================================
+// MEDICINE FUNCTIONS
+// ============================================
+
 function calculateTotalFee() {
     var total = 0;
     jQuery('.medicine-row').each(function() {
@@ -963,7 +1440,6 @@ function calculateTotalFee() {
     return total;
 }
 
-// Add new medicine row
 function addMedicineRow() {
     medicineCounter++;
     
@@ -1082,7 +1558,6 @@ function addMedicineRow() {
     loadMedicinesByCategory(medicineCounter);
 }
 
-// Load medicines by category
 function loadMedicinesByCategory(rowId) {
     var category = jQuery('.medicine-category[data-row="' + rowId + '"]').val();
     var $select = jQuery('.medicine-select[data-row="' + rowId + '"]');
@@ -1102,7 +1577,6 @@ function loadMedicinesByCategory(rowId) {
     $select.selectpicker('refresh');
 }
 
-// When medicine is selected
 function onMedicineSelect(rowId) {
     var $select = jQuery('.medicine-select[data-row="' + rowId + '"]');
     var $priceInput = jQuery('.medicine-price[data-row="' + rowId + '"]');
@@ -1117,7 +1591,6 @@ function onMedicineSelect(rowId) {
     calculateTotalFee();
 }
 
-// Remove medicine row
 function removeMedicineRow(rowId) {
     if (confirm('Remove this medicine?')) {
         jQuery('.medicine-row[data-id="' + rowId + '"]').remove();
@@ -1125,23 +1598,20 @@ function removeMedicineRow(rowId) {
     }
 }
 
-// Save tab function
+// ============================================
+// SAVE TAB FUNCTION
+// ============================================
 function saveTab(tab) {
-    // Validate visit ID
     if (!visitId || visitId === 'null' || visitId === null) {
         alert_float('danger', 'Visit ID is missing. Cannot save.');
-        console.error('Visit ID is null or undefined');
         return;
     }
-    
-    console.log('Saving tab:', tab, 'Visit ID:', visitId);
     
     var formData = new FormData();
     formData.append('visit_id', visitId);
     formData.append('tab', tab);
     formData.append(csrfTokenName, csrfTokenHash);
     
-    // Collect data based on tab
     switch(tab) {
         case 'history':
             formData.append('allergies', jQuery('[name="allergies"]').val() || '');
@@ -1210,9 +1680,6 @@ function saveTab(tab) {
             break;
     }
     
-    // Debug
-    console.log('Submitting to:', adminUrl + 'hospital_management/save_visit_details');
-    
     jQuery.ajax({
         url: adminUrl + 'hospital_management/save_visit_details',
         type: 'POST',
@@ -1221,8 +1688,6 @@ function saveTab(tab) {
         contentType: false,
         dataType: 'json',
         success: function(response) {
-            console.log('Server response:', response);
-            
             if (response.success) {
                 alert_float('success', response.message);
                 
@@ -1240,20 +1705,17 @@ function saveTab(tab) {
         },
         error: function(xhr, status, error) {
             console.error('AJAX Error:', status, error);
-            console.error('Response:', xhr.responseText);
-            alert_float('danger', 'Error saving data. Check console for details.');
+            alert_float('danger', 'Error saving data');
         }
     });
 }
 
-// Save complete visit
 function saveVisit() {
     if (confirm('Save all visit data?')) {
         alert_float('info', 'Saving all data...');
     }
 }
 
-// Close visit
 function closeVisit() {
     if (!visitId || visitId === 'null') {
         alert_float('danger', 'Visit ID is missing. Cannot close visit.');
@@ -1261,21 +1723,16 @@ function closeVisit() {
     }
     
     if (confirm('Are you sure you want to close and complete this visit?')) {
+        var data = {
+            visit_id: visitId,
+            appointment_id: appointmentId
+        };
+        data[csrfTokenName] = csrfTokenHash;
+        
         jQuery.ajax({
             url: adminUrl + 'hospital_management/complete_visit',
             type: 'POST',
-            data: {
-                visit_id: visitId,
-                appointment_id: appointmentId
-            },
-            data: function() {
-                var data = {
-                    visit_id: visitId,
-                    appointment_id: appointmentId
-                };
-                data[csrfTokenName] = csrfTokenHash;
-                return data;
-            }(),
+            data: data,
             dataType: 'json',
             success: function(response) {
                 if (response.success) {
@@ -1295,7 +1752,6 @@ function closeVisit() {
     }
 }
 
-// Print functions
 function printMedication() {
     alert('Print medication prescription - Will implement in next phase');
 }
@@ -1305,26 +1761,22 @@ function printSpectacle() {
 }
 
 // ============================================
-// JQUERY READY (runs after jQuery loads)
+// DOCUMENT READY
 // ============================================
 jQuery(document).ready(function($) {
     console.log('Page loaded. Visit ID:', visitId);
     
-    // Validate visit ID
     if (!visitId || visitId === 'null' || visitId === null) {
         console.error('ERROR: Visit ID is null or undefined!');
         alert_float('warning', 'Visit ID not found. Some features may not work.');
     }
     
-    // Calculate existing medicine fees
     calculateTotalFee();
     
-    // Initialize selectpicker
     if ($.fn.selectpicker) {
         $('.selectpicker').selectpicker();
     }
     
-    // Review period toggle
     $('[name="review_required"]').on('change', function() {
         if ($(this).val() == 'yes') {
             $('#review_period_section').slideDown();
