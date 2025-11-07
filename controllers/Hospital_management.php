@@ -1406,6 +1406,162 @@ private function get_lens_types() {
         'Anti-Reflective Coating'
     ];
 }
+
+/**
+ * View visit (Read-only version)
+ * 
+ * @param int $visit_id Visit ID
+ */
+public function view_visit($visit_id)
+{
+    // Get visit record
+    $this->db->where('id', $visit_id);
+    $visit_record = $this->db->get(db_prefix() . 'hospital_visits')->row_array();
+    
+    if (!$visit_record) {
+        show_404();
+    }
+    
+    $appointment_id = $visit_record['appointment_id'];
+    
+    // Load data
+    $this->load->model('consultant_portal_model');
+    $appointment = $this->consultant_portal_model->get($appointment_id);
+    
+    if (!$appointment) {
+        show_404();
+    }
+    
+    // Get visit with ALL details
+    $visit = $this->hospital_visits_model->get_visit_with_details($visit_id);
+    
+    if (!$visit) {
+        $visit = $this->consultant_portal_model->get_visit_by_appointment($appointment_id);
+    }
+    
+    // Get patient's visit history
+    $visit_history = $this->hospital_visits_model->get_patient_visits($appointment['patient_id']);
+    
+    // Parse medicines
+    $medicines_saved = [];
+    if (!empty($visit['medicine_prescription_details'])) {
+        $decoded = json_decode($visit['medicine_prescription_details'], true);
+        if (json_last_error() === JSON_ERROR_NONE && is_array($decoded)) {
+            $medicines_saved = $decoded;
+        }
+    }
+    
+    // Prepare data
+    $data['title'] = 'Visit Details - ' . $visit_record['visit_number'];
+    $data['appointment'] = $appointment;
+    $data['visit'] = $visit;
+    $data['visit_history'] = $visit_history;
+    $data['medicines_saved'] = $medicines_saved;
+    $data['visit_number'] = $visit_record['visit_number'];
+    $data['visit_id'] = $visit_id;
+    
+    // Load view
+    $this->load->view('hospital_management/view_visit', $data);
+}
+
+/**
+ * Download visit as PDF - WORKING VERSION
+ * 
+ * @param int $visit_id Visit ID
+ */
+public function download_visit_pdf($visit_id)
+{
+    // Get visit record
+    $this->db->where('id', $visit_id);
+    $visit_record = $this->db->get(db_prefix() . 'hospital_visits')->row_array();
+    
+    if (!$visit_record) {
+        show_404();
+    }
+    
+    $appointment_id = $visit_record['appointment_id'];
+    
+    // Load data
+    $this->load->model('consultant_portal_model');
+    $appointment = $this->consultant_portal_model->get($appointment_id);
+    
+    if (!$appointment) {
+        show_404();
+    }
+    
+    // Get visit with ALL details
+    $visit = $this->hospital_visits_model->get_visit_with_details($visit_id);
+    
+    if (!$visit) {
+        $visit = $this->consultant_portal_model->get_visit_by_appointment($appointment_id);
+    }
+    
+    // Parse medicines
+    $medicines_saved = [];
+    if (!empty($visit['medicine_prescription_details'])) {
+        $decoded = json_decode($visit['medicine_prescription_details'], true);
+        if (json_last_error() === JSON_ERROR_NONE && is_array($decoded)) {
+            $medicines_saved = $decoded;
+        }
+    }
+    
+    // Prepare data for PDF
+    $data = [
+        'appointment' => $appointment,
+        'visit' => $visit,
+        'medicines_saved' => $medicines_saved,
+        'visit_number' => $visit_record['visit_number']
+    ];
+    
+    // Generate HTML content
+    $html = $this->load->view('visit_pdf_template', $data, true);
+    
+    try {
+        // CORRECT PATH: Include TCPDF from vendor folder
+        require_once(APPPATH . 'vendor/tecnickcom/tcpdf/tcpdf.php');
+        
+        // Create new PDF instance
+        $pdf = new TCPDF(PDF_PAGE_ORIENTATION, PDF_UNIT, PDF_PAGE_FORMAT, true, 'UTF-8', false);
+        
+        // Set document information
+        $pdf->SetCreator('Hospital Management System');
+        $pdf->SetAuthor('Dr ' . $appointment['consultant_firstname'] . ' ' . $appointment['consultant_lastname']);
+        $pdf->SetTitle('Visit Details - ' . $visit_record['visit_number']);
+        $pdf->SetSubject('Patient Visit Report');
+        
+        // Remove default header/footer
+        $pdf->setPrintHeader(false);
+        $pdf->setPrintFooter(false);
+        
+        // Set margins
+        $pdf->SetMargins(15, 15, 15);
+        $pdf->SetAutoPageBreak(TRUE, 15);
+        
+        // Add a page
+        $pdf->AddPage();
+        
+        // Set font
+        $pdf->SetFont('helvetica', '', 10);
+        
+        // Write HTML content
+        $pdf->writeHTML($html, true, false, true, false, '');
+        
+        // Generate filename
+        $filename = 'Visit_' . $visit_record['visit_number'] . '_' . date('Y-m-d') . '.pdf';
+        
+        // Output PDF (D = force download)
+        $pdf->Output($filename, 'D');
+        
+    } catch (Exception $e) {
+        // Log error
+        log_activity('PDF Generation Error: ' . $e->getMessage());
+        
+        // Show error to user
+        set_alert('danger', 'Failed to generate PDF: ' . $e->getMessage());
+        redirect(admin_url('hospital_management/view_visit/' . $visit_id));
+    }
+}
+
     // ==========================================
     // VISIT MANAGEMENT
     // ==========================================
