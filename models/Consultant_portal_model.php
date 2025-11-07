@@ -391,7 +391,49 @@ public function get_visit_requests($visit_id)
                     ->get()
                     ->result_array();
 }
-
+/**
+ * Get visit requests by appointment ID (NEW - CLEAN METHOD)
+ * 
+ * @param int $appointment_id Appointment ID
+ * @return array Requests with items
+ */
+public function get_requests_by_appointment($appointment_id)
+{
+    // First, get the visit_id from appointment
+    $this->db->select('id as visit_id');
+    $this->db->where('appointment_id', $appointment_id);
+    $visit = $this->db->get(db_prefix() . 'hospital_visits')->row();
+    
+    if (!$visit) {
+        return []; // No visit = no requests
+    }
+    
+    $visit_id = $visit->visit_id;
+    
+    // Get all requests for this visit
+    $requests = $this->db->select('r.*, c.category_name')
+                         ->from(db_prefix() . 'hospital_visit_requests r')
+                         ->join(db_prefix() . 'hospital_request_categories c', 'c.id = r.category_id', 'left')
+                         ->where('r.visit_id', $visit_id)
+                         ->order_by('r.created_at', 'DESC')
+                         ->get()
+                         ->result_array();
+    
+    // For each request, get the items
+    foreach ($requests as &$request) {
+        $items = $this->db->select('ri.*, i.item_name, i.subcategory_name')
+                          ->from(db_prefix() . 'hospital_visit_request_items ri')
+                          ->join(db_prefix() . 'hospital_request_items i', 'i.id = ri.item_id', 'left')
+                          ->where('ri.request_id', $request['id'])
+                          ->get()
+                          ->result_array();
+        
+        $request['items'] = $items;
+        $request['items_count'] = count($items);
+    }
+    
+    return $requests;
+}
 /**
  * Get request details with items
  */

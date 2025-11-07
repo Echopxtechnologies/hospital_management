@@ -974,7 +974,8 @@ public function consultant_see_patient($appointment_id)
 
     // Load existing requests for this visit
     if (!empty($visit)) {
-        $data['existing_requests'] = $this->consultant_portal_model->get_visit_requests($visit['id']);
+        // Load existing requests using NEW clean method
+$data['existing_requests'] = $this->consultant_portal_model->get_requests_by_appointment($appointment_id);
     } else {
         $data['existing_requests'] = [];
     }
@@ -1026,25 +1027,39 @@ public function get_request_items()
     }
 }
 
-/**
- * Save visit request (AJAX)
- */
 public function save_visit_request()
 {
     if ($this->input->is_ajax_request()) {
+        $selected_items = $this->input->post('selected_items');
+        
+        // Check if visit_id exists
+        $visit_id = $this->input->post('visit_id');
+        if (empty($visit_id) || $visit_id === 'null') {
+            echo json_encode([
+                'success' => false,
+                'message' => 'Visit ID is required. Please ensure visit is created first.'
+            ]);
+            exit;
+        }
+        
         $data = [
-            'visit_id' => $this->input->post('visit_id'),
+            'visit_id' => $visit_id,
             'category_id' => $this->input->post('category_id'),
-            'selected_items' => json_decode($this->input->post('selected_items'), true),
+            'selected_items' => $selected_items,  // Already an array from JavaScript
             'total_amount' => $this->input->post('total_amount'),
             'final_amount' => $this->input->post('final_amount'),
-            'priority' => $this->input->post('priority'),
+            'priority' => $this->input->post('priority') ?: 'normal',
             'doctor_notes' => $this->input->post('doctor_notes')
         ];
         
         $result = $this->consultant_portal_model->save_visit_request($data);
         
+        // Include CSRF tokens in response
+        $result['csrf_token_name'] = $this->security->get_csrf_token_name();
+        $result['csrf_token_hash'] = $this->security->get_csrf_hash();
+        
         echo json_encode($result);
+        exit;
     }
 }
 
@@ -1212,8 +1227,12 @@ public function save_visit_details()
                     ];
                     break;
                     
-                case 'medicine':
-                    $medicines_raw = $this->input->post('medicines');
+               case 'medicine':
+    $medicines_input = $this->input->post('medicines');
+    // Decode if JSON string, otherwise use as array
+    $medicines_raw = is_string($medicines_input) 
+        ? json_decode($medicines_input, true) 
+        : (is_array($medicines_input) ? $medicines_input : []);
                     $medicines_detailed = [];
                     $total_fee = 0.00;
                     
@@ -1247,6 +1266,7 @@ public function save_visit_details()
                     
                     $data = [
                         'medicine_prescription_details' => json_encode($medicines_detailed),
+                        'medicine_instructions' => $this->input->post('medicine_instructions'), // ← ADD THIS
                         'fee_amount' => $total_fee,
                         'total_fee' => $total_fee
                     ];

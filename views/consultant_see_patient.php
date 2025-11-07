@@ -306,160 +306,211 @@
 }
 
 /* ============================================
-   REQUEST SECTION - ALL CATEGORIES VISIBLE
+   REQUEST SECTION - IMAGE STYLE LAYOUT
 ============================================ */
-.request-categories-container {
-    margin-top: 20px;
+.request-sidebar {
+    background: #f5f5f5;
+    padding: 15px;
+    border-radius: 6px;
+    border: 1px solid #ddd;
 }
 
-.request-category-panel {
+.btn-request-type {
     background: white;
-    border: 2px solid #b2ebf2;
-    border-radius: 8px;
-    margin-bottom: 20px;
-    overflow: hidden;
+    border: 2px solid #e0e0e0;
+    color: #333;
+    text-align: left;
+    padding: 15px;
+    margin-bottom: 10px;
+    transition: all 0.3s;
+    font-weight: 500;
 }
 
-.request-category-header {
-    background: linear-gradient(135deg, #00bcd4 0%, #0097a7 100%);
+.btn-request-type:hover {
+    background: #e0f7fa;
+    border-color: #00bcd4;
+    color: #00bcd4;
+}
+
+.btn-request-type.active {
+    background: #00bcd4;
+    border-color: #00bcd4;
     color: white;
-    padding: 15px 20px;
-    font-weight: 600;
+}
+
+.btn-request-type i {
+    margin-right: 10px;
     font-size: 16px;
 }
 
-.request-category-header i {
-    margin-right: 10px;
+/* Request Form Container */
+.request-form-container {
+    position: relative;
+    min-height: 500px;
 }
 
-.request-category-body {
+.request-form-panel {
+    display: none;
+    background: white;
+    border: 2px solid #e0e0e0;
+    border-radius: 8px;
+    overflow: hidden;
+}
+
+.request-form-panel.active {
+    display: block;
+}
+
+.request-form-header {
+    background: linear-gradient(135deg, #00bcd4 0%, #0097a7 100%);
+    color: white;
+    padding: 15px 20px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.request-form-header h4 {
+    margin: 0;
+    font-weight: 600;
+    font-size: 18px;
+}
+
+.request-form-header .btn {
+    background: transparent;
+    border: 2px solid white;
+    color: white;
+    padding: 5px 10px;
+}
+
+.request-form-header .btn:hover {
+    background: white;
+    color: #00bcd4;
+}
+
+.request-form-body {
     padding: 20px;
+    max-height: 500px;
+    overflow-y: auto;
 }
 
-/* Subcategory header - NO CHECKBOX, only title */
-.subcategory-header {
+/* Category Checkboxes Row (Top) */
+.category-checkboxes-row {
+    background: #f8f9fa;
+    padding: 15px;
+    border-radius: 6px;
+    margin-bottom: 20px;
+    border: 1px solid #e0e0e0;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 15px;
+}
+
+.category-checkbox-item {
+    flex: 0 0 calc(25% - 15px);
+}
+
+.category-checkbox-item label {
+    display: flex;
+    align-items: center;
+    margin: 0;
+    font-weight: 500;
+    cursor: pointer;
+}
+
+.category-checkbox-item input[type="checkbox"] {
+    width: 18px;
+    height: 18px;
+    margin-right: 8px;
+    cursor: pointer;
+}
+
+/* Items Grid Below */
+.request-items-grid {
+    margin-top: 20px;
+}
+
+.category-items-section {
+    margin-bottom: 30px;
+}
+
+.category-section-title {
     background: #00bcd4;
     color: white;
     padding: 10px 15px;
-    border-radius: 6px;
-    margin-bottom: 15px;
-    cursor: pointer;
-    transition: all 0.3s;
-    display: flex;
-    align-items: center;
+    margin: 0 0 15px 0;
+    border-radius: 4px;
     font-weight: 600;
     font-size: 15px;
 }
 
-.subcategory-header:hover {
-    background: #0097a7;
-}
-
-.subcategory-arrow {
-    margin-right: 10px;
-    transition: transform 0.3s;
-    font-size: 12px;
-}
-
-.subcategory-header.collapsed .subcategory-arrow {
-    transform: rotate(0deg);
-}
-
-.subcategory-header:not(.collapsed) .subcategory-arrow {
-    transform: rotate(90deg);
-}
-
-.subcategory-title {
-    flex: 1;
-}
-
-.subcategory-count {
-    background: rgba(255,255,255,0.3);
-    color: white;
-    padding: 3px 10px;
-    border-radius: 12px;
-    font-size: 12px;
-    font-weight: 600;
-}
-
-/* Subcategory items - 2 COLUMNS, ALWAYS VISIBLE */
-.subcategory-items {
-    padding: 15px;
-    background: #f8f9fa;
-    border-radius: 6px;
-    margin-bottom: 15px;
-}
-
-.subcategory-items.collapsed {
-    display: none;
-}
-
-/* 2 COLUMN GRID for items */
-.items-grid {
+/* 4 Column Grid for Items */
+.items-grid-4col {
     display: grid;
-    grid-template-columns: repeat(2, 1fr);
+    grid-template-columns: repeat(4, 1fr);
     gap: 10px;
 }
 
-/* Individual item checkbox - SMALL */
-.request-item-box {
-    padding: 8px 12px;
+/* Compact Item Box */
+.request-item-box-compact {
     background: white;
-    border-radius: 4px;
     border: 1px solid #e0e0e0;
+    border-radius: 4px;
+    padding: 8px 12px;
     transition: all 0.2s;
-    display: flex;
-    align-items: center;
 }
 
-.request-item-box:hover {
+.request-item-box-compact:hover {
     background: #e0f7fa;
     border-color: #00bcd4;
-    transform: translateX(3px);
+    transform: translateY(-2px);
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
 }
 
-.request-item-box label {
-    margin: 0;
-    cursor: pointer;
-    font-weight: normal;
-    flex: 1;
+.request-item-box-compact label {
     display: flex;
     align-items: center;
+    margin: 0;
+    cursor: pointer;
     font-size: 13px;
 }
 
-.request-item-box input[type="checkbox"] {
-    margin-right: 8px;
+.request-item-box-compact input[type="checkbox"] {
     width: 16px;
     height: 16px;
+    margin-right: 8px;
     cursor: pointer;
     flex-shrink: 0;
 }
 
-.item-name {
+.request-item-box-compact .item-name {
     flex: 1;
+    line-height: 1.3;
 }
 
-.item-price {
-    font-weight: 600;
+.request-item-box-compact .item-price {
     color: #00bcd4;
-    margin-left: 8px;
+    font-weight: 600;
+    margin-left: 5px;
     white-space: nowrap;
 }
 
-/* Request summary box */
-.request-summary {
-    background: #e0f7fa;
-    padding: 20px;
-    border-radius: 6px;
-    border: 2px solid #00bcd4;
-    margin-top: 30px;
+/* Form Footer */
+.request-form-footer {
+    background: #f8f9fa;
+    padding: 15px 20px;
+    border-top: 2px solid #e0e0e0;
 }
 
-.request-summary h5 {
-    color: #006064;
-    margin-bottom: 15px;
-    font-weight: 600;
+.total-summary {
+    display: flex;
+    align-items: center;
+    padding-top: 8px;
+}
+
+.total-summary strong {
+    font-size: 15px;
+    color: #333;
 }
 </style>
 
@@ -468,6 +519,7 @@
         <!-- ============================================
              PATIENT HEADER
         ============================================ -->
+        
         <div class="patient-header">
             <div class="info-item">
                 <strong>Patient ID:</strong> <?php echo $appointment['patient_number']; ?>
@@ -821,56 +873,151 @@
                         </div>
                     </div>
                     
-                    <div id="medicines_container">
-                        <?php
-                        $medicines_saved = !empty($visit['medicine_prescription_details']) 
-                            ? json_decode($visit['medicine_prescription_details'], true) 
-                            : [];
-                        
-                        if (!empty($medicines_saved)) {
-                            foreach ($medicines_saved as $index => $med) {
-                                ?>
-                                <div class="medicine-row" data-id="<?php echo $index; ?>" data-price="<?php echo $med['price']; ?>">
-                                    <div class="row">
-                                        <div class="col-md-3">
-                                            <strong><?php echo $med['medicine_name']; ?></strong>
-                                            <small class="text-muted d-block"><?php echo $med['strength']; ?></small>
-                                        </div>
-                                        <div class="col-md-2">
-                                            <span class="label label-info"><?php echo ucfirst($med['eye']); ?></span>
-                                        </div>
-                                        <div class="col-md-2"><?php echo $med['dose'] . ' ' . $med['unit']; ?></div>
-                                        <div class="col-md-2"><?php echo $med['frequency']; ?></div>
-                                        <div class="col-md-2"><strong class="text-success">₹<?php echo number_format($med['price'], 2); ?></strong></div>
-                                        <div class="col-md-1">
-                                            <button type="button" class="btn btn-danger btn-sm" onclick="removeMedicineRow(<?php echo $index; ?>)">
-                                                <i class="fa fa-trash"></i>
-                                            </button>
-                                        </div>
-                                    </div>
-                                    <?php if (!empty($med['instructions'])) { ?>
-                                        <div class="row" style="margin-top: 5px;">
-                                            <div class="col-md-12">
-                                                <small class="text-muted"><i class="fa fa-info-circle"></i> <?php echo $med['instructions']; ?></small>
-                                            </div>
-                                        </div>
-                                    <?php } ?>
-                                </div>
-                                <?php
-                            }
-                        }
-                        ?>
+                <div id="medicines_container">
+    <?php
+    $medicines_saved = !empty($visit['medicine_prescription_details']) 
+        ? json_decode($visit['medicine_prescription_details'], true) 
+        : [];
+    
+    if (!empty($medicines_saved)) {
+        foreach ($medicines_saved as $index => $med) {
+            ?>
+            <div class="medicine-row" data-id="<?php echo $index; ?>" data-price="<?php echo $med['price']; ?>">
+                <div class="row">
+                    <div class="col-md-3">
+                        <div class="form-group">
+                            <label>Category</label>
+                            <select class="form-control medicine-category" data-row="<?php echo $index; ?>" onchange="loadMedicinesByCategory(<?php echo $index; ?>)">
+                                <option value="">All</option>
+                                <option value="eye_drop" <?php echo ($med['category'] ?? '') == 'eye_drop' ? 'selected' : ''; ?>>Eye Drops</option>
+                                <option value="tablet" <?php echo ($med['category'] ?? '') == 'tablet' ? 'selected' : ''; ?>>Tablets</option>
+                                <option value="capsule" <?php echo ($med['category'] ?? '') == 'capsule' ? 'selected' : ''; ?>>Capsules</option>
+                                <option value="injection" <?php echo ($med['category'] ?? '') == 'injection' ? 'selected' : ''; ?>>Injections</option>
+                                <option value="ointment" <?php echo ($med['category'] ?? '') == 'ointment' ? 'selected' : ''; ?>>Ointments</option>
+                                <option value="gel" <?php echo ($med['category'] ?? '') == 'gel' ? 'selected' : ''; ?>>Gels</option>
+                                <option value="syrup" <?php echo ($med['category'] ?? '') == 'syrup' ? 'selected' : ''; ?>>Syrups</option>
+                            </select>
+                        </div>
                     </div>
                     
-                    <button class="btn btn-primary" onclick="addMedicineRow()">
-                        <i class="fa fa-plus"></i> Add Medicine
-                    </button>
+                    <div class="col-md-3">
+                        <div class="form-group">
+                            <label>Medicine <span class="text-danger">*</span></label>
+                            <select name="medicines[<?php echo $index; ?>][medicine_id]" 
+                                    class="form-control selectpicker medicine-select" 
+                                    data-row="<?php echo $index; ?>" 
+                                    data-live-search="true" 
+                                    onchange="onMedicineSelect(<?php echo $index; ?>)">
+                                <option value="">Select Medicine</option>
+                                <?php 
+                                $all_medicines = $this->hospital_visits_model->get_medicines();
+                                foreach ($all_medicines as $m): 
+                                ?>
+                                    <option value="<?php echo $m['id']; ?>" 
+                                            data-price="<?php echo $m['price']; ?>"
+                                            <?php echo $m['id'] == $med['medicine_id'] ? 'selected' : ''; ?>>
+                                        <?php echo $m['medicine_name'] . ' (' . $m['strength'] . ') - ₹' . number_format($m['price'], 2); ?>
+                                    </option>
+                                <?php endforeach; ?>
+                            </select>
+                        </div>
+                    </div>
                     
-                    <div class="form-group" style="margin-top: 20px;">
-                        <label>General Instructions</label>
-                        <textarea name="medicine_instructions" class="form-control" rows="4" placeholder="Enter general instructions for patient..."></textarea>
+                    <div class="col-md-2">
+                        <div class="form-group">
+                            <label>Price</label>
+                            <input type="text" class="form-control medicine-price" data-row="<?php echo $index; ?>" 
+                                   value="₹<?php echo number_format($med['price'], 2); ?>" readonly>
+                        </div>
+                    </div>
+                    
+                    <div class="col-md-2">
+                        <div class="form-group">
+                            <label>Eye</label>
+                            <select name="medicines[<?php echo $index; ?>][eye]" class="form-control">
+                                <option value="both" <?php echo $med['eye'] == 'both' ? 'selected' : ''; ?>>Both Eyes</option>
+                                <option value="right" <?php echo $med['eye'] == 'right' ? 'selected' : ''; ?>>Right Eye</option>
+                                <option value="left" <?php echo $med['eye'] == 'left' ? 'selected' : ''; ?>>Left Eye</option>
+                            </select>
+                        </div>
+                    </div>
+                    
+                    <div class="col-md-1">
+                        <div class="form-group">
+                            <label>Dose</label>
+                            <input type="number" name="medicines[<?php echo $index; ?>][dose]" 
+                                   class="form-control" value="<?php echo $med['dose']; ?>" min="1">
+                        </div>
+                    </div>
+                    
+                    <div class="col-md-1">
+                        <label>&nbsp;</label>
+                        <button type="button" class="btn btn-danger btn-block" onclick="removeMedicineRow(<?php echo $index; ?>)">
+                            <i class="fa fa-trash"></i>
+                        </button>
                     </div>
                 </div>
+                
+                <div class="row">
+                    <div class="col-md-2">
+                        <div class="form-group">
+                            <label>Unit</label>
+                            <select name="medicines[<?php echo $index; ?>][unit]" class="form-control">
+                                <option value="drop" <?php echo $med['unit'] == 'drop' ? 'selected' : ''; ?>>drop</option>
+                                <option value="drops" <?php echo $med['unit'] == 'drops' ? 'selected' : ''; ?>>drops</option>
+                                <option value="mg" <?php echo $med['unit'] == 'mg' ? 'selected' : ''; ?>>mg</option>
+                                <option value="ml" <?php echo $med['unit'] == 'ml' ? 'selected' : ''; ?>>ml</option>
+                                <option value="tablet" <?php echo $med['unit'] == 'tablet' ? 'selected' : ''; ?>>tablet</option>
+                            </select>
+                        </div>
+                    </div>
+                    
+                    <div class="col-md-2">
+                        <div class="form-group">
+                            <label>Interval</label>
+                            <input type="text" name="medicines[<?php echo $index; ?>][interval]" 
+                                   class="form-control" value="<?php echo $med['interval'] ?? ''; ?>" placeholder="8 hours">
+                        </div>
+                    </div>
+                    
+                    <div class="col-md-3">
+                        <div class="form-group">
+                            <label>Frequency</label>
+                            <select name="medicines[<?php echo $index; ?>][frequency]" class="form-control">
+                                <option value="day" <?php echo $med['frequency'] == 'day' ? 'selected' : ''; ?>>per day</option>
+                                <option value="3_times_a_day" <?php echo $med['frequency'] == '3_times_a_day' ? 'selected' : ''; ?>>3 times a day</option>
+                                <option value="4_times_a_day" <?php echo $med['frequency'] == '4_times_a_day' ? 'selected' : ''; ?>>4 times a day</option>
+                                <option value="every_2_hours" <?php echo $med['frequency'] == 'every_2_hours' ? 'selected' : ''; ?>>every 2 hours</option>
+                                <option value="every_4_hours" <?php echo $med['frequency'] == 'every_4_hours' ? 'selected' : ''; ?>>every 4 hours</option>
+                            </select>
+                        </div>
+                    </div>
+                    
+                    <div class="col-md-5">
+                        <div class="form-group">
+                            <label>Instructions</label>
+                            <input type="text" name="medicines[<?php echo $index; ?>][instructions]" 
+                                   class="form-control" value="<?php echo $med['instructions'] ?? ''; ?>" 
+                                   placeholder="Before meals, After food">
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <?php
+        }
+    }
+    ?>
+</div>
+
+<button class="btn btn-primary" onclick="addMedicineRow()">
+    <i class="fa fa-plus"></i> Add Medicine
+</button>
+
+<div class="form-group" style="margin-top: 20px;">
+    <label>General Instructions</label>
+    <textarea name="medicine_instructions" class="form-control" rows="4" placeholder="Enter general instructions for patient..."><?php echo $visit['medicine_instructions'] ?? ''; ?></textarea>
+</div>
+</div>
                 
                 <!-- ============================================
                      TAB 6: SPECTACLE PRESCRIPTION
@@ -987,257 +1134,355 @@
                 </div>
                 
                 <!-- ============================================
-                     TAB 8: REQUEST - FIXED LAYOUT
+                     TAB 8: REQUEST - IMAGE STYLE LAYOUT
                 ============================================ -->
                 <div role="tabpanel" class="tab-pane" id="request">
-                    <h4 class="form-section-title">
-                        <i class="fa fa-file-text"></i> Medical Requests - Select Items from Any Category
-                    </h4>
-                    
-                    <form id="request_form">
-                        <input type="hidden" name="visit_id" value="<?php echo $visit['id'] ?? 0; ?>">
-                        
-                        <div class="request-categories-container">
-                            
-                            <!-- ==================== CATEGORY 1: LAB TESTS ==================== -->
-                            <div class="request-category-panel">
-                                <div class="request-category-header">
+                    <div class="row">
+                        <!-- LEFT SIDEBAR - REQUEST BUTTONS -->
+                        <div class="col-md-3">
+                            <div class="request-sidebar">
+                                <button class="btn btn-block btn-request-type active" data-request-type="lab_tests" onclick="showRequestForm('lab_tests')">
                                     <i class="fa fa-flask"></i> Lab Tests
-                                </div>
-                                <div class="request-category-body">
-                                    <?php if (isset($request_items_grouped[1]) && !empty($request_items_grouped[1])): ?>
-                                        <?php foreach ($request_items_grouped[1] as $subcategory => $items): 
-                                            $subcat_id = 'subcat_' . md5($subcategory);
-                                        ?>
-                                            <div class="subcategory-wrapper">
-                                                <!-- Subcategory Header - NO CHECKBOX -->
-                                                <div class="subcategory-header" onclick="toggleSubcategory('<?php echo $subcat_id; ?>')">
-                                                    <i class="fa fa-chevron-right subcategory-arrow"></i>
-                                                    <span class="subcategory-title"><?php echo $subcategory; ?></span>
-                                                    <span class="subcategory-count"><?php echo count($items); ?> items</span>
-                                                </div>
-                                                
-                                                <!-- Subcategory Items - 2 COLUMNS -->
-                                                <div class="subcategory-items" id="<?php echo $subcat_id; ?>">
-                                                    <div class="items-grid">
-                                                        <?php foreach ($items as $item): ?>
-                                                            <div class="request-item-box">
-                                                                <label>
-                                                                    <input type="checkbox" 
-                                                                           class="request-item-checkbox"
-                                                                           data-category-id="1"
-                                                                           data-item-id="<?php echo $item['id']; ?>"
-                                                                           data-item-name="<?php echo htmlspecialchars($item['item_name']); ?>"
-                                                                           data-price="<?php echo $item['price']; ?>"
-                                                                           onchange="calculateRequestTotal()">
-                                                                    <span class="item-name"><?php echo $item['item_name']; ?></span>
-                                                                    <span class="item-price">₹<?php echo number_format($item['price'], 2); ?></span>
-                                                                </label>
-                                                            </div>
-                                                        <?php endforeach; ?>
+                                </button>
+                                
+                                <button class="btn btn-block btn-request-type" data-request-type="procedure_diagnostics" onclick="showRequestForm('procedure_diagnostics')">
+                                    <i class="fa fa-stethoscope"></i> Procedure Diagnostics
+                                </button>
+                                
+                                <button class="btn btn-block btn-request-type" data-request-type="procedure_treatment" onclick="showRequestForm('procedure_treatment')">
+                                    <i class="fa fa-medkit"></i> Procedure Treatment
+                                </button>
+                                
+                                <button class="btn btn-block btn-request-type" data-request-type="surgical_counselling" onclick="showRequestForm('surgical_counselling')">
+                                    <i class="fa fa-scissors"></i> Surgical Counselling
+                                </button>
+                            </div>
+                        </div>
+                        
+                        <!-- RIGHT CONTENT AREA - REQUEST FORMS -->
+                        <div class="col-md-9">
+                            <div class="request-form-container">
+                                
+                                <!-- ==================== LAB TESTS FORM ==================== -->
+                                <div class="request-form-panel active" id="form_lab_tests">
+                                    <div class="request-form-header">
+                                        <h4><i class="fa fa-flask"></i> Lab Form</h4>
+                                        <button class="btn btn-sm btn-default" onclick="closeRequestForm()">
+                                            <i class="fa fa-times"></i>
+                                        </button>
+                                    </div>
+                                    
+                                    <div class="request-form-body">
+                                        <!-- Main Category Checkboxes -->
+                                        <div class="category-checkboxes-row">
+                                            <?php if (isset($request_items_grouped[1]) && !empty($request_items_grouped[1])): ?>
+                                                <?php 
+                                                $lab_categories = array_keys($request_items_grouped[1]);
+                                                foreach ($lab_categories as $cat_name): 
+                                                    $cat_id = 'cat_' . md5($cat_name);
+                                                ?>
+                                                    <div class="category-checkbox-item">
+                                                        <label>
+                                                            <input type="checkbox" 
+                                                                   class="category-toggle-checkbox" 
+                                                                   data-target="<?php echo $cat_id; ?>"
+                                                                   onchange="toggleCategoryItems('<?php echo $cat_id; ?>')">
+                                                            <?php echo $cat_name; ?>
+                                                        </label>
                                                     </div>
+                                                <?php endforeach; ?>
+                                            <?php endif; ?>
+                                        </div>
+                                        
+                                        <!-- Items Grid Below -->
+                                        <div class="request-items-grid">
+                                            <?php if (isset($request_items_grouped[1]) && !empty($request_items_grouped[1])): ?>
+                                                <?php foreach ($request_items_grouped[1] as $subcategory => $items): 
+                                                    $cat_id = 'cat_' . md5($subcategory);
+                                                ?>
+                                                    <div class="category-items-section" id="<?php echo $cat_id; ?>" style="display: none;">
+                                                        <h5 class="category-section-title"><?php echo $subcategory; ?></h5>
+                                                        
+                                                        <div class="items-grid-4col">
+                                                            <?php foreach ($items as $item): ?>
+                                                                <div class="request-item-box-compact">
+                                                                    <label>
+                                                                        <input type="checkbox" 
+                                                                               class="request-item-checkbox"
+                                                                               data-category-id="1"
+                                                                               data-item-id="<?php echo $item['id']; ?>"
+                                                                               data-item-name="<?php echo htmlspecialchars($item['item_name']); ?>"
+                                                                               data-price="<?php echo $item['price']; ?>"
+                                                                               onchange="calculateRequestTotal()">
+                                                                        <span class="item-name"><?php echo $item['item_name']; ?></span>
+                                                                        <span class="item-price">(<?php echo number_format($item['price'], 0); ?>)</span>
+                                                                    </label>
+                                                                </div>
+                                                            <?php endforeach; ?>
+                                                        </div>
+                                                    </div>
+                                                <?php endforeach; ?>
+                                            <?php else: ?>
+                                                <div class="alert alert-info">
+                                                    <i class="fa fa-info-circle"></i> No lab test items available
+                                                </div>
+                                            <?php endif; ?>
+                                        </div>
+                                    </div>
+                                    
+                                    <!-- Form Footer - Action Buttons -->
+                                    <div class="request-form-footer">
+                                        <div class="row">
+                                            <div class="col-md-8">
+                                                <div class="total-summary">
+                                                    <strong>Selected: <span id="lab_selected_count">0</span> items</strong>
+                                                    <strong style="margin-left: 20px;">Total: ₹<span id="lab_total_amount">0.00</span></strong>
                                                 </div>
                                             </div>
-                                        <?php endforeach; ?>
-                                    <?php else: ?>
-                                        <div class="alert alert-info">
-                                            <i class="fa fa-info-circle"></i> No lab test items available.
+                                            <div class="col-md-4 text-right">
+                                                <button class="btn btn-default" onclick="closeRequestForm()">Cancel</button>
+                                                <button class="btn btn-primary" onclick="submitRequestForm('lab_tests')">
+                                                    <i class="fa fa-check"></i> Done
+                                                </button>
+                                            </div>
                                         </div>
-                                    <?php endif; ?>
+                                    </div>
                                 </div>
-                            </div>
-                            
-                            <!-- ==================== CATEGORY 2: PROCEDURE DIAGNOSTICS ==================== -->
-                            <div class="request-category-panel">
-                                <div class="request-category-header">
-                                    <i class="fa fa-stethoscope"></i> Procedure Diagnostics
-                                </div>
-                                <div class="request-category-body">
-                                    <?php if (isset($request_items_grouped[2]) && !empty($request_items_grouped[2])): ?>
-                                        <div class="items-grid">
-                                            <?php 
-                                            foreach ($request_items_grouped[2] as $subcategory => $items):
-                                                foreach ($items as $item): 
-                                            ?>
-                                                <div class="request-item-box">
-                                                    <label>
-                                                        <input type="checkbox" 
-                                                               class="request-item-checkbox"
-                                                               data-category-id="2"
-                                                               data-item-id="<?php echo $item['id']; ?>"
-                                                               data-item-name="<?php echo htmlspecialchars($item['item_name']); ?>"
-                                                               data-price="<?php echo $item['price']; ?>"
-                                                               onchange="calculateRequestTotal()">
-                                                        <span class="item-name"><?php echo $item['item_name']; ?></span>
-                                                        <span class="item-price">₹<?php echo number_format($item['price'], 2); ?></span>
-                                                    </label>
+                                
+                                <!-- ==================== PROCEDURE DIAGNOSTICS FORM ==================== -->
+                                <div class="request-form-panel" id="form_procedure_diagnostics">
+                                    <div class="request-form-header">
+                                        <h4><i class="fa fa-stethoscope"></i> Procedure Diagnostics Form</h4>
+                                        <button class="btn btn-sm btn-default" onclick="closeRequestForm()">
+                                            <i class="fa fa-times"></i>
+                                        </button>
+                                    </div>
+                                    
+                                    <div class="request-form-body">
+                                        <div class="items-grid-4col">
+                                            <?php if (isset($request_items_grouped[2]) && !empty($request_items_grouped[2])): ?>
+                                                <?php 
+                                                foreach ($request_items_grouped[2] as $subcategory => $items):
+                                                    foreach ($items as $item): 
+                                                ?>
+                                                    <div class="request-item-box-compact">
+                                                        <label>
+                                                            <input type="checkbox" 
+                                                                   class="request-item-checkbox"
+                                                                   data-category-id="2"
+                                                                   data-item-id="<?php echo $item['id']; ?>"
+                                                                   data-item-name="<?php echo htmlspecialchars($item['item_name']); ?>"
+                                                                   data-price="<?php echo $item['price']; ?>"
+                                                                   onchange="calculateRequestTotal()">
+                                                            <span class="item-name"><?php echo $item['item_name']; ?></span>
+                                                            <span class="item-price">(<?php echo number_format($item['price'], 0); ?>)</span>
+                                                        </label>
+                                                    </div>
+                                                <?php 
+                                                    endforeach;
+                                                endforeach; 
+                                                ?>
+                                            <?php else: ?>
+                                                <div class="alert alert-info">
+                                                    <i class="fa fa-info-circle"></i> No procedure diagnostic items available
                                                 </div>
-                                            <?php 
-                                                endforeach;
-                                            endforeach; 
-                                            ?>
+                                            <?php endif; ?>
                                         </div>
-                                    <?php else: ?>
-                                        <div class="alert alert-info">
-                                            <i class="fa fa-info-circle"></i> No procedure diagnostic items available.
-                                        </div>
-                                    <?php endif; ?>
-                                </div>
-                            </div>
-                            
-                            <!-- ==================== CATEGORY 3: PROCEDURE TREATMENT ==================== -->
-                            <div class="request-category-panel">
-                                <div class="request-category-header">
-                                    <i class="fa fa-medkit"></i> Procedure Treatment
-                                </div>
-                                <div class="request-category-body">
-                                    <?php if (isset($request_items_grouped[3]) && !empty($request_items_grouped[3])): ?>
-                                        <div class="items-grid">
-                                            <?php 
-                                            foreach ($request_items_grouped[3] as $subcategory => $items):
-                                                foreach ($items as $item): 
-                                            ?>
-                                                <div class="request-item-box">
-                                                    <label>
-                                                        <input type="checkbox" 
-                                                               class="request-item-checkbox"
-                                                               data-category-id="3"
-                                                               data-item-id="<?php echo $item['id']; ?>"
-                                                               data-item-name="<?php echo htmlspecialchars($item['item_name']); ?>"
-                                                               data-price="<?php echo $item['price']; ?>"
-                                                               onchange="calculateRequestTotal()">
-                                                        <span class="item-name"><?php echo $item['item_name']; ?></span>
-                                                        <span class="item-price">₹<?php echo number_format($item['price'], 2); ?></span>
-                                                    </label>
+                                    </div>
+                                    
+                                    <div class="request-form-footer">
+                                        <div class="row">
+                                            <div class="col-md-8">
+                                                <div class="total-summary">
+                                                    <strong>Selected: <span id="pd_selected_count">0</span> items</strong>
+                                                    <strong style="margin-left: 20px;">Total: ₹<span id="pd_total_amount">0.00</span></strong>
                                                 </div>
-                                            <?php 
-                                                endforeach;
-                                            endforeach; 
-                                            ?>
+                                            </div>
+                                            <div class="col-md-4 text-right">
+                                                <button class="btn btn-default" onclick="closeRequestForm()">Cancel</button>
+                                                <button class="btn btn-primary" onclick="submitRequestForm('procedure_diagnostics')">
+                                                    <i class="fa fa-check"></i> Done
+                                                </button>
+                                            </div>
                                         </div>
-                                    <?php else: ?>
+                                    </div>
+                                </div>
+                                
+                                <!-- ==================== PROCEDURE TREATMENT FORM ==================== -->
+                                <div class="request-form-panel" id="form_procedure_treatment">
+                                    <div class="request-form-header">
+                                        <h4><i class="fa fa-medkit"></i> Procedure Treatment Form</h4>
+                                        <button class="btn btn-sm btn-default" onclick="closeRequestForm()">
+                                            <i class="fa fa-times"></i>
+                                        </button>
+                                    </div>
+                                    
+                                    <div class="request-form-body">
+                                        <div class="items-grid-4col">
+                                            <?php if (isset($request_items_grouped[3]) && !empty($request_items_grouped[3])): ?>
+                                                <?php 
+                                                foreach ($request_items_grouped[3] as $subcategory => $items):
+                                                    foreach ($items as $item): 
+                                                ?>
+                                                    <div class="request-item-box-compact">
+                                                        <label>
+                                                            <input type="checkbox" 
+                                                                   class="request-item-checkbox"
+                                                                   data-category-id="3"
+                                                                   data-item-id="<?php echo $item['id']; ?>"
+                                                                   data-item-name="<?php echo htmlspecialchars($item['item_name']); ?>"
+                                                                   data-price="<?php echo $item['price']; ?>"
+                                                                   onchange="calculateRequestTotal()">
+                                                            <span class="item-name"><?php echo $item['item_name']; ?></span>
+                                                            <span class="item-price">(<?php echo number_format($item['price'], 0); ?>)</span>
+                                                        </label>
+                                                    </div>
+                                                <?php 
+                                                    endforeach;
+                                                endforeach; 
+                                                ?>
+                                            <?php else: ?>
+                                                <div class="alert alert-info">
+                                                    <i class="fa fa-info-circle"></i> No procedure treatment items available
+                                                </div>
+                                            <?php endif; ?>
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="request-form-footer">
+                                        <div class="row">
+                                            <div class="col-md-8">
+                                                <div class="total-summary">
+                                                    <strong>Selected: <span id="pt_selected_count">0</span> items</strong>
+                                                    <strong style="margin-left: 20px;">Total: ₹<span id="pt_total_amount">0.00</span></strong>
+                                                </div>
+                                            </div>
+                                            <div class="col-md-4 text-right">
+                                                <button class="btn btn-default" onclick="closeRequestForm()">Cancel</button>
+                                                <button class="btn btn-primary" onclick="submitRequestForm('procedure_treatment')">
+                                                    <i class="fa fa-check"></i> Done
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <!-- ==================== SURGICAL COUNSELLING FORM ==================== -->
+                                <div class="request-form-panel" id="form_surgical_counselling">
+                                    <div class="request-form-header">
+                                        <h4><i class="fa fa-scissors"></i> Surgical Counselling Form</h4>
+                                        <button class="btn btn-sm btn-default" onclick="closeRequestForm()">
+                                            <i class="fa fa-times"></i>
+                                        </button>
+                                    </div>
+                                    
+                                    <div class="request-form-body">
                                         <div class="alert alert-info">
-                                            <i class="fa fa-info-circle"></i> No procedure treatment items available.
+                                            <i class="fa fa-info-circle"></i> Surgical counselling form will be implemented in next phase
                                         </div>
-                                    <?php endif; ?>
-                                </div>
-                            </div>
-                            
-                            <!-- ==================== CATEGORY 4: SURGICAL COUNSELLING ==================== -->
-                            <div class="request-category-panel">
-                                <div class="request-category-header">
-                                    <i class="fa fa-scissors"></i> Surgical Counselling
-                                </div>
-                                <div class="request-category-body">
-                                    <div class="alert alert-info">
-                                        <i class="fa fa-info-circle"></i> Surgical counselling form will be added in next phase
+                                    </div>
+                                    
+                                    <div class="request-form-footer">
+                                        <button class="btn btn-default" onclick="closeRequestForm()">Cancel</button>
                                     </div>
                                 </div>
-                            </div>
-                            
-                        </div>
-                        
-                        <!-- ==================== REQUEST SUMMARY & SUBMIT ==================== -->
-                        <div class="request-summary">
-                            <h5><i class="fa fa-list"></i> Request Summary & Submission</h5>
-                            
-                            <div class="row">
-                                <div class="col-md-3">
-                                    <div class="form-group">
-                                        <label>Priority</label>
-                                        <select class="form-control" name="priority" id="request_priority">
-                                            <option value="normal">Normal</option>
-                                            <option value="urgent">Urgent</option>
-                                            <option value="emergency">Emergency</option>
-                                        </select>
-                                    </div>
-                                </div>
-                                <div class="col-md-3">
-                                    <div class="form-group">
-                                        <label><strong>Total Selected Items</strong></label>
-                                        <input type="text" class="form-control" id="selected_items_count" readonly value="0 items">
-                                    </div>
-                                </div>
-                                <div class="col-md-3">
-                                    <div class="form-group">
-                                        <label><strong>Total Amount</strong></label>
-                                        <input type="text" class="form-control" id="request_total_amount" readonly value="₹0.00">
-                                    </div>
-                                </div>
-                                <div class="col-md-3">
-                                    <label>&nbsp;</label>
-                                    <button type="button" class="btn btn-primary btn-block btn-lg" onclick="submitRequest()">
-                                        <i class="fa fa-paper-plane"></i> Submit Request
-                                    </button>
-                                </div>
-                            </div>
-                            
-                            <div class="form-group">
-                                <label>Doctor's Notes / Special Instructions</label>
-                                <textarea class="form-control" name="doctor_notes" id="request_doctor_notes" rows="2" placeholder="Any specific instructions for lab/procedure team..."></textarea>
+                                
                             </div>
                         </div>
-                    </form>
+                    </div>
                     
                     <!-- ==================== EXISTING REQUESTS ==================== -->
-                    <div style="margin-top: 30px;">
-                        <h4 class="form-section-title">
-                            <i class="fa fa-history"></i> Previous Requests for This Visit
-                        </h4>
-                        
-                        <?php if (!empty($existing_requests)): ?>
-                            <table class="table table-bordered table-striped">
+                   <div style="margin-top: 30px;">
+    <h4 class="form-section-title">
+        <i class="fa fa-history"></i> Previous Requests for This Visit (<?php echo count($existing_requests); ?>)
+    </h4>
+    
+    <?php if (!empty($existing_requests)): ?>
+        <table class="table table-bordered table-striped">
+            <thead style="background: #00bcd4; color: white;">
+                <tr>
+                    <th>Request #</th>
+                    <th>Category</th>
+                    <th>Items</th>
+                    <th>Total Amount</th>
+                    <th>Status</th>
+                    <th>Priority</th>
+                    <th>Created</th>
+                    <th>Items Detail</th>
+                </tr>
+            </thead>
+            <tbody>
+                <?php foreach ($existing_requests as $req): ?>
+                    <tr>
+                        <td><strong><?php echo $req['request_number']; ?></strong></td>
+                        <td><?php echo $req['category_name']; ?></td>
+                        <td><span class="badge"><?php echo $req['items_count']; ?> items</span></td>
+                        <td><strong>₹<?php echo number_format($req['final_amount'], 2); ?></strong></td>
+                        <td>
+                            <span class="label label-<?php 
+                                echo $req['status'] == 'completed' ? 'success' : 
+                                     ($req['status'] == 'cancelled' ? 'danger' : 'warning'); 
+                            ?>">
+                                <?php echo ucfirst($req['status']); ?>
+                            </span>
+                        </td>
+                        <td>
+                            <span class="label label-<?php 
+                                echo $req['priority'] == 'emergency' ? 'danger' : 
+                                     ($req['priority'] == 'urgent' ? 'warning' : 'default'); 
+                            ?>">
+                                <?php echo ucfirst($req['priority']); ?>
+                            </span>
+                        </td>
+                        <td><?php echo date('d M Y, h:i A', strtotime($req['created_at'])); ?></td>
+                        <td>
+                            <button class="btn btn-xs btn-info" onclick="showRequestItems(<?php echo $req['id']; ?>)">
+                                <i class="fa fa-list"></i> View Items
+                            </button>
+                        </td>
+                    </tr>
+                    <!-- Items Row (hidden by default) -->
+                    <tr id="items_<?php echo $req['id']; ?>" style="display: none;">
+                        <td colspan="8">
+                            <table class="table table-sm">
                                 <thead>
                                     <tr>
-                                        <th>Request #</th>
-                                        <th>Category</th>
-                                        <th>Amount</th>
-                                        <th>Status</th>
-                                        <th>Priority</th>
-                                        <th>Created</th>
-                                        <th>Action</th>
+                                        <th>Item Name</th>
+                                        <th>Subcategory</th>
+                                        <th>Quantity</th>
+                                        <th>Unit Price</th>
+                                        <th>Total</th>
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    <?php foreach ($existing_requests as $req): ?>
+                                    <?php foreach ($req['items'] as $item): ?>
                                         <tr>
-                                            <td><strong><?php echo $req['request_number']; ?></strong></td>
-                                            <td><?php echo $req['category_name']; ?></td>
-                                            <td><strong>₹<?php echo number_format($req['final_amount'], 2); ?></strong></td>
-                                            <td>
-                                                <span class="label label-<?php 
-                                                    echo $req['status'] == 'completed' ? 'success' : 
-                                                         ($req['status'] == 'cancelled' ? 'danger' : 'warning'); 
-                                                ?>">
-                                                    <?php echo ucfirst($req['status']); ?>
-                                                </span>
-                                            </td>
-                                            <td>
-                                                <span class="label label-<?php 
-                                                    echo $req['priority'] == 'emergency' ? 'danger' : 
-                                                         ($req['priority'] == 'urgent' ? 'warning' : 'default'); 
-                                                ?>">
-                                                    <?php echo ucfirst($req['priority']); ?>
-                                                </span>
-                                            </td>
-                                            <td><?php echo date('d-M-Y H:i', strtotime($req['created_at'])); ?></td>
-                                            <td>
-                                                <button class="btn btn-xs btn-info" onclick="viewRequestDetails(<?php echo $req['id']; ?>)">
-                                                    <i class="fa fa-eye"></i> View
-                                                </button>
-                                            </td>
+                                            <td><?php echo $item['item_name']; ?></td>
+                                            <td><?php echo $item['subcategory_name']; ?></td>
+                                            <td><?php echo $item['quantity']; ?></td>
+                                            <td>₹<?php echo number_format($item['unit_price'], 2); ?></td>
+                                            <td><strong>₹<?php echo number_format($item['total_price'], 2); ?></strong></td>
                                         </tr>
                                     <?php endforeach; ?>
                                 </tbody>
                             </table>
-                        <?php else: ?>
-                            <div class="alert alert-info">
-                                <i class="fa fa-info-circle"></i> No previous requests for this visit
-                            </div>
-                        <?php endif; ?>
-                    </div>
-                </div>
-                
+                        </td>
+                    </tr>
+                <?php endforeach; ?>
+            </tbody>
+        </table>
+    <?php else: ?>
+        <div class="alert alert-info">
+            <i class="fa fa-info-circle"></i> No previous requests for this visit
+        </div>
+    <?php endif; ?>
+</div>
+
+<script>
+function showRequestItems(requestId) {
+    jQuery('#items_' + requestId).toggle();
+}
+</script>
                 <!-- ============================================
                      TAB 9: IMAGES
                 ============================================ -->
@@ -1350,40 +1595,92 @@ var medicineCounter = <?php echo count($medicines_saved); ?>;
 // REQUEST SECTION FUNCTIONS
 // ============================================
 
-// Toggle subcategory visibility (expand/collapse)
-function toggleSubcategory(subcatId) {
-    var $items = jQuery('#' + subcatId);
-    var $header = $items.prev('.subcategory-header');
+// Show request form by type
+function showRequestForm(type) {
+    // Hide all forms
+    jQuery('.request-form-panel').removeClass('active');
+    jQuery('.btn-request-type').removeClass('active');
     
-    $items.toggleClass('collapsed');
-    $header.toggleClass('collapsed');
+    // Show selected form
+    jQuery('#form_' + type).addClass('active');
+    jQuery('[data-request-type="' + type + '"]').addClass('active');
+}
+
+// Close request form
+function closeRequestForm() {
+    // Just uncheck everything and reset
+    jQuery('.request-item-checkbox').prop('checked', false);
+    calculateRequestTotal();
+}
+
+// Toggle category items visibility
+function toggleCategoryItems(catId) {
+    var $section = jQuery('#' + catId);
+    var $checkbox = jQuery('[data-target="' + catId + '"]');
+    
+    if ($checkbox.is(':checked')) {
+        $section.slideDown(300);
+    } else {
+        $section.slideUp(300);
+        // Uncheck all items in this category
+        $section.find('.request-item-checkbox').prop('checked', false);
+        calculateRequestTotal();
+    }
 }
 
 // Calculate total for request
 function calculateRequestTotal() {
-    var total = 0;
-    var count = 0;
+    var labTotal = 0, labCount = 0;
+    var pdTotal = 0, pdCount = 0;
+    var ptTotal = 0, ptCount = 0;
     
-    jQuery('.request-item-checkbox:checked').each(function() {
+    // Lab Tests (category 1)
+    jQuery('#form_lab_tests .request-item-checkbox:checked').each(function() {
         var price = parseFloat(jQuery(this).data('price')) || 0;
-        total += price;
-        count++;
+        labTotal += price;
+        labCount++;
     });
     
-    jQuery('#selected_items_count').val(count + ' items');
-    jQuery('#request_total_amount').val('₹' + total.toFixed(2));
+    // Procedure Diagnostics (category 2)
+    jQuery('#form_procedure_diagnostics .request-item-checkbox:checked').each(function() {
+        var price = parseFloat(jQuery(this).data('price')) || 0;
+        pdTotal += price;
+        pdCount++;
+    });
+    
+    // Procedure Treatment (category 3)
+    jQuery('#form_procedure_treatment .request-item-checkbox:checked').each(function() {
+        var price = parseFloat(jQuery(this).data('price')) || 0;
+        ptTotal += price;
+        ptCount++;
+    });
+    
+    // Update UI
+    jQuery('#lab_selected_count').text(labCount);
+    jQuery('#lab_total_amount').text(labTotal.toFixed(2));
+    
+    jQuery('#pd_selected_count').text(pdCount);
+    jQuery('#pd_total_amount').text(pdTotal.toFixed(2));
+    
+    jQuery('#pt_selected_count').text(ptCount);
+    jQuery('#pt_total_amount').text(ptTotal.toFixed(2));
 }
 
-// Submit request
-function submitRequest() {
+// Submit request form
+function submitRequestForm(type) {
     var selectedItems = [];
+    var categoryId = 0;
     
-    jQuery('.request-item-checkbox:checked').each(function() {
+    if (type === 'lab_tests') categoryId = 1;
+    else if (type === 'procedure_diagnostics') categoryId = 2;
+    else if (type === 'procedure_treatment') categoryId = 3;
+    
+    jQuery('#form_' + type + ' .request-item-checkbox:checked').each(function() {
         selectedItems.push({
-            category_id: jQuery(this).data('category-id'),
             item_id: jQuery(this).data('item-id'),
             item_name: jQuery(this).data('item-name'),
-            price: jQuery(this).data('price')
+            unit_price: jQuery(this).data('price'),
+            quantity: 1
         });
     });
     
@@ -1392,33 +1689,109 @@ function submitRequest() {
         return;
     }
     
-    var formData = {
-        visit_id: visitId,
-        items: selectedItems,
-        priority: jQuery('#request_priority').val(),
-        doctor_notes: jQuery('#request_doctor_notes').val()
-    };
-    formData[csrfTokenName] = csrfTokenHash;
-    
-    jQuery.ajax({
-        url: adminUrl + 'hospital_management/save_request',
-        type: 'POST',
-        data: formData,
-        dataType: 'json',
-        success: function(response) {
-            if (response.success) {
-                alert_float('success', response.message);
-                setTimeout(function() {
-                    location.reload();
-                }, 1000);
-            } else {
-                alert_float('danger', response.message);
-            }
-        },
-        error: function() {
-            alert_float('danger', 'Error submitting request');
-        }
+    // Calculate total
+    var totalAmount = 0;
+    selectedItems.forEach(function(item) {
+        totalAmount += parseFloat(item.unit_price);
     });
+    
+    if (confirm('Submit this request with ' + selectedItems.length + ' items? Total: ₹' + totalAmount.toFixed(2))) {
+        var formData = {
+            visit_id: visitId,
+            category_id: categoryId,
+            selected_items: selectedItems,  // Already an array
+            total_amount: totalAmount,
+            final_amount: totalAmount,
+            priority: 'normal',
+            doctor_notes: ''
+        };
+        formData[csrfTokenName] = csrfTokenHash;
+        
+        jQuery.ajax({
+            url: adminUrl + 'hospital_management/save_visit_request',  // ← FIXED THIS LINE
+            type: 'POST',
+            data: formData,
+            dataType: 'json',
+           success: function(response) {
+    if (response.success) {
+        alert_float('success', response.message);
+        
+        // Update CSRF tokens
+        if (response.csrf_token_name && response.csrf_token_hash) {
+            csrfTokenName = response.csrf_token_name;
+            csrfTokenHash = response.csrf_token_hash;
+        }
+        
+        // Uncheck all items in the form
+        jQuery('#form_' + type + ' .request-item-checkbox').prop('checked', false);
+        
+        // Hide category sections
+        jQuery('.category-items-section').hide();
+        jQuery('.category-toggle-checkbox').prop('checked', false);
+        
+        // Reset totals
+        calculateRequestTotal();
+        
+        // Dynamically add the new request to the table WITHOUT reload
+        var newRow = `
+            <tr>
+                <td><strong>${response.request_number || 'REQ-NEW'}</strong></td>
+                <td>${jQuery('#form_' + type + ' .request-form-header h4').text()}</td>
+                <td><span class="badge">${selectedItems.length} items</span></td>
+                <td><strong>₹${totalAmount.toFixed(2)}</strong></td>
+                <td><span class="label label-warning">Pending</span></td>
+                <td><span class="label label-default">Normal</span></td>
+                <td>Just now</td>
+                <td>
+                    <button class="btn btn-xs btn-info" disabled>
+                        <i class="fa fa-list"></i> View Items
+                    </button>
+                </td>
+            </tr>
+        `;
+        
+        // If table is empty (showing "No requests" message), replace it
+        if (jQuery('.alert-info:contains("No previous requests")').length > 0) {
+            jQuery('.alert-info:contains("No previous requests")').parent().html(`
+                <table class="table table-bordered table-striped">
+                    <thead style="background: #00bcd4; color: white;">
+                        <tr>
+                            <th>Request #</th>
+                            <th>Category</th>
+                            <th>Items</th>
+                            <th>Total Amount</th>
+                            <th>Status</th>
+                            <th>Priority</th>
+                            <th>Created</th>
+                            <th>Items Detail</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${newRow}
+                    </tbody>
+                </table>
+            `);
+        } else {
+            // Add to existing table
+            jQuery('table.table-bordered tbody').prepend(newRow);
+        }
+        
+        // Update count in header
+        var currentCount = parseInt(jQuery('.form-section-title').text().match(/\((\d+)\)/)?.[1] || 0);
+        jQuery('.form-section-title').html(`
+            <i class="fa fa-history"></i> Previous Requests for This Visit (${currentCount + 1})
+        `);
+        
+    } else {
+        alert_float('danger', response.message);
+    }
+},
+            error: function(xhr) {
+                console.error('Error:', xhr.responseText);
+                alert_float('danger', 'Error submitting request');
+            }
+        });
+    }
 }
 
 // View request details
@@ -1432,11 +1805,16 @@ function viewRequestDetails(requestId) {
 
 function calculateTotalFee() {
     var total = 0;
+    
+    // Loop through each medicine row and get price from row's data-price
     jQuery('.medicine-row').each(function() {
         var price = parseFloat(jQuery(this).attr('data-price')) || 0;
         total += price;
     });
+    
+    // Update display
     jQuery('#total_medicine_fee').text(total.toFixed(2));
+    
     return total;
 }
 
@@ -1576,21 +1954,21 @@ function loadMedicinesByCategory(rowId) {
     
     $select.selectpicker('refresh');
 }
-
 function onMedicineSelect(rowId) {
     var $select = jQuery('.medicine-select[data-row="' + rowId + '"]');
     var $priceInput = jQuery('.medicine-price[data-row="' + rowId + '"]');
     var $row = jQuery('.medicine-row[data-id="' + rowId + '"]');
     
     var selectedOption = $select.find('option:selected');
-    var price = selectedOption.data('price') || 0;
+    var price = parseFloat(selectedOption.data('price')) || 0;
     
-    $priceInput.val('₹' + parseFloat(price).toFixed(2));
+    // Update UI
+    $priceInput.val('₹' + price.toFixed(2));
     $row.attr('data-price', price);
     
+    // Recalculate total
     calculateTotalFee();
 }
-
 function removeMedicineRow(rowId) {
     if (confirm('Remove this medicine?')) {
         jQuery('.medicine-row[data-id="' + rowId + '"]').remove();
@@ -1651,12 +2029,32 @@ function saveTab(tab) {
             formData.append('systematic_exam_ordered', jQuery('[name="systematic_exam_ordered"]').val() || '');
             break;
             
-        case 'medicine':
-            jQuery('[name^="medicines"]').each(function() {
-                formData.append(jQuery(this).attr('name'), jQuery(this).val() || '');
+   case 'medicine':
+    // Collect all medicine rows properly
+    var medicinesData = [];
+    jQuery('.medicine-row').each(function() {
+        var rowId = jQuery(this).data('id');
+        var medicineId = jQuery('[name="medicines[' + rowId + '][medicine_id]"]').val();
+        
+        if (medicineId) {
+            medicinesData.push({
+                medicine_id: medicineId,
+                eye: jQuery('[name="medicines[' + rowId + '][eye]"]').val(),
+                dose: jQuery('[name="medicines[' + rowId + '][dose]"]').val(),
+                unit: jQuery('[name="medicines[' + rowId + '][unit]"]').val(),
+                interval: jQuery('[name="medicines[' + rowId + '][interval]"]').val(),
+                frequency: jQuery('[name="medicines[' + rowId + '][frequency]"]').val(),
+                instructions: jQuery('[name="medicines[' + rowId + '][instructions]"]').val()
             });
-            break;
-            
+        }
+    });
+    
+    console.log('Medicines collected:', medicinesData); // DEBUG LINE
+    
+    // Send as JSON string
+    formData.append('medicines', JSON.stringify(medicinesData));
+    formData.append('medicine_instructions', jQuery('[name="medicine_instructions"]').val() || '');
+    break;
         case 'spectacle':
             formData.append('right_sph', jQuery('[name="right_sph"]').val() || '');
             formData.append('right_cyl', jQuery('[name="right_cyl"]').val() || '');
@@ -1711,9 +2109,149 @@ function saveTab(tab) {
 }
 
 function saveVisit() {
-    if (confirm('Save all visit data?')) {
-        alert_float('info', 'Saving all data...');
+    if (!visitId || visitId === 'null' || visitId === null) {
+        alert_float('danger', 'Visit ID is missing. Cannot save.');
+        return;
     }
+    
+    if (!confirm('Save all visit data at once?')) {
+        return;
+    }
+    
+    alert_float('info', 'Saving all tabs...');
+    
+    // Save all tabs sequentially
+    var tabs = ['history', 'examination', 'retinoscopy', 'diagnosis', 'medicine', 'spectacle', 'pediatric'];
+    var currentTab = 0;
+    var successCount = 0;
+    var failCount = 0;
+    
+    function saveNextTab() {
+        if (currentTab >= tabs.length) {
+            // All done
+            if (failCount === 0) {
+                alert_float('success', 'All data saved successfully! (' + successCount + ' tabs)');
+            } else {
+                alert_float('warning', successCount + ' tabs saved, ' + failCount + ' failed');
+            }
+            return;
+        }
+        
+        var tab = tabs[currentTab];
+        var formData = new FormData();
+        formData.append('visit_id', visitId);
+        formData.append('tab', tab);
+        formData.append(csrfTokenName, csrfTokenHash);
+        
+        // Collect data based on tab
+        switch(tab) {
+            case 'history':
+                formData.append('allergies', jQuery('[name="allergies"]').val() || '');
+                formData.append('systemic_history', jQuery('[name="systemic_history"]').val() || '');
+                formData.append('family_history', jQuery('[name="family_history"]').val() || '');
+                formData.append('ocular_diseases', jQuery('[name="ocular_diseases"]').val() || '');
+                formData.append('surgical_history', jQuery('[name="surgical_history"]').val() || '');
+                formData.append('medication', jQuery('[name="medication"]').val() || '');
+                formData.append('present_complaint', jQuery('[name="present_complaint"]').val() || '');
+                formData.append('dilating_drops', jQuery('[name="dilating_drops"]').val() || '');
+                break;
+                
+            case 'examination':
+                jQuery('input[name*="_right"], input[name*="_left"]').each(function() {
+                    formData.append(jQuery(this).attr('name'), jQuery(this).val() || '');
+                });
+                break;
+                
+            case 'retinoscopy':
+                formData.append('right_ds', jQuery('[name="right_ds"]').val() || '');
+                formData.append('right_dc', jQuery('[name="right_dc"]').val() || '');
+                formData.append('right_axis', jQuery('[name="right_axis"]').val() || '');
+                formData.append('right_add', jQuery('[name="right_add"]').val() || '');
+                formData.append('left_ds', jQuery('[name="left_ds"]').val() || '');
+                formData.append('left_dc', jQuery('[name="left_dc"]').val() || '');
+                formData.append('left_axis', jQuery('[name="left_axis"]').val() || '');
+                formData.append('left_add', jQuery('[name="left_add"]').val() || '');
+                formData.append('type_of_dilatation', jQuery('[name="type_of_dilatation"]').val() || '');
+                break;
+                
+            case 'diagnosis':
+                var icdCodes = jQuery('[name="icd_codes[]"]').val();
+                formData.append('opinion_plan_of_care', jQuery('[name="opinion_plan_of_care"]').val() || '');
+                formData.append('icd_codes', Array.isArray(icdCodes) ? icdCodes.join(',') : '');
+                formData.append('review_required', jQuery('[name="review_required"]:checked').val() || 'no');
+                formData.append('review_period', jQuery('[name="review_period"]').val() || '');
+                formData.append('systematic_exam_ordered', jQuery('[name="systematic_exam_ordered"]').val() || '');
+                break;
+                
+            case 'medicine':
+                jQuery('[name^="medicines"]').each(function() {
+                    formData.append(jQuery(this).attr('name'), jQuery(this).val() || '');
+                });
+                break;
+                
+            case 'spectacle':
+                formData.append('right_sph', jQuery('[name="right_sph"]').val() || '');
+                formData.append('right_cyl', jQuery('[name="right_cyl"]').val() || '');
+                formData.append('right_axis', jQuery('[name="right_axis"]').val() || '');
+                formData.append('right_near_vision', jQuery('[name="right_near_vision"]').val() || '');
+                formData.append('right_distance_vision', jQuery('[name="right_distance_vision"]').val() || '');
+                formData.append('left_sph', jQuery('[name="left_sph"]').val() || '');
+                formData.append('left_cyl', jQuery('[name="left_cyl"]').val() || '');
+                formData.append('left_axis', jQuery('[name="left_axis"]').val() || '');
+                formData.append('left_near_vision', jQuery('[name="left_near_vision"]').val() || '');
+                formData.append('left_distance_vision', jQuery('[name="left_distance_vision"]').val() || '');
+                formData.append('bifocals', jQuery('[name="bifocals"]:checked').val() || 'no');
+                formData.append('back_vertex', jQuery('[name="back_vertex"]').val() || '');
+                formData.append('interpupillary', jQuery('[name="interpupillary"]').val() || '');
+                formData.append('spectacle_remarks', jQuery('[name="spectacle_remarks"]').val() || '');
+                formData.append('lens_type', jQuery('[name="lens_type"]').val() || '');
+                break;
+                
+            case 'pediatric':
+                formData.append('pediatric_notes', jQuery('[name="pediatric_notes"]').val() || '');
+                break;
+        }
+        
+        // Save this tab
+        jQuery.ajax({
+            url: adminUrl + 'hospital_management/save_visit_details',
+            type: 'POST',
+            data: formData,
+            processData: false,
+            contentType: false,
+            dataType: 'json',
+            success: function(response) {
+                if (response.success) {
+                    successCount++;
+                    console.log('Saved tab: ' + tab);
+                    
+                    // Update CSRF tokens
+                    if (response.csrf_token_name && response.csrf_token_hash) {
+                        csrfTokenName = response.csrf_token_name;
+                        csrfTokenHash = response.csrf_token_hash;
+                    }
+                } else {
+                    failCount++;
+                    console.error('Failed to save tab: ' + tab, response.message);
+                }
+                
+                // Move to next tab
+                currentTab++;
+                saveNextTab();
+            },
+            error: function(xhr, status, error) {
+                failCount++;
+                console.error('AJAX Error saving tab: ' + tab, error);
+                
+                // Move to next tab anyway
+                currentTab++;
+                saveNextTab();
+            }
+        });
+    }
+    
+    // Start saving
+    saveNextTab();
 }
 
 function closeVisit() {
@@ -1771,12 +2309,18 @@ jQuery(document).ready(function($) {
         alert_float('warning', 'Visit ID not found. Some features may not work.');
     }
     
-    calculateTotalFee();
-    
+    // Initialize selectpicker first
     if ($.fn.selectpicker) {
         $('.selectpicker').selectpicker();
     }
     
+    // Calculate totals after a small delay to ensure everything is loaded
+    setTimeout(function() {
+        calculateTotalFee();
+        calculateRequestTotal();
+    }, 500);
+    
+    // Review required toggle
     $('[name="review_required"]').on('change', function() {
         if ($(this).val() == 'yes') {
             $('#review_period_section').slideDown();
@@ -1785,6 +2329,86 @@ jQuery(document).ready(function($) {
         }
     });
 });
+
+
 </script>
 
 <?php init_tail(); ?>
+<script>
+    // ============================================
+// DOCUMENT READY
+// ============================================
+jQuery(document).ready(function($) {
+    console.log('Page loaded. Visit ID:', visitId);
+    
+    if (!visitId || visitId === 'null' || visitId === null) {
+        console.error('ERROR: Visit ID is null or undefined!');
+        alert_float('warning', 'Visit ID not found. Some features may not work.');
+    }
+    
+    // Initialize selectpicker first
+    if ($.fn.selectpicker) {
+        $('.selectpicker').selectpicker();
+    }
+    
+    // Calculate totals after a small delay to ensure everything is loaded
+    setTimeout(function() {
+        calculateTotalFee();
+        calculateRequestTotal();
+    }, 500);
+    
+    // Review required toggle
+    $('[name="review_required"]').on('change', function() {
+        if ($(this).val() == 'yes') {
+            $('#review_period_section').slideDown();
+        } else {
+            $('#review_period_section').slideUp();
+        }
+    });
+    
+    // ============================================
+    // RECALCULATE MEDICINE FEES ON FULL PAGE LOAD
+    // ============================================
+    $(window).on('load', function() {
+        console.log('Window fully loaded - recalculating medicine fees...');
+        
+        // Loop through all medicine rows and sync prices
+        $('.medicine-row').each(function() {
+            var $row = $(this);
+            var rowId = $row.data('id');
+            var $select = $row.find('.medicine-select');
+            var selectedMedicineId = $select.val();
+            
+            if (selectedMedicineId) {
+                var price = 0;
+                
+                // Method 1: Try to get from option data-price
+                var $selectedOption = $select.find('option:selected');
+                price = parseFloat($selectedOption.data('price')) || 0;
+                
+                // Method 2: If no price, find it in allMedicines array
+                if (price === 0 && typeof allMedicines !== 'undefined') {
+                    var medicine = allMedicines.find(function(m) {
+                        return m.id == selectedMedicineId;
+                    });
+                    if (medicine) {
+                        price = parseFloat(medicine.price) || 0;
+                    }
+                }
+                
+                console.log('Row ' + rowId + ': Medicine ID=' + selectedMedicineId + ', Price=₹' + price);
+                
+                // Update row data-price
+                $row.attr('data-price', price);
+                
+                // Update price display
+                $row.find('.medicine-price').val('₹' + price.toFixed(2));
+            }
+        });
+        
+        // Now calculate total using existing function
+        var total = calculateTotalFee();
+        console.log('Final Total: ₹' + total);
+    });
+});
+</script>
