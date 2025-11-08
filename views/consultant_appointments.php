@@ -370,8 +370,7 @@
                                                 <?php endif; ?>
                                                 
                                                 <!-- VIEW PATIENT DETAILS -->
-                                                <a href="<?php echo admin_url('hospital_management/view_patient/' . $apt['patient_id']); ?>" 
-                                                   class="btn btn-default btn-sm" 
+                                                <a href="<?php echo admin_url('hospital_management/view_visit/' . $vh['id']); ?>" class="btn btn-sm btn-info" target="_blank"
                                                    title="View Patient Details">
                                                     <i class="fa fa-eye"></i> View
                                                 </a>

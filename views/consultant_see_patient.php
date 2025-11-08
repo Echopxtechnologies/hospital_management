@@ -1368,28 +1368,234 @@
                                 </div>
                                 
                                 <!-- ==================== SURGICAL COUNSELLING FORM ==================== -->
-                                <div class="request-form-panel" id="form_surgical_counselling">
-                                    <div class="request-form-header">
-                                        <h4><i class="fa fa-scissors"></i> Surgical Counselling Form</h4>
-                                        <button class="btn btn-sm btn-default" onclick="closeRequestForm()">
-                                            <i class="fa fa-times"></i>
-                                        </button>
-                                    </div>
-                                    
-                                    <div class="request-form-body">
-                                        <div class="alert alert-info">
-                                            <i class="fa fa-info-circle"></i> Surgical counselling form will be implemented in next phase
-                                        </div>
-                                    </div>
-                                    
-                                    <div class="request-form-footer">
-                                        <button class="btn btn-default" onclick="closeRequestForm()">Cancel</button>
-                                    </div>
-                                </div>
-                                
-                            </div>
-                        </div>
+                          
+<div class="request-form-panel" id="form_surgical_counselling">
+    <div class="request-form-header">
+        <h4><i class="fa fa-scissors"></i> Surgical Counselling Request</h4>
+        <button class="btn btn-sm btn-default" onclick="closeRequestForm()">
+            <i class="fa fa-times"></i>
+        </button>
+    </div>
+    
+    <div class="request-form-body">
+        
+        <!-- ========== REQUEST TYPE SELECTION ========== -->
+        <div class="row" style="margin-bottom: 20px;">
+            <div class="col-md-6">
+                <div class="checkbox-card" onclick="toggleSurgeryForm('simple')">
+                    <label style="cursor: pointer; display: block; padding: 15px; background: #f9f9f9; border-radius: 6px; border: 2px solid #ddd;">
+                        <input type="checkbox" id="simpleRequestCheck" style="margin-right: 10px;">
+                        <strong style="font-size: 16px; color: #00bcd4;">
+                            <i class="fa fa-file-text"></i> Simple Surgery Request
+                        </strong>
+                        <p style="margin: 5px 0 0 25px; color: #666; font-size: 13px;">Quick surgery request with basic details</p>
+                    </label>
+                </div>
+            </div>
+            
+            <div class="col-md-6">
+                <div class="checkbox-card" onclick="toggleSurgeryForm('detailed')">
+                    <label style="cursor: pointer; display: block; padding: 15px; background: #f9f9f9; border-radius: 6px; border: 2px solid #ddd;">
+                        <input type="checkbox" id="detailedRequestCheck" style="margin-right: 10px;">
+                        <strong style="font-size: 16px; color: #00bcd4;">
+                            <i class="fa fa-list-alt"></i> Detailed Surgery Request
+                        </strong>
+                        <p style="margin: 5px 0 0 25px; color: #666; font-size: 13px;">Comprehensive request with all surgical details</p>
+                    </label>
+                </div>
+            </div>
+        </div>
+        
+        <!-- ========== SIMPLE REQUEST FORM ========== -->
+        <div id="simpleRequestForm" style="display:none; padding: 20px; background: #f0f8ff; border-radius: 8px; border: 2px solid #00bcd4; margin-bottom: 20px;">
+            <h4 style="color: #00bcd4; margin-bottom: 20px; border-bottom: 2px solid #00bcd4; padding-bottom: 10px;">
+                <i class="fa fa-file-text"></i> Simple Surgery Request
+            </h4>
+            
+            <div class="row">
+                <div class="col-md-6">
+                    <div class="form-group">
+                        <label>Surgery Type <span class="text-danger">*</span></label>
+                        <select name="simple_surgery_type_id" id="simple_surgery_type_id" class="form-control selectpicker" data-live-search="true" required>
+                            <option value="">-- Select Surgery Type --</option>
+                        </select>
                     </div>
+                </div>
+                
+                <div class="col-md-12">
+                    <div class="form-group">
+                        <label>Surgery Details & Notes</label>
+                        <textarea name="simple_surgery_details" id="simple_surgery_details" class="form-control" rows="4" placeholder="Enter surgery details, special notes, patient history, or any other relevant information..."></textarea>
+                    </div>
+                </div>
+            </div>
+            
+            <div style="border-top: 1px solid #ddd; padding-top: 15px; margin-top: 10px;">
+                <button type="button" class="btn btn-success" onclick="submitSurgeryRequest('simple')">
+                    <i class="fa fa-paper-plane"></i> Submit Simple Request
+                </button>
+                <button type="button" class="btn btn-default" onclick="clearSurgeryForm('simple')">
+                    <i class="fa fa-refresh"></i> Clear Form
+                </button>
+            </div>
+        </div>
+        
+        <!-- ========== DETAILED REQUEST FORM ========== -->
+        <div id="detailedRequestForm" style="display:none; padding: 20px; background: #fff9e6; border-radius: 8px; border: 2px solid #ff9800; margin-bottom: 20px;">
+            <h4 style="color: #ff9800; margin-bottom: 20px; border-bottom: 2px solid #ff9800; padding-bottom: 10px;">
+                <i class="fa fa-list-alt"></i> Detailed Surgery Request
+            </h4>
+            
+            <div class="row">
+                <!-- Surgery Type -->
+                <div class="col-md-6">
+                    <div class="form-group">
+                        <label>Surgery Type <span class="text-danger">*</span></label>
+                        <select name="detailed_surgery_type_id" id="detailed_surgery_type_id" class="form-control selectpicker" data-live-search="true" required>
+                            <option value="">-- Select Surgery Type --</option>
+                        </select>
+                    </div>
+                </div>
+                
+                <!-- I will be doing -->
+                <div class="col-md-6">
+                    <div class="form-group">
+                        <label>Will You Perform the Surgery?</label>
+                        <select name="doing_surgery" id="doing_surgery" class="form-control">
+                            <option value="">-- Select --</option>
+                            <option value="yes">Yes</option>
+                            <option value="no">No</option>
+                        </select>
+                    </div>
+                </div>
+                
+                <!-- Name of Surgery -->
+                <div class="col-md-6">
+                    <div class="form-group">
+                        <label>Name of Surgery</label>
+                        <input type="text" name="surgery_name" id="surgery_name" class="form-control" placeholder="Enter specific surgery name">
+                    </div>
+                </div>
+                
+                <!-- Lens Preference -->
+                <div class="col-md-6">
+                    <div class="form-group">
+                        <label>Lens Preference</label>
+                        <input type="text" name="lens_preference" id="lens_preference" class="form-control" placeholder="Enter preferred lens type">
+                    </div>
+                </div>
+                
+                <!-- Stand By Lens -->
+                <div class="col-md-6">
+                    <div class="form-group">
+                        <label>Stand By Lens (Backup)</label>
+                        <input type="text" name="standby_lens" id="standby_lens" class="form-control" placeholder="Enter standby lens if needed">
+                    </div>
+                </div>
+                
+                <!-- Lens Power -->
+                <div class="col-md-6">
+                    <div class="form-group">
+                        <label>Lens Power</label>
+                        <input type="text" name="lens_power" id="lens_power" class="form-control" placeholder="Enter lens power (e.g., +20.5D)">
+                    </div>
+                </div>
+                
+                <!-- A Constant Used -->
+                <div class="col-md-6">
+                    <div class="form-group">
+                        <label>A Constant Used</label>
+                        <input type="text" name="a_constant_used" id="a_constant_used" class="form-control" placeholder="Enter A constant value">
+                    </div>
+                </div>
+                
+                <!-- Formula Used -->
+                <div class="col-md-6">
+                    <div class="form-group">
+                        <label>Formula Used</label>
+                        <input type="text" name="formula_used" id="formula_used" class="form-control" placeholder="e.g., SRK/T, Hoffer Q, Barrett">
+                    </div>
+                </div>
+                
+                <!-- Disposables/Instruments -->
+                <div class="col-md-12">
+                    <div class="form-group">
+                        <label>Disposables / Instruments to Keep Ready</label>
+                        <textarea name="disposables_instruments" id="disposables_instruments" class="form-control" rows="2" placeholder="List any special disposables or instruments needed..."></textarea>
+                    </div>
+                </div>
+                
+                <!-- Time of admission -->
+                <div class="col-md-6">
+                    <div class="form-group">
+                        <label>Admission Time (Hours Before Surgery)</label>
+                        <input type="text" name="admission_hours_before" id="admission_hours_before" class="form-control" placeholder="e.g., 2 hours, 4 hours">
+                    </div>
+                </div>
+                
+                <!-- Overnight admission -->
+                <div class="col-md-6">
+                    <div class="form-group">
+                        <label>Overnight Admission Required?</label>
+                        <select name="overnight_admission" id="overnight_admission" class="form-control">
+                            <option value="">-- Select --</option>
+                            <option value="yes">Yes</option>
+                            <option value="no">No</option>
+                        </select>
+                    </div>
+                </div>
+                
+                <!-- Preferred day and time -->
+                <div class="col-md-6">
+                    <div class="form-group">
+                        <label>Preferred Day & Time</label>
+                        <input type="datetime-local" name="preferred_datetime" id="preferred_datetime" class="form-control">
+                    </div>
+                </div>
+                
+                <!-- Anesthesia -->
+                <div class="col-md-6">
+                    <div class="form-group">
+                        <label>Anesthesia Type</label>
+                        <input type="text" name="anesthesia" id="anesthesia" class="form-control" placeholder="e.g., Local, General, Topical">
+                    </div>
+                </div>
+                
+                <!-- Special instructions -->
+                <div class="col-md-12">
+                    <div class="form-group">
+                        <label>Special Instructions</label>
+                        <textarea name="special_instructions" id="special_instructions" class="form-control" rows="3" placeholder="Any special instructions for the surgical team..."></textarea>
+                    </div>
+                </div>
+                
+                <!-- Nil oral instructions -->
+                <div class="col-md-12">
+                    <div class="form-group">
+                        <label>Nil By Mouth (NBM) Instructions</label>
+                        <textarea name="nil_oral_instructions" id="nil_oral_instructions" class="form-control" rows="2" placeholder="Enter NBM instructions (e.g., NBM 6 hours before surgery)"></textarea>
+                    </div>
+                </div>
+            </div>
+            
+            <div style="border-top: 1px solid #ddd; padding-top: 15px; margin-top: 10px;">
+                <button type="button" class="btn btn-success" onclick="submitSurgeryRequest('detailed')">
+                    <i class="fa fa-paper-plane"></i> Submit Detailed Request
+                </button>
+                <button type="button" class="btn btn-default" onclick="clearSurgeryForm('detailed')">
+                    <i class="fa fa-refresh"></i> Clear Form
+                </button>
+            </div>
+        </div>
+        
+    </div>
+    
+    <div class="request-form-footer">
+        <button class="btn btn-default" onclick="closeRequestForm()">
+            <i class="fa fa-times"></i> Close
+        </button>
+    </div>
+</div>
                     
                     <!-- ==================== EXISTING REQUESTS ==================== -->
                    <div style="margin-top: 30px;">
@@ -2330,6 +2536,185 @@ jQuery(document).ready(function($) {
     });
 });
 
+// ============================================
+// SURGERY COUNSELLING JAVASCRIPT
+// ============================================
+
+// Toggle surgery form based on checkbox click
+function toggleSurgeryForm(formType) {
+    if (formType === 'simple') {
+        var checkbox = $('#simpleRequestCheck');
+        checkbox.prop('checked', !checkbox.prop('checked'));
+        
+        if (checkbox.prop('checked')) {
+            // Uncheck detailed and hide its form
+            $('#detailedRequestCheck').prop('checked', false);
+            $('#detailedRequestForm').slideUp(300);
+            
+            // Show simple form
+            $('#simpleRequestForm').slideDown(300);
+            loadSurgeryTypes('simple');
+        } else {
+            $('#simpleRequestForm').slideUp(300);
+        }
+    } else {
+        var checkbox = $('#detailedRequestCheck');
+        checkbox.prop('checked', !checkbox.prop('checked'));
+        
+        if (checkbox.prop('checked')) {
+            // Uncheck simple and hide its form
+            $('#simpleRequestCheck').prop('checked', false);
+            $('#simpleRequestForm').slideUp(300);
+            
+            // Show detailed form
+            $('#detailedRequestForm').slideDown(300);
+            loadSurgeryTypes('detailed');
+        } else {
+            $('#detailedRequestForm').slideUp(300);
+        }
+    }
+}
+
+// Load surgery types via AJAX
+function loadSurgeryTypes(formType) {
+    $.ajax({
+        url: admin_url + 'hospital_management/get_surgery_types',
+        type: 'POST',
+        dataType: 'json',
+        success: function(response) {
+            if (response.success && response.surgery_types) {
+                var selectId = formType === 'simple' ? '#simple_surgery_type_id' : '#detailed_surgery_type_id';
+                var options = '<option value="">-- Select Surgery Type --</option>';
+                
+                var currentCategory = '';
+                $.each(response.surgery_types, function(index, type) {
+                    // Group by category
+                    if (type.category && type.category !== currentCategory) {
+                        if (currentCategory !== '') {
+                            options += '</optgroup>';
+                        }
+                        options += '<optgroup label="' + type.category + '">';
+                        currentCategory = type.category;
+                    }
+                    
+                    options += '<option value="' + type.id + '">' + type.surgery_name + '</option>';
+                });
+                
+                if (currentCategory !== '') {
+                    options += '</optgroup>';
+                }
+                
+                $(selectId).html(options);
+                $(selectId).selectpicker('refresh');
+            }
+        },
+        error: function() {
+            alert_float('danger', 'Failed to load surgery types');
+        }
+    });
+}
+
+// Submit surgery request
+function submitSurgeryRequest(requestType) {
+    var formData = {
+        visit_id: <?php echo $visit['id'] ?? 'null'; ?>,
+        patient_id: <?php echo $appointment['patient_id'] ?? 0; ?>,
+        appointment_id: <?php echo $appointment['id'] ?? 0; ?>, // ← ADD THIS LINE
+        request_type: requestType
+    };
+    
+    if (requestType === 'simple') {
+        formData.surgery_type_id = $('#simple_surgery_type_id').val();
+        formData.surgery_details = $('#simple_surgery_details').val();
+        
+        if (!formData.surgery_type_id) {
+            alert_float('warning', 'Please select a surgery type');
+            return;
+        }
+    } else {
+        // Collect all detailed form fields
+        formData.surgery_type_id = $('#detailed_surgery_type_id').val();
+        formData.doing_surgery = $('#doing_surgery').val();
+        formData.surgery_name = $('#surgery_name').val();
+        formData.lens_preference = $('#lens_preference').val();
+        formData.standby_lens = $('#standby_lens').val();
+        formData.disposables_instruments = $('#disposables_instruments').val();
+        formData.admission_hours_before = $('#admission_hours_before').val();
+        formData.overnight_admission = $('#overnight_admission').val();
+        formData.special_instructions = $('#special_instructions').val();
+        formData.nil_oral_instructions = $('#nil_oral_instructions').val();
+        formData.preferred_datetime = $('#preferred_datetime').val();
+        formData.lens_power = $('#lens_power').val();
+        formData.a_constant_used = $('#a_constant_used').val();
+        formData.formula_used = $('#formula_used').val();
+        formData.anesthesia = $('#anesthesia').val();
+        
+        if (!formData.surgery_type_id) {
+            alert_float('warning', 'Please select a surgery type');
+            return;
+        }
+    }
+    
+    $.ajax({
+        url: admin_url + 'hospital_management/save_surgery_request',
+        type: 'POST',
+        data: formData,
+        dataType: 'json',
+        success: function(response) {
+            if (response.success) {
+                alert_float('success', response.message);
+                
+                // Reset form
+                if (requestType === 'simple') {
+                    $('#simpleRequestForm').find('input, textarea, select').val('');
+                    $('#simple_surgery_type_id').selectpicker('refresh');
+                } else {
+                    $('#detailedRequestForm').find('input, textarea, select').val('');
+                    $('#detailed_surgery_type_id').selectpicker('refresh');
+                }
+                
+                // Uncheck checkboxes and hide forms
+                $('#simpleRequestCheck, #detailedRequestCheck').prop('checked', false);
+                $('#simpleRequestForm, #detailedRequestForm').slideUp();
+            } else {
+                alert_float('danger', response.message || 'Failed to submit request');
+            }
+            
+            // Update CSRF token
+            if (response.csrf_token_name && response.csrf_token_hash) {
+                $('input[name="' + response.csrf_token_name + '"]').val(response.csrf_token_hash);
+            }
+        },
+        error: function() {
+            alert_float('danger', 'Server error occurred');
+        }
+    });
+}
+// Clear surgery form
+function clearSurgeryForm(formType) {
+    if (formType === 'simple') {
+        $('#simple_surgery_type_id').val('').selectpicker('refresh');
+        $('#simple_surgery_details').val('');
+    } else {
+        $('#detailed_surgery_type_id').val('').selectpicker('refresh');
+        $('#doing_surgery').val('');
+        $('#surgery_name').val('');
+        $('#lens_preference').val('');
+        $('#standby_lens').val('');
+        $('#disposables_instruments').val('');
+        $('#admission_hours_before').val('');
+        $('#overnight_admission').val('');
+        $('#special_instructions').val('');
+        $('#nil_oral_instructions').val('');
+        $('#preferred_datetime').val('');
+        $('#lens_power').val('');
+        $('#a_constant_used').val('');
+        $('#formula_used').val('');
+        $('#anesthesia').val('');
+    }
+    
+    alert_float('info', 'Form cleared');
+}
 
 </script>
 
@@ -2411,4 +2796,5 @@ jQuery(document).ready(function($) {
         console.log('Final Total: ₹' + total);
     });
 });
+
 </script>

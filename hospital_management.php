@@ -72,6 +72,17 @@ function hospital_management_activation_hook()
         $CI->db->insert(db_prefix() . 'roles', $jc_role_data);
         log_activity('Hospital Management Module - Junior Consultant Role Created');
     }
+     $technician_role_exists = $CI->db->get_where(db_prefix() . 'roles', ['name' => 'Technician'])->num_rows();
+
+    if ($technician_role_exists == 0) {
+        $technician_role_data = [
+            'name' => 'Technician',
+            'permissions' => serialize([])
+        ];
+        
+        $CI->db->insert(db_prefix() . 'roles', $technician_role_data);
+        log_activity('Hospital Management Module - Technician Role Created');
+    }
 }   
 
 /**
@@ -229,6 +240,30 @@ function is_consultant_or_jc()
 {
     return is_consultant() || is_junior_consultant();
 }
+function is_technician()
+{
+    $CI = &get_instance();
+    $staff_id = get_staff_user_id();
+    
+    if (!$staff_id) {
+        return false;
+    }
+    
+    // Get staff role
+    $staff = $CI->db->get_where(db_prefix() . 'staff', ['staffid' => $staff_id])->row();
+    if (!$staff) {
+        return false;
+    }
+    
+    // Get role name
+    $role = $CI->db->get_where(db_prefix() . 'roles', ['roleid' => $staff->role])->row();
+    if (!$role) {
+        return false;
+    }
+    
+    // Check if role name is "Technician" (case-insensitive)
+    return strtolower($role->name) === 'technician';
+}
 /**
  * Module Initialization
  * FIXED: Show menu for Administrator role OR users with permissions
@@ -249,6 +284,7 @@ function hospital_management_init()
     register_staff_capabilities('hospital_users', $capabilities, 'Hospital Users');
     register_staff_capabilities('reception_management', $capabilities, 'Reception Management');
     register_staff_capabilities('consultant_portal', $capabilities, 'Consultant Portal');
+    register_staff_capabilities('technician_portal', $capabilities, 'Technician Portal');
     // ============================================
     // ADMINISTRATOR MENU (Hospital Management)
     // ============================================
@@ -366,6 +402,38 @@ function hospital_management_init()
             'position' => 1,
         ]);
     }
+    // ============================================
+    // TECHNICIAN PORTAL MENU - NEW ADDITION
+    // ============================================
+    if (is_technician() || has_permission('technician_portal', '', 'view')) {
+        
+        // Main menu item - Technician Portal
+        $CI->app_menu->add_sidebar_menu_item('technician-portal', [
+            'slug'     => 'technician-portal',
+            'name'     => 'Technician Portal',
+            'icon'     => 'fa fa-flask',
+            'href'     => admin_url('hospital_management/technician_dashboard'),
+            'position' => 32,
+        ]);
+        
+        // Submenu - Lab Requests
+        $CI->app_menu->add_sidebar_children_item('technician-portal', [
+            'slug'     => 'lab-requests',
+            'name'     => 'Lab Requests',
+            'icon'     => 'fa fa-tasks',
+            'href'     => admin_url('hospital_management/lab_requests'),
+            'position' => 1,
+        ]);
+        
+        // Submenu - My Lab Results (Optional)
+        $CI->app_menu->add_sidebar_children_item('technician-portal', [
+            'slug'     => 'my-lab-results',
+            'name'     => 'My Lab Results',
+            'icon'     => 'fa fa-file-text-o',
+            'href'     => admin_url('hospital_management/technician_lab_results'),
+            'position' => 2,
+        ]);
+    }
 }
 /**
  * Hide ALL menus except role-specific menus
@@ -387,6 +455,7 @@ function hospital_hide_other_menus()
     $show_hospital_management = is_hospital_administrator() || has_permission('hospital_users', '', 'view');
     $show_reception_desk = is_receptionist() || has_permission('reception_management', '', 'view');
     $show_consultant_portal = is_consultant_or_jc() || has_permission('consultant_portal', '', 'view');
+    $show_technician_portal = is_technician() || has_permission('technician_portal', '', 'view');
     // CSS FIRST - Hides menus INSTANTLY (no flash on refresh)
     echo '<style>
     /* INSTANT HIDE - Before JavaScript runs */
@@ -427,6 +496,17 @@ function hospital_hide_other_menus()
         }
         ';
     }
+
+    // SHOW TECHNICIAN PORTAL MENU - NEW
+    if ($show_technician_portal) {
+        echo '
+        #side-menu > li[class*="technician"],
+        #side-menu > li[class*="technician-portal"] {
+            display: block !important;
+            visibility: visible !important;
+        }
+        ';
+    }
     echo '</style>';
     
     // JavaScript cleanup - Removes from DOM after page loads
@@ -437,6 +517,7 @@ function hospital_hide_other_menus()
         var showHospitalManagement = ' . ($show_hospital_management ? 'true' : 'false') . ';
         var showReceptionDesk = ' . ($show_reception_desk ? 'true' : 'false') . ';
         var showConsultantPortal = ' . ($show_consultant_portal ? 'true' : 'false') . ';
+        var showTechnicianPortal = ' . ($show_technician_portal ? 'true' : 'false') . ';
         function removeOtherMenus() {
             var menuItems = document.querySelectorAll("#side-menu > li");
             
@@ -499,6 +580,21 @@ function hospital_hide_other_menus()
                         shouldKeep = true;
                     }
                 }
+
+                // KEEP TECHNICIAN PORTAL MENU - NEW
+                 if (showTechnicianPortal) {
+                    var isTechnicianMenu = 
+                        classes.indexOf("technician-portal") !== -1 || 
+                        classes.indexOf("technician_portal") !== -1 ||
+                        classes.indexOf("menu-item-technician-portal") !== -1 ||
+                        (href && href.indexOf("technician") !== -1) ||
+                        linkText.indexOf("technician portal") !== -1 ||
+                        linkText.indexOf("lab requests") !== -1;
+                    
+                    if (isTechnicianMenu) {
+                        shouldKeep = true;
+                    }
+                }
                 
                 if (shouldKeep) {
                     console.log("Hospital: ✓ KEEPING", linkText);
@@ -558,6 +654,10 @@ function hospital_redirect_from_homepage()
         if (is_consultant_or_jc() || has_permission('consultant_portal', '', 'view')) {
             redirect(admin_url('hospital_management/consultant_appointments'));
         }
+        // REDIRECT TECHNICIAN TO LAB REQUESTS - NEW
+         if (is_technician() || has_permission('technician_portal', '', 'view')) {
+            redirect(admin_url('hospital_management/lab_requests'));
+        }
 
         // Redirect Administrator to Hospital Dashboard
         if (is_hospital_administrator() || has_permission('hospital_users', '', 'view')) {
@@ -586,6 +686,10 @@ function hospital_redirect_after_login($staff_id)
     // Redirect Consultant/JC to Consultant Appointments
     if (is_consultant_or_jc() || has_permission('consultant_portal', '', 'view')) {
         redirect(admin_url('hospital_management/consultant_appointments'));
+    }
+    // REDIRECT TECHNICIAN AFTER LOGIN - NEW
+     if (is_technician() || has_permission('technician_portal', '', 'view')) {
+        redirect(admin_url('hospital_management/lab_requests'));
     }
     
     // Administrator goes to Hospital Dashboard

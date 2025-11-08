@@ -524,3 +524,29 @@ if (!$CI->db->table_exists(db_prefix() . 'hospital_medicines')) {
     
     log_activity('Hospital Management - Table Created: hospital_medicines');
 }
+
+
+
+// -- Only update the main requests table
+// ALTER TABLE `tblhospital_visit_requests` 
+// ADD COLUMN `assigned_technician_id` INT(11) NULL AFTER `requested_by`,
+// ADD COLUMN `assigned_at` DATETIME NULL AFTER `assigned_technician_id`,
+// ADD COLUMN `assigned_by` INT(11) NULL COMMENT 'Receptionist who assigned' AFTER `assigned_at`;
+
+// -- Also add a cancellation reason field
+// ALTER TABLE `tblhospital_visit_requests`
+// ADD COLUMN `cancellation_reason` TEXT NULL AFTER `status`,
+// ADD COLUMN `cancelled_by` INT(11) NULL AFTER `cancellation_reason`,
+// ADD COLUMN `cancelled_at` DATETIME NULL AFTER `cancelled_by`;
+
+// CREATE TABLE `tblhospital_surgery_types` (
+//     `id` INT(11) NOT NULL AUTO_INCREMENT,
+//     `surgery_name` VARCHAR(255) NOT NULL,
+//     `surgery_code` VARCHAR(100) DEFAULT NULL,
+//     `category` VARCHAR(100) DEFAULT NULL COMMENT 'Cataract, Glaucoma, Retina, etc',
+//     `description` TEXT DEFAULT NULL,
+//     `is_active` TINYINT(1) NOT NULL DEFAULT 1,
+//     `display_order` INT(11) DEFAULT 0,
+//     `created_at` DATETIME DEFAULT CURRENT_TIMESTAMP,
+//     PRIMARY KEY (`id`)
+// ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;

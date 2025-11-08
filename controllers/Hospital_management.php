@@ -961,7 +961,11 @@ public function consultant_see_patient($appointment_id)
     // Get dropdown data
     $data['icd_codes'] = $this->get_icd_codes();
     $data['medicine_drops'] = $this->get_medicine_drops();
-    $data['surgery_types'] = $this->get_surgery_types();
+    // Get surgery types directly for view
+    $this->db->select('id, surgery_name, surgery_code, category');
+    $this->db->where('is_active', 1);
+    $this->db->order_by('display_order', 'ASC');
+    $data['surgery_types'] = $this->db->get(db_prefix() . 'hospital_surgery_types')->result_array();
     $data['lens_types'] = $this->get_lens_types();
 
     // ADD THIS NEW CODE - Load all request categories and items
@@ -1389,15 +1393,17 @@ private function get_medicine_drops() {
     ];
 }
 
-private function get_surgery_types() {
-    return [
-        'Camp Cataract LE',
-        'Camp Cataract RE',
-        'Camp Cataract BE',
-        // Add all 31 types...
-    ];
+public function get_surgery_types()
+{
+    $this->ajax_only();
+    
+    $this->db->select('id, surgery_name, surgery_code, category');
+    $this->db->where('is_active', 1);
+    $this->db->order_by('display_order', 'ASC');
+    $types = $this->db->get(db_prefix() . 'hospital_surgery_types')->result_array();
+    
+    return $this->json_response(true, '', ['surgery_types' => $types], true);
 }
-
 private function get_lens_types() {
     return [
         'Single Vision',
@@ -1772,6 +1778,303 @@ public function download_visit_pdf($visit_id)
         echo json_encode($response);
         exit;
     }
+   // ============================================
+// TECHNICIAN PORTAL METHODS
+// ============================================
 
+/**
+ * Technician Dashboard
+ */
+public function technician_dashboard()
+{
+    // Check if user is technician
+    if (!is_technician() && !has_permission('technician_portal', '', 'view')) {
+        access_denied('Technician Portal');
+    }
     
+    $data['title'] = 'Technician Dashboard';
+    $this->load->view('technician/dashboard', $data);
+}
+
+/**
+ * Receptionist view - Lab & Procedure Requests
+ */
+public function lab_records()
+{
+    $this->check_receptionist_access('reception_management', 'view');
+    
+    $this->load->model('hospital_requests_model');
+    
+    $data['pending_requests'] = $this->hospital_requests_model->get_pending_requests();
+    $data['statistics'] = $this->hospital_requests_model->get_receptionist_statistics();
+    $data['technicians'] = $this->hospital_requests_model->get_technicians();
+    
+    $data['title'] = 'Procedures & Lab Records';
+    $this->load->view('lab_records', $data);
+}
+
+/**
+ * Get request details (AJAX) - For modal
+ */
+public function get_request_details()
+{
+    $this->ajax_only();
+    $this->check_receptionist_access('reception_management', 'view');
+    
+    $request_id = $this->input->post('request_id');
+    
+    $this->load->model('hospital_requests_model');
+    $request = $this->hospital_requests_model->get_request_with_items($request_id);
+    
+    if ($request) {
+        return $this->json_response(true, '', ['request' => $request], true);
+    }
+    
+    return $this->json_response(false, 'Request not found', [], true);
+}
+
+/**
+ * Assign request to technician (AJAX)
+ */
+public function assign_request()
+{
+    $this->ajax_only();
+    $this->check_receptionist_access('reception_management', 'edit');
+    
+    $request_id = $this->input->post('request_id');
+    $technician_id = $this->input->post('technician_id');
+    
+    if (empty($technician_id)) {
+        return $this->json_response(false, 'Please select a technician', [], true);
+    }
+    
+    $this->load->model('hospital_requests_model');
+    $result = $this->hospital_requests_model->assign_to_technician($request_id, $technician_id);
+    
+    return $this->json_response($result['success'], $result['message'], [], true);
+}
+
+/**
+ * Cancel request (AJAX)
+ */
+public function cancel_request()
+{
+    $this->ajax_only();
+    $this->check_receptionist_access('reception_management', 'delete');
+    
+    $request_id = $this->input->post('request_id');
+    $reason = $this->input->post('reason');
+    
+    $this->load->model('hospital_requests_model');
+    $result = $this->hospital_requests_model->cancel_request($request_id, $reason);
+    
+    return $this->json_response($result['success'], $result['message'], [], true);
+}
+
+/**
+ * Lab Requests - Technician View
+ */
+public function lab_requests()
+{
+    if (!is_technician() && !has_permission('technician_portal', '', 'view')) {
+        access_denied('Lab Requests');
+    }
+    
+    $this->load->model('hospital_requests_model');
+    
+    $staff_id = get_staff_user_id();
+    $data['requests'] = $this->hospital_requests_model->get_technician_requests($staff_id);
+    $data['statistics'] = $this->hospital_requests_model->get_technician_statistics($staff_id);
+    
+    $data['title'] = 'My Lab Requests';
+    $this->load->view('technician/lab_requests', $data);
+}
+
+/**
+ * View request detail (Technician)
+ */
+public function lab_request($request_id)
+{
+    if (!is_technician() && !has_permission('technician_portal', '', 'view')) {
+        access_denied('Lab Request Detail');
+    }
+    
+    $this->load->model('hospital_requests_model');
+    
+    $data['request'] = $this->hospital_requests_model->get_request_with_items($request_id);
+    
+    if (!$data['request']) {
+        show_404();
+    }
+    
+    // Verify this request is assigned to current technician
+    if ($data['request']['assigned_technician_id'] != get_staff_user_id()) {
+        access_denied('This request is not assigned to you');
+    }
+    
+    $data['title'] = 'Request Details - ' . $data['request']['request_number'];
+    $this->load->view('technician/lab_request_detail', $data);
+}
+
+/**
+ * Start processing request (AJAX)
+ */
+public function start_request()
+{
+    $this->ajax_only();
+    
+    if (!is_technician() && !has_permission('technician_portal', '', 'edit')) {
+        ajax_access_denied();
+    }
+    
+    $request_id = $this->input->post('request_id');
+    $staff_id = get_staff_user_id();
+    
+    $this->load->model('hospital_requests_model');
+    $result = $this->hospital_requests_model->start_processing($request_id, $staff_id);
+    
+    return $this->json_response($result['success'], $result['message'], [], true);
+}
+
+/**
+ * Complete request (AJAX)
+ */
+public function complete_request()
+{
+    $this->ajax_only();
+    
+    if (!is_technician() && !has_permission('technician_portal', '', 'edit')) {
+        ajax_access_denied();
+    }
+    
+    $request_id = $this->input->post('request_id');
+    $notes = $this->input->post('notes');
+    $staff_id = get_staff_user_id();
+    
+    $this->load->model('hospital_requests_model');
+    $result = $this->hospital_requests_model->complete_request($request_id, $staff_id, $notes);
+    
+    return $this->json_response($result['success'], $result['message'], [], true);
+}
+
+// ============================================
+// SURGERY COUNSELLING METHODS
+// ============================================
+
+/**
+ * Get surgery types for dropdown (AJAX)
+ */
+/**
+ * Save surgery request (AJAX)
+ */
+public function save_surgery_request()
+{
+    $this->ajax_only();
+    $this->check_consultant_access('consultant_portal', 'create');
+    
+    $visit_id = $this->input->post('visit_id');
+    $patient_id = $this->input->post('patient_id');
+    $appointment_id = $this->input->post('appointment_id'); // ← ADD THIS
+    $request_type = $this->input->post('request_type'); // 'simple' or 'detailed'
+    
+    // Validate required fields
+    if (empty($patient_id) || empty($request_type)) {
+        return $this->json_response(false, 'Missing required fields', [], true);
+    }
+    
+    // ========================================
+    // CHECK IF VISIT EXISTS, CREATE IF NOT
+    // ========================================
+    if (empty($visit_id) || $visit_id === 'null' || !is_numeric($visit_id)) {
+        // Visit doesn't exist, create it first
+        if (empty($appointment_id)) {
+            return $this->json_response(false, 'Appointment ID is required to create visit', [], true);
+        }
+        
+        // Create visit record
+        $this->load->model('hospital_visits_model');
+        
+        // Generate visit number
+        $this->db->select('COUNT(*) as total');
+        $count = $this->db->get(db_prefix() . 'hospital_visits')->row()->total;
+        $visit_number = 'VST-' . str_pad($count + 1, 6, '0', STR_PAD_LEFT);
+        
+        $visit_data = [
+            'visit_number' => $visit_number,
+            'patient_id' => $patient_id,
+            'appointment_id' => $appointment_id,
+            'consultant_id' => get_staff_user_id(),
+            'visit_date' => date('Y-m-d'),
+            'visit_time' => date('H:i:s'),
+            'status' => 'ongoing'
+        ];
+        
+        $this->db->insert(db_prefix() . 'hospital_visits', $visit_data);
+        $visit_id = $this->db->insert_id();
+        
+        if (!$visit_id) {
+            return $this->json_response(false, 'Failed to create visit record', [], true);
+        }
+        
+        log_activity('Visit Auto-Created for Surgery Request [Visit ID: ' . $visit_id . ']');
+    }
+    
+    // ========================================
+    // VERIFY VISIT EXISTS IN DATABASE
+    // ========================================
+    $this->db->where('id', $visit_id);
+    $visit_exists = $this->db->get(db_prefix() . 'hospital_visits')->row();
+    
+    if (!$visit_exists) {
+        return $this->json_response(false, 'Visit record not found. Please save patient history first.', [], true);
+    }
+    
+    // ========================================
+    // PREPARE SURGERY REQUEST DATA
+    // ========================================
+    $data = [
+        'visit_id' => $visit_id,
+        'patient_id' => $patient_id,
+        'request_type' => $request_type,
+        'requested_by' => get_staff_user_id(),
+        'requested_at' => date('Y-m-d H:i:s'),
+        'status' => 'pending'
+    ];
+    
+    // Common fields for both types
+    $data['surgery_type_id'] = $this->input->post('surgery_type_id');
+    $data['surgery_details'] = $this->input->post('surgery_details');
+    
+    // If detailed request, add all extra fields
+    if ($request_type === 'detailed') {
+        $data['doing_surgery'] = $this->input->post('doing_surgery');
+        $data['surgery_name'] = $this->input->post('surgery_name');
+        $data['lens_preference'] = $this->input->post('lens_preference');
+        $data['standby_lens'] = $this->input->post('standby_lens');
+        $data['disposables_instruments'] = $this->input->post('disposables_instruments');
+        $data['admission_hours_before'] = $this->input->post('admission_hours_before');
+        $data['overnight_admission'] = $this->input->post('overnight_admission');
+        $data['special_instructions'] = $this->input->post('special_instructions');
+        $data['nil_oral_instructions'] = $this->input->post('nil_oral_instructions');
+        $data['preferred_datetime'] = $this->input->post('preferred_datetime');
+        $data['lens_power'] = $this->input->post('lens_power');
+        $data['a_constant_used'] = $this->input->post('a_constant_used');
+        $data['formula_used'] = $this->input->post('formula_used');
+        $data['anesthesia'] = $this->input->post('anesthesia');
+    }
+    
+    // Insert into database
+    $inserted = $this->db->insert(db_prefix() . 'hospital_surgery_requests', $data);
+    
+    if ($inserted) {
+        $request_id = $this->db->insert_id();
+        log_activity('Surgery Request Created [ID: ' . $request_id . ', Type: ' . $request_type . ', Visit: ' . $visit_id . ']');
+        return $this->json_response(true, 'Surgery request submitted successfully', [
+            'request_id' => $request_id,
+            'visit_id' => $visit_id
+        ], true);
+    }
+    
+    return $this->json_response(false, 'Failed to save surgery request', [], true);
+}
 }
