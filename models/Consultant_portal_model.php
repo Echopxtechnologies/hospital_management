@@ -69,7 +69,7 @@ public function get_appointments($staff_id, $is_jc = false, $from_date = null, $
     $this->db->join($this->staff_table, $this->staff_table . '.staffid = ' . $this->appointments_table . '.consultant_id', 'left');
     $this->db->join($this->visits_table, $this->visits_table . '.appointment_id = ' . $this->appointments_table . '.id', 'left');
     
-    // Regular consultants only see their own appointments
+  // Regular consultants only see their own appointments
     if (!$is_jc) {
         $this->db->where($this->appointments_table . '.consultant_id', $staff_id);
     }
@@ -79,6 +79,9 @@ public function get_appointments($staff_id, $is_jc = false, $from_date = null, $
         $this->db->where($this->appointments_table . '.appointment_date >=', $from_date);
         $this->db->where($this->appointments_table . '.appointment_date <=', $to_date);
     }
+    
+    // FILTER: Show only CONFIRMED appointments (exclude PENDING)
+    $this->db->where($this->appointments_table . '.status', 'confirmed');
     
     $this->db->order_by($this->appointments_table . '.appointment_date', 'DESC');
     $this->db->order_by($this->appointments_table . '.appointment_time', 'DESC');
@@ -204,31 +207,35 @@ public function get_appointments($staff_id, $is_jc = false, $from_date = null, $
             if (!$is_jc) {
                 $this->db->where('consultant_id', $staff_id);
             }
+            // FILTER: Only count CONFIRMED and COMPLETED appointments (exclude PENDING and CANCELLED)
+            $this->db->where_in('status', ['confirmed', 'completed']);
         };
-        
-        // Total appointments
+    
+        // Total appointments (only confirmed + completed)
         $this->db->from($this->appointments_table);
         $apply_filter();
         $stats['total'] = $this->db->count_all_results();
         
-        // Pending appointments
-        $this->db->from($this->appointments_table);
-        $this->db->where('status', 'pending');
-        $apply_filter();
-        $stats['pending'] = $this->db->count_all_results();
+        // Pending appointments - SET TO 0 (we're excluding them)
+        $stats['pending'] = 0;
         
-        // Confirmed appointments
+        // Confirmed appointments (completed ones)
         $this->db->from($this->appointments_table);
-        $this->db->where('status', 'confirmed');
-        $apply_filter();
+        $this->db->where('status', 'completed');
+        if (!$is_jc) {
+            $this->db->where('consultant_id', $staff_id);
+        }
         $stats['confirmed'] = $this->db->count_all_results();
         
-        // Today's appointments
+        // Today's appointments (only confirmed + completed)
         $this->db->from($this->appointments_table);
         $this->db->where('appointment_date', date('Y-m-d'));
-        $apply_filter();
+        if (!$is_jc) {
+            $this->db->where('consultant_id', $staff_id);
+        }
+        $this->db->where_in('status', ['confirmed', 'completed']);
         $stats['today'] = $this->db->count_all_results();
-        
+            
         return $stats;
     }
     
@@ -457,5 +464,46 @@ public function get_request_details($request_id)
     }
     
     return $request;
+}
+
+// ==========================================
+// SURGERY REQUESTS
+// ==========================================
+
+/**
+ * Get surgery requests by appointment ID
+ * Follows same pattern as get_requests_by_appointment()
+ * 
+ * @param int $appointment_id Appointment ID
+ * @return array Surgery requests
+ */
+public function get_surgery_requests_by_appointment($appointment_id)
+{
+    // Get visit_id from appointment first
+    $this->db->select('id');
+    $this->db->where('appointment_id', $appointment_id);
+    $visit = $this->db->get(db_prefix() . 'hospital_visits')->row();
+    
+    $this->db->select(
+        'sr.*, ' .
+        'st.surgery_name as surgery_type_name, ' .
+        'st.category as surgery_category, ' .
+        'staff.firstname as consultant_firstname, ' .
+        'staff.lastname as consultant_lastname'
+    );
+    $this->db->from(db_prefix() . 'hospital_surgery_requests sr');
+    $this->db->join(db_prefix() . 'hospital_surgery_types st', 'st.id = sr.surgery_type_id', 'left');
+    $this->db->join(db_prefix() . 'staff staff', 'staff.staffid = sr.requested_by', 'left');
+     $visit_id = $visit->visit_id;
+    if ($visit) {
+        $this->db->where('sr.visit_id', $visit->id);
+    } else {
+        // If no visit yet, return empty array
+        return [];
+    }
+    
+    $this->db->order_by('sr.requested_at', 'DESC');
+    
+    return $this->db->get()->result_array();
 }
 }

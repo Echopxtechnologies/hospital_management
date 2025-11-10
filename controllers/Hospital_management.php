@@ -315,7 +315,7 @@ public function manage_patient($id = null)
 {
     // Permission check
     if ($id) {
-        $this->check_permission('hospital_management', 'edit');
+        $this->check_receptionist_access('reception_management', 'edit');
         $data['patient'] = $this->hospital_patients_model->get($id);
         
         if (!$data['patient']) {
@@ -326,7 +326,7 @@ public function manage_patient($id = null)
         $data['documents'] = $this->hospital_patients_model->get_patient_documents($id);
         $data['title'] = 'Edit Patient';
     } else {
-        $this->check_permission('hospital_management', 'create');
+        $this->check_receptionist_access('reception_management', 'create');
         $data['documents'] = [];
         $data['title'] = 'Add New Patient';
     }
@@ -342,7 +342,7 @@ public function manage_patient($id = null)
  */
 public function view_patient($id)
 {
-    $this->check_permission('hospital_management', 'view');
+    $this->check_receptionist_access('reception_management', 'view');
     
     // Get patient basic info
     $data['patient'] = $this->hospital_patients_model->get($id);
@@ -389,9 +389,9 @@ public function save_patient()
     // Permission check
     $id = $this->input->post('id');
     if ($id) {
-        $this->check_permission('hospital_management', 'edit');
+        $this->check_receptionist_access('reception_management', 'edit');
     } else {
-        $this->check_permission('hospital_management', 'create');
+        $this->check_receptionist_access('reception_management', 'create');
     }
     
     // Collect form data
@@ -476,7 +476,7 @@ public function save_patient()
  */
 public function delete_document($document_id, $patient_id)
 {
-    $this->check_permission('hospital_management', 'delete');
+   $this->check_receptionist_access('reception_management', 'delete');
     
     $result = $this->hospital_patients_model->delete_document($document_id);
     
@@ -983,6 +983,14 @@ $data['existing_requests'] = $this->consultant_portal_model->get_requests_by_app
     } else {
         $data['existing_requests'] = [];
     }
+
+
+// Load surgery counselling requests - SAME PATTERN
+if (!empty($visit)) {
+    $data['surgery_requests'] = $this->consultant_portal_model->get_surgery_requests_by_appointment($appointment_id);
+} else {
+    $data['surgery_requests'] = [];
+}
 
  $data['title'] = 'Patient Consultation - ' . $appointment['patient_name'];
 $data['appointment'] = $appointment;  // ADD THIS LINE

@@ -254,26 +254,8 @@
     font-size: 15px;
     font-weight: 500;
 }
-
 /* ============================================
-   HISTORY BUTTON (Fixed)
-============================================ */
-.history-btn {
-    position: fixed;
-    right: 30px;
-    top: 150px;
-    z-index: 999;
-    box-shadow: 0 4px 6px rgba(0,0,0,0.2);
-    background: #00bcd4 !important;
-    border-color: #00bcd4 !important;
-}
-
-.history-btn:hover {
-    background: #0097a7 !important;
-}
-
-/* ============================================
-   VISITS BANNER
+   VISITS BANNER WITH BUTTON
 ============================================ */
 .visits-banner {
     background: #e0f7fa;
@@ -281,11 +263,30 @@
     border-radius: 4px;
     margin-bottom: 15px;
     border-left: 4px solid #00bcd4;
+    display: flex;
+    justify-content: space-between;  /* This pushes items to opposite ends */
+    align-items: center;
 }
 
 .visits-banner strong {
     font-size: 15px;
     color: #006064;
+    margin: 0;
+}
+
+.visits-banner .btn-history {
+    background: #00bcd4;
+    border-color: #00bcd4;
+    color: white;
+    padding: 6px 15px;
+    font-size: 13px;
+    font-weight: 500;
+}
+
+.visits-banner .btn-history:hover {
+    background: #0097a7;
+    border-color: #0097a7;
+    color: white;
 }
 
 /* ============================================
@@ -553,20 +554,17 @@
             </div>
         </div>
         
-        <!-- ============================================
-             VISIT HISTORY BUTTON (Fixed Position)
-        ============================================ -->
-        <button class="btn btn-primary history-btn" data-toggle="modal" data-target="#historyModal">
-            <i class="fa fa-history"></i> History
-        </button>
+      
         
         <!-- ============================================
              VISITS BANNER
         ============================================ -->
-        <div class="visits-banner">
+     <div class="visits-banner">
             <strong>Visits >> Current</strong>
+            <button class="btn btn-sm btn-primary btn-history" data-toggle="modal" data-target="#historyModal">
+                <i class="fa fa-history"></i> History
+            </button>
         </div>
-        
         <!-- ============================================
              CONSULTATION TABS
         ============================================ -->
@@ -1596,7 +1594,10 @@
         </button>
     </div>
 </div>
-                    
+           
+                            </div>  <!-- ✅ Close request-form-container -->
+                        </div>  <!-- ✅ Close col-md-9 -->
+                    </div>  <!-- ✅ Close row -->         
                     <!-- ==================== EXISTING REQUESTS ==================== -->
                    <div style="margin-top: 30px;">
     <h4 class="form-section-title">
@@ -1692,6 +1693,236 @@ function showRequestItems(requestId) {
 
 
 
+<!-- ============================================
+     SURGERY COUNSELLING REQUESTS SECTION
+============================================ -->
+<div style="margin-top: 30px; padding-top: 30px; border-top: 3px solid #00bcd4;">
+    <h4 class="form-section-title">
+        <i class="fa fa-scissors"></i> Surgery Counselling Requests for This Visit 
+        <span class="badge" style="background: #ff9800; font-size: 14px; margin-left: 10px;">
+            <?php echo count($surgery_requests ?? []); ?>
+        </span>
+    </h4>
+    
+    <?php if (!empty($surgery_requests)): ?>
+        <div class="table-responsive">
+            <table class="table table-bordered table-striped">
+                <thead style="background: #ff9800; color: white;">
+                    <tr>
+                        <th width="5%">#</th>
+                        <th width="12%">Type</th>
+                        <th width="20%">Surgery</th>
+                        <th width="15%">Category</th>
+                        <th width="13%">Requested By</th>
+                        <th width="13%">Date & Time</th>
+                        <th width="10%">Status</th>
+                        <th width="12%">Action</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <?php foreach ($surgery_requests as $index => $sr): ?>
+                        <tr>
+                            <td><strong><?php echo $index + 1; ?></strong></td>
+                            <td>
+                                <span class="label" style="background: <?php echo $sr['request_type'] == 'simple' ? '#2196F3' : '#9C27B0'; ?>; font-size: 12px; padding: 5px 10px;">
+                                    <?php echo ucfirst($sr['request_type']); ?>
+                                </span>
+                            </td>
+                            <td><strong><?php echo $sr['surgery_type_name'] ?? 'N/A'; ?></strong></td>
+                            <td><?php echo $sr['surgery_category'] ?? 'N/A'; ?></td>
+                            <td>Dr. <?php echo $sr['consultant_firstname'] . ' ' . $sr['consultant_lastname']; ?></td>
+                            <td>
+                                <?php echo date('d M Y', strtotime($sr['requested_at'])); ?><br>
+                                <small class="text-muted"><?php echo date('h:i A', strtotime($sr['requested_at'])); ?></small>
+                            </td>
+                            <td>
+                                <span class="label label-<?php 
+                                    echo $sr['status'] == 'completed' ? 'success' : 
+                                         ($sr['status'] == 'cancelled' ? 'danger' : 
+                                         ($sr['status'] == 'approved' ? 'info' : 'warning')); 
+                                ?>">
+                                    <?php echo ucfirst($sr['status']); ?>
+                                </span>
+                            </td>
+                            <td>
+                                <button class="btn btn-xs btn-primary" onclick="viewSurgeryDetails(<?php echo $sr['id']; ?>)">
+                                    <i class="fa fa-eye"></i> Details
+                                </button>
+                            </td>
+                        </tr>
+                        
+                        <!-- Hidden Details Row -->
+                        <tr id="surgery_details_<?php echo $sr['id']; ?>" style="display: none;">
+                            <td colspan="8">
+                                <div style="background: #fffbf0; padding: 20px; border-radius: 8px; border: 2px solid #ff9800;">
+                                    
+                                    <?php if ($sr['request_type'] == 'simple'): ?>
+                                        <!-- SIMPLE REQUEST DETAILS -->
+                                        <h5 style="color: #ff9800; margin-top: 0; border-bottom: 2px solid #ff9800; padding-bottom: 8px;">
+                                            <i class="fa fa-file-text"></i> Simple Surgery Request Details
+                                        </h5>
+                                        <div class="form-group">
+                                            <label><strong>Surgery Details:</strong></label>
+                                            <p class="form-control-static" style="background: white; padding: 15px; border-radius: 4px; border: 1px solid #ddd;">
+                                                <?php echo nl2br($sr['surgery_details'] ?? 'No details provided'); ?>
+                                            </p>
+                                        </div>
+                                        
+                                    <?php else: ?>
+                                        <!-- DETAILED REQUEST -->
+                                        <h5 style="color: #ff9800; margin-top: 0; border-bottom: 2px solid #ff9800; padding-bottom: 8px;">
+                                            <i class="fa fa-list-alt"></i> Detailed Surgery Request
+                                        </h5>
+                                        
+                                        <div class="row">
+                                            <!-- Left Column -->
+                                            <div class="col-md-6">
+                                                <h6 style="color: #00bcd4; font-weight: 600; margin-bottom: 15px;">
+                                                    <i class="fa fa-info-circle"></i> Surgery Information
+                                                </h6>
+                                                
+                                                <?php if (!empty($sr['doing_surgery'])): ?>
+                                                <div class="form-group">
+                                                    <label><strong>Will Perform Surgery:</strong></label>
+                                                    <p class="form-control-static"><?php echo ucfirst($sr['doing_surgery']); ?></p>
+                                                </div>
+                                                <?php endif; ?>
+                                                
+                                                <?php if (!empty($sr['surgery_name'])): ?>
+                                                <div class="form-group">
+                                                    <label><strong>Surgery Name:</strong></label>
+                                                    <p class="form-control-static"><?php echo $sr['surgery_name']; ?></p>
+                                                </div>
+                                                <?php endif; ?>
+                                                
+                                                <?php if (!empty($sr['lens_preference'])): ?>
+                                                <div class="form-group">
+                                                    <label><strong>Lens Preference:</strong></label>
+                                                    <p class="form-control-static"><?php echo $sr['lens_preference']; ?></p>
+                                                </div>
+                                                <?php endif; ?>
+                                                
+                                                <?php if (!empty($sr['standby_lens'])): ?>
+                                                <div class="form-group">
+                                                    <label><strong>Standby Lens:</strong></label>
+                                                    <p class="form-control-static"><?php echo $sr['standby_lens']; ?></p>
+                                                </div>
+                                                <?php endif; ?>
+                                                
+                                                <?php if (!empty($sr['lens_power'])): ?>
+                                                <div class="form-group">
+                                                    <label><strong>Lens Power:</strong></label>
+                                                    <p class="form-control-static"><?php echo $sr['lens_power']; ?></p>
+                                                </div>
+                                                <?php endif; ?>
+                                                
+                                                <?php if (!empty($sr['anesthesia'])): ?>
+                                                <div class="form-group">
+                                                    <label><strong>Anesthesia:</strong></label>
+                                                    <p class="form-control-static"><?php echo $sr['anesthesia']; ?></p>
+                                                </div>
+                                                <?php endif; ?>
+                                            </div>
+                                            
+                                            <!-- Right Column -->
+                                            <div class="col-md-6">
+                                                <h6 style="color: #00bcd4; font-weight: 600; margin-bottom: 15px;">
+                                                    <i class="fa fa-clock-o"></i> Admission & Timing
+                                                </h6>
+                                                
+                                                <?php if (!empty($sr['admission_hours_before'])): ?>
+                                                <div class="form-group">
+                                                    <label><strong>Admission Hours Before:</strong></label>
+                                                    <p class="form-control-static"><?php echo $sr['admission_hours_before']; ?></p>
+                                                </div>
+                                                <?php endif; ?>
+                                                
+                                                <?php if (!empty($sr['overnight_admission'])): ?>
+                                                <div class="form-group">
+                                                    <label><strong>Overnight Admission:</strong></label>
+                                                    <p class="form-control-static"><?php echo ucfirst($sr['overnight_admission']); ?></p>
+                                                </div>
+                                                <?php endif; ?>
+                                                
+                                                <?php if (!empty($sr['preferred_datetime'])): ?>
+                                                <div class="form-group">
+                                                    <label><strong>Preferred Date & Time:</strong></label>
+                                                    <p class="form-control-static">
+                                                        <?php echo date('d M Y, h:i A', strtotime($sr['preferred_datetime'])); ?>
+                                                    </p>
+                                                </div>
+                                                <?php endif; ?>
+                                                
+                                                <?php if (!empty($sr['a_constant_used'])): ?>
+                                                <div class="form-group">
+                                                    <label><strong>A-Constant Used:</strong></label>
+                                                    <p class="form-control-static"><?php echo $sr['a_constant_used']; ?></p>
+                                                </div>
+                                                <?php endif; ?>
+                                                
+                                                <?php if (!empty($sr['formula_used'])): ?>
+                                                <div class="form-group">
+                                                    <label><strong>Formula Used:</strong></label>
+                                                    <p class="form-control-static"><?php echo $sr['formula_used']; ?></p>
+                                                </div>
+                                                <?php endif; ?>
+                                            </div>
+                                        </div>
+                                        
+                                        <!-- Full-Width Fields -->
+                                        <div class="row">
+                                            <div class="col-md-12">
+                                                <?php if (!empty($sr['disposables_instruments'])): ?>
+                                                <div class="form-group">
+                                                    <label><strong>Disposables/Instruments:</strong></label>
+                                                    <p class="form-control-static" style="background: white; padding: 10px; border-radius: 4px; border: 1px solid #ddd;">
+                                                        <?php echo nl2br($sr['disposables_instruments']); ?>
+                                                    </p>
+                                                </div>
+                                                <?php endif; ?>
+                                                
+                                                <?php if (!empty($sr['special_instructions'])): ?>
+                                                <div class="form-group">
+                                                    <label><strong>Special Instructions:</strong></label>
+                                                    <p class="form-control-static" style="background: white; padding: 10px; border-radius: 4px; border: 1px solid #ddd;">
+                                                        <?php echo nl2br($sr['special_instructions']); ?>
+                                                    </p>
+                                                </div>
+                                                <?php endif; ?>
+                                                
+                                                <?php if (!empty($sr['nil_oral_instructions'])): ?>
+                                                <div class="form-group">
+                                                    <label><strong>Nil By Mouth Instructions:</strong></label>
+                                                    <p class="form-control-static" style="background: white; padding: 10px; border-radius: 4px; border: 1px solid #ddd;">
+                                                        <?php echo nl2br($sr['nil_oral_instructions']); ?>
+                                                    </p>
+                                                </div>
+                                                <?php endif; ?>
+                                            </div>
+                                        </div>
+                                    <?php endif; ?>
+                                    
+                                </div>
+                            </td>
+                        </tr>
+                    <?php endforeach; ?>
+                </tbody>
+            </table>
+        </div>
+    <?php else: ?>
+        <div class="alert alert-info">
+            <i class="fa fa-info-circle"></i> No surgery counselling requests submitted for this visit
+        </div>
+    <?php endif; ?>
+</div>
+
+<script>
+function viewSurgeryDetails(surgeryId) {
+    jQuery('#surgery_details_' + surgeryId).toggle();
+}
+</script>
+
+</div> 
                 <!-- ============================================
                      TAB 9: IMAGES
                 ============================================ -->
