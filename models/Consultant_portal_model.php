@@ -44,7 +44,7 @@ class Consultant_portal_model extends App_Model
  * @param string|null $to_date To date (Y-m-d format)
  * @return array Appointments list
  */
-public function get_appointments($staff_id, $is_jc = false, $from_date = null, $to_date = null)
+public function get_appointments($staff_id, $is_jc = false, $from_date = null, $to_date = null, $include_completed = false)
 {
     $this->db->select(
         $this->appointments_table . '.*,' .
@@ -79,10 +79,9 @@ public function get_appointments($staff_id, $is_jc = false, $from_date = null, $
         $this->db->where($this->appointments_table . '.appointment_date >=', $from_date);
         $this->db->where($this->appointments_table . '.appointment_date <=', $to_date);
     }
-    
-    // FILTER: Show only CONFIRMED appointments (exclude PENDING)
-    $this->db->where($this->appointments_table . '.status', 'confirmed');
-    
+ 
+   
+     $this->db->where($this->appointments_table . '.status !=', 'pending');
     $this->db->order_by($this->appointments_table . '.appointment_date', 'DESC');
     $this->db->order_by($this->appointments_table . '.appointment_time', 'DESC');
     
@@ -207,29 +206,30 @@ public function get_appointments($staff_id, $is_jc = false, $from_date = null, $
             if (!$is_jc) {
                 $this->db->where('consultant_id', $staff_id);
             }
-            // FILTER: Only count CONFIRMED and COMPLETED appointments (exclude PENDING and CANCELLED)
-            $this->db->where_in('status', ['confirmed', 'completed']);
         };
-    
-        // Total appointments (only confirmed + completed)
+        
+        // Total appointments (confirmed + completed)
         $this->db->from($this->appointments_table);
+        $this->db->where_in('status', ['confirmed', 'completed']);
         $apply_filter();
         $stats['total'] = $this->db->count_all_results();
         
-        // Pending appointments - SET TO 0 (we're excluding them)
-        $stats['pending'] = 0;
+        // Confirmed appointments (only confirmed, not completed)
+        $this->db->from($this->appointments_table);
+        $this->db->where('status', 'confirmed');
+        $apply_filter();
+        $stats['confirmed'] = $this->db->count_all_results();
         
-        // Confirmed appointments (completed ones)
+        // Completed appointments
         $this->db->from($this->appointments_table);
         $this->db->where('status', 'completed');
-        if (!$is_jc) {
-            $this->db->where('consultant_id', $staff_id);
-        }
-        $stats['confirmed'] = $this->db->count_all_results();
+        $apply_filter();
+        $stats['completed'] = $this->db->count_all_results();
         
         // Today's appointments (only confirmed + completed)
         $this->db->from($this->appointments_table);
         $this->db->where('appointment_date', date('Y-m-d'));
+        $this->db->where_in('status', ['confirmed', 'completed']);
         if (!$is_jc) {
             $this->db->where('consultant_id', $staff_id);
         }

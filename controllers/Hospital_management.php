@@ -795,6 +795,7 @@ public function consultant_appointments()
     $this->load->model('consultant_portal_model');
     
     // Get filtered appointments
+     $include_completed = ($filter_type === 'all');
     $appointments = $this->consultant_portal_model->get_appointments($staff_id, $is_jc, $from_date, $to_date);
     
     // Get statistics

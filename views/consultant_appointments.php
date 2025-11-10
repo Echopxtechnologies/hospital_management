@@ -30,15 +30,11 @@
     margin-bottom: 15px;
 }
 
-.stat-box.pending {
-    border-left-color: #ffc107;
-}
-
 .stat-box.confirmed {
     border-left-color: #28a745;
 }
 
-.stat-box.today {
+.stat-box.completed {
     border-left-color: #007bff;
 }
 
@@ -49,15 +45,11 @@
     font-weight: 600;
 }
 
-.stat-box.pending h3 {
-    color: #ffc107;
-}
-
 .stat-box.confirmed h3 {
     color: #28a745;
 }
 
-.stat-box.today h3 {
+.stat-box.completed h3 {
     color: #007bff;
 }
 
@@ -161,30 +153,24 @@
                             </h4>
                         </div>
 
-                        <!-- Statistics Cards - Simple Rectangle Design -->
+                        <!-- Statistics Cards - 3 Boxes (Removed Pending) -->
                         <div class="row stats-row">
-                            <div class="col-md-3">
+                            <div class="col-md-4">
                                 <div class="stat-box">
                                     <h3><?php echo $statistics['total']; ?></h3>
                                     <p>Total Appointments</p>
                                 </div>
                             </div>
-                            <div class="col-md-3">
-                                <div class="stat-box pending">
-                                    <h3><?php echo $statistics['pending']; ?></h3>
-                                    <p>Pending</p>
-                                </div>
-                            </div>
-                            <div class="col-md-3">
+                            <div class="col-md-4">
                                 <div class="stat-box confirmed">
                                     <h3><?php echo $statistics['confirmed']; ?></h3>
-                                    <p>Completed</p>
+                                    <p>Confirmed</p>
                                 </div>
                             </div>
-                            <div class="col-md-3">
-                                <div class="stat-box today">
-                                    <h3><?php echo $statistics['today']; ?></h3>
-                                    <p>Today's Appointments</p>
+                            <div class="col-md-4">
+                                <div class="stat-box completed">
+                                    <h3><?php echo $statistics['completed']; ?></h3>
+                                    <p>Completed</p>
                                 </div>
                             </div>
                         </div>
@@ -309,7 +295,7 @@
                                             </td>
                                             <td>
                                                 <strong><?php echo $apt['patient_name']; ?></strong>
-                                                <?php if ($apt['is_new_patient']): ?>
+                                                <?php if (!empty($apt['is_new_patient']) && $apt['is_new_patient']): ?>
                                                     <br><span class="label label-info">New</span>
                                                 <?php endif; ?>
                                             </td>
@@ -360,8 +346,8 @@
                                                 </span>
                                             </td>
                                             <td>
-                                                <!-- SEE PATIENT BUTTON -->
-                                                <?php if ($apt['status'] !== 'cancelled' && $apt['status'] !== 'completed'): ?>
+                                                <!-- SEE PATIENT BUTTON - Only for confirmed appointments -->
+                                                <?php if ($apt['status'] === 'confirmed'): ?>
                                                     <a href="<?php echo admin_url('hospital_management/consultant_see_patient/' . $apt['id']); ?>" 
                                                        class="btn btn-medical btn-sm" 
                                                        title="See Patient">
@@ -369,11 +355,15 @@
                                                     </a>
                                                 <?php endif; ?>
                                                 
-                                                <!-- VIEW PATIENT DETAILS -->
-                                                <a href="<?php echo admin_url('hospital_management/view_visit/' . $vh['id']); ?>" class="btn btn-sm btn-info" target="_blank"
-                                                   title="View Patient Details">
-                                                    <i class="fa fa-eye"></i> View
-                                                </a>
+                                                <!-- VIEW PATIENT DETAILS - Only if visit exists -->
+                                                <?php if (!empty($apt['visit_id'])): ?>
+                                                    <a href="<?php echo admin_url('hospital_management/view_visit/' . $apt['visit_id']); ?>" 
+                                                       class="btn btn-sm btn-info" 
+                                                       target="_blank"
+                                                       title="View Visit Details">
+                                                        <i class="fa fa-eye"></i> View
+                                                    </a>
+                                                <?php endif; ?>
                                             </td>
                                         </tr>
                                     <?php endforeach; ?>
