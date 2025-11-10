@@ -1962,9 +1962,6 @@ public function complete_request()
 // ============================================
 
 /**
- * Get surgery types for dropdown (AJAX)
- */
-/**
  * Save surgery request (AJAX)
  */
 public function save_surgery_request()
@@ -1974,66 +1971,16 @@ public function save_surgery_request()
     
     $visit_id = $this->input->post('visit_id');
     $patient_id = $this->input->post('patient_id');
-    $appointment_id = $this->input->post('appointment_id'); // ← ADD THIS
-    $request_type = $this->input->post('request_type'); // 'simple' or 'detailed'
+    $request_type = $this->input->post('request_type');
     
-    // Validate required fields
+    // Validate
     if (empty($patient_id) || empty($request_type)) {
         return $this->json_response(false, 'Missing required fields', [], true);
     }
     
-    // ========================================
-    // CHECK IF VISIT EXISTS, CREATE IF NOT
-    // ========================================
-    if (empty($visit_id) || $visit_id === 'null' || !is_numeric($visit_id)) {
-        // Visit doesn't exist, create it first
-        if (empty($appointment_id)) {
-            return $this->json_response(false, 'Appointment ID is required to create visit', [], true);
-        }
-        
-        // Create visit record
-        $this->load->model('hospital_visits_model');
-        
-        // Generate visit number
-        $this->db->select('COUNT(*) as total');
-        $count = $this->db->get(db_prefix() . 'hospital_visits')->row()->total;
-        $visit_number = 'VST-' . str_pad($count + 1, 6, '0', STR_PAD_LEFT);
-        
-        $visit_data = [
-            'visit_number' => $visit_number,
-            'patient_id' => $patient_id,
-            'appointment_id' => $appointment_id,
-            'consultant_id' => get_staff_user_id(),
-            'visit_date' => date('Y-m-d'),
-            'visit_time' => date('H:i:s'),
-            'status' => 'ongoing'
-        ];
-        
-        $this->db->insert(db_prefix() . 'hospital_visits', $visit_data);
-        $visit_id = $this->db->insert_id();
-        
-        if (!$visit_id) {
-            return $this->json_response(false, 'Failed to create visit record', [], true);
-        }
-        
-        log_activity('Visit Auto-Created for Surgery Request [Visit ID: ' . $visit_id . ']');
-    }
-    
-    // ========================================
-    // VERIFY VISIT EXISTS IN DATABASE
-    // ========================================
-    $this->db->where('id', $visit_id);
-    $visit_exists = $this->db->get(db_prefix() . 'hospital_visits')->row();
-    
-    if (!$visit_exists) {
-        return $this->json_response(false, 'Visit record not found. Please save patient history first.', [], true);
-    }
-    
-    // ========================================
-    // PREPARE SURGERY REQUEST DATA
-    // ========================================
+    // Prepare data - visit_id can be NULL
     $data = [
-        'visit_id' => $visit_id,
+        'visit_id' => (!empty($visit_id) && $visit_id !== 'null') ? $visit_id : null,
         'patient_id' => $patient_id,
         'request_type' => $request_type,
         'requested_by' => get_staff_user_id(),
@@ -2041,11 +1988,11 @@ public function save_surgery_request()
         'status' => 'pending'
     ];
     
-    // Common fields for both types
+    // Common fields
     $data['surgery_type_id'] = $this->input->post('surgery_type_id');
     $data['surgery_details'] = $this->input->post('surgery_details');
     
-    // If detailed request, add all extra fields
+    // Detailed fields
     if ($request_type === 'detailed') {
         $data['doing_surgery'] = $this->input->post('doing_surgery');
         $data['surgery_name'] = $this->input->post('surgery_name');
@@ -2063,16 +2010,13 @@ public function save_surgery_request()
         $data['anesthesia'] = $this->input->post('anesthesia');
     }
     
-    // Insert into database
+    // Insert
     $inserted = $this->db->insert(db_prefix() . 'hospital_surgery_requests', $data);
     
     if ($inserted) {
         $request_id = $this->db->insert_id();
-        log_activity('Surgery Request Created [ID: ' . $request_id . ', Type: ' . $request_type . ', Visit: ' . $visit_id . ']');
-        return $this->json_response(true, 'Surgery request submitted successfully', [
-            'request_id' => $request_id,
-            'visit_id' => $visit_id
-        ], true);
+        log_activity('Surgery Request Created [ID: ' . $request_id . ', Type: ' . $request_type . ']');
+        return $this->json_response(true, 'Surgery request submitted successfully', ['request_id' => $request_id], true);
     }
     
     return $this->json_response(false, 'Failed to save surgery request', [], true);

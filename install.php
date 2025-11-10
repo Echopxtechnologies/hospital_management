@@ -550,3 +550,18 @@ if (!$CI->db->table_exists(db_prefix() . 'hospital_medicines')) {
 //     `created_at` DATETIME DEFAULT CURRENT_TIMESTAMP,
 //     PRIMARY KEY (`id`)
 // ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+
+// -- Remove foreign key constraint
+// ALTER TABLE `tblhospital_surgery_requests` 
+// DROP FOREIGN KEY `fk_surgery_request_visit`;
+
+// -- Make visit_id nullable
+// ALTER TABLE `tblhospital_surgery_requests` 
+// MODIFY `visit_id` INT(11) NULL;
+
+// -- Add it back as optional (ON DELETE SET NULL instead of CASCADE)
+// ALTER TABLE `tblhospital_surgery_requests`
+// ADD CONSTRAINT `fk_surgery_request_visit` 
+// FOREIGN KEY (`visit_id`) REFERENCES `tblhospital_visits` (`id`) 
+// ON DELETE SET NULL ON UPDATE CASCADE;

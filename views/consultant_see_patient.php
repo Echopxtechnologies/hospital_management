@@ -1689,6 +1689,9 @@ function showRequestItems(requestId) {
     jQuery('#items_' + requestId).toggle();
 }
 </script>
+
+
+
                 <!-- ============================================
                      TAB 9: IMAGES
                 ============================================ -->
@@ -2617,7 +2620,7 @@ function loadSurgeryTypes(formType) {
 // Submit surgery request
 function submitSurgeryRequest(requestType) {
     var formData = {
-        visit_id: <?php echo $visit['id'] ?? 'null'; ?>,
+        visit_id: visitId,
         patient_id: <?php echo $appointment['patient_id'] ?? 0; ?>,
         appointment_id: <?php echo $appointment['id'] ?? 0; ?>, // ← ADD THIS LINE
         request_type: requestType
