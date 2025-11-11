@@ -44,6 +44,7 @@ class Hospital_requests_model extends App_Model
             'v.visit_date, ' .
             'p.name as patient_name, ' .
             'p.patient_number, ' .
+            'p.patient_type,' .
             'p.mobile_number as patient_mobile, ' .
             'p.age as patient_age, ' .
             'p.gender as patient_gender, ' .
@@ -60,7 +61,7 @@ class Hospital_requests_model extends App_Model
         $this->db->join($this->request_items_table . ' ri', 'ri.request_id = r.id', 'left');
         
         $this->db->where('r.status', 'pending');
-        $this->db->where_in('r.category_id', [1, 2]); // Lab + Procedure Diagnostics
+        $this->db->where_in('r.category_id', [1, 2, 3]); // Lab + Procedure Diagnostics
         
         $this->db->group_by('r.id');
         $this->db->order_by('FIELD(r.priority, "emergency", "urgent", "normal")', '', FALSE);
@@ -270,7 +271,7 @@ class Hospital_requests_model extends App_Model
         $this->db->join(db_prefix() . 'staff tech', 'tech.staffid = r.assigned_technician_id', 'left');
         $this->db->join($this->request_items_table . ' ri', 'ri.request_id = r.id', 'left');
         
-        $this->db->where_in('r.category_id', [1, 2]);
+        $this->db->where_in('r.category_id', [1, 2, 3]);
         
         // Show: ALL approved (available for anyone) OR my in_progress
         $this->db->group_start();
@@ -412,4 +413,163 @@ class Hospital_requests_model extends App_Model
         
         return $stats;
     }
+    /**
+ * Get all lab records (approved, in_progress, completed) for receptionist
+ * Includes payment status for filtering
+ */
+public function get_all_lab_records()
+{
+    $this->db->select(
+        'r.*, ' .
+        'c.category_name, ' .
+        'v.visit_number, ' .
+        'v.visit_date, ' .
+        'p.name as patient_name, ' .
+        'p.patient_number, ' .
+        'p.mobile_number as patient_mobile, ' .
+        's.firstname as doctor_firstname, ' .
+        's.lastname as doctor_lastname, ' .
+        'tech.firstname as technician_firstname, ' .
+        'tech.lastname as technician_lastname, ' .
+        'COUNT(ri.id) as items_count'
+    );
+    $this->db->from($this->requests_table . ' r');
+    $this->db->join($this->categories_table . ' c', 'c.id = r.category_id', 'left');
+    $this->db->join(db_prefix() . 'hospital_visits v', 'v.id = r.visit_id', 'left');
+    $this->db->join(db_prefix() . 'hospital_appointments a', 'a.id = v.appointment_id', 'left');
+    $this->db->join(db_prefix() . 'hospital_patients p', 'p.id = a.patient_id', 'left');
+    $this->db->join(db_prefix() . 'staff s', 's.staffid = r.requested_by', 'left');
+    $this->db->join(db_prefix() . 'staff tech', 'tech.staffid = r.assigned_technician_id', 'left');
+    $this->db->join($this->request_items_table . ' ri', 'ri.request_id = r.id', 'left');
+    
+    $this->db->where_in('r.category_id', [1, 2, 3]);
+    $this->db->where_in('r.status', ['approved', 'in_progress', 'completed']);
+    
+    $this->db->group_by('r.id');
+    $this->db->order_by('r.created_at', 'DESC');
+    
+    return $this->db->get()->result_array();
+}
+/**
+ * Get all technicians (just get all active staff for now)
+ */
+public function get_technicians()
+{
+    $this->db->select('staffid, firstname, lastname, email, active');
+    $this->db->from(db_prefix() . 'staff');
+    $this->db->where('active', 1);
+    $this->db->order_by('firstname', 'ASC');
+    
+    return $this->db->get()->result_array();
+}
+
+/**
+ * Get payment calculation for visit request
+ * @param int $request_id
+ * @return array Payment details with discount
+ */
+public function get_request_payment_details($request_id)
+{
+    // Get request with patient info
+    $this->db->select('vr.*, vr.total_amount as subtotal, vr.discount_amount, vr.final_amount,
+                       p.patient_type, p.name as patient_name, p.patient_number,
+                       rc.category_name,
+                       v.visit_number,
+                       v.patient_id');
+    $this->db->from(db_prefix() . 'hospital_visit_requests vr');
+    $this->db->join(db_prefix() . 'hospital_visits v', 'v.id = vr.visit_id');
+    $this->db->join(db_prefix() . 'hospital_patients p', 'p.id = v.patient_id');
+    $this->db->join(db_prefix() . 'hospital_request_categories rc', 'rc.id = vr.category_id');
+    $this->db->where('vr.id', $request_id);
+    $request = $this->db->get()->row();
+    
+    if (!$request) {
+        return null;
+    }
+    
+    // Get all items for this request
+    $this->db->select('vri.*, ri.item_name, ri.item_code');
+    $this->db->from(db_prefix() . 'hospital_visit_request_items vri');
+    $this->db->join(db_prefix() . 'hospital_request_items ri', 'ri.id = vri.item_id');
+    $this->db->where('vri.request_id', $request_id);
+    $items = $this->db->get()->result_array();
+    
+    // Calculate discount based on patient type
+    $discount_percentage = $this->get_patient_type_discount($request->patient_type);
+    $subtotal = floatval($request->subtotal);
+    $discount_amount = ($subtotal * $discount_percentage) / 100;
+    $final_amount = $subtotal - $discount_amount;
+    
+    return [
+        'request_id' => $request_id,
+        'request_number' => $request->request_number,
+        'patient_id' => $request->patient_id ?? 0,
+        'visit_id' => $request->visit_id,
+        'patient_name' => $request->patient_name,
+        'patient_number' => $request->patient_number,
+        'patient_type' => $request->patient_type,
+        'category_name' => $request->category_name,
+        'visit_number' => $request->visit_number,
+        'items' => $items,
+        'subtotal' => $subtotal,
+        'discount_percentage' => $discount_percentage,
+        'discount_amount' => number_format($discount_amount, 2, '.', ''),
+        'final_amount' => number_format($final_amount, 2, '.', ''),
+        'current_status' => $request->status
+    ];
+}
+
+/**
+ * Get discount percentage based on patient type
+ * @param string $patient_type
+ * @return float Discount percentage
+ */
+private function get_patient_type_discount($patient_type)
+{
+    // Define discount rules based on patient type
+    $discount_rules = [
+        'VIP' => 10,
+        'Concession Cases' => 50,
+        'HELPAGE' => 100,
+        'IGICH' => 100,
+        'IGICH-UVEA' => 100,
+        'Emergency' => 0,
+        'Regular' => 0,
+        'Staff' => 20,
+        'VIIO Staff' => 20,
+        // Vision Centres - various discounts
+        'VCA' => 25,
+        'VCB' => 25,
+        'VCJ' => 25,
+        'VCK' => 25,
+        'VCM' => 25,
+        'VCN' => 25,
+        'VCP' => 25,
+        'VCR' => 25,
+        'VCT' => 25,
+        'VCKP' => 25,
+        // SSVC - School Screening Vision Centres
+        'SSVCB' => 30,
+        'SSVCJ' => 30,
+        'SSVCK' => 30,
+        'SSVCM' => 30,
+        'SSVCN' => 30,
+        'SSVCP' => 30,
+        'SSVCT' => 30,
+    ];
+    
+    return isset($discount_rules[$patient_type]) ? $discount_rules[$patient_type] : 0;
+}
+
+/**
+ * Check if request has payment
+ * @param int $request_id
+ * @return bool|object Payment record if exists
+ */
+public function check_request_payment($request_id)
+{
+    $this->db->where('visit_request_id', $request_id);
+    $this->db->where('payment_status !=', 'cancelled');
+    return $this->db->get(db_prefix() . 'hospital_payments')->row();
+}
 }

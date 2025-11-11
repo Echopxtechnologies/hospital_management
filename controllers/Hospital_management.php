@@ -1804,24 +1804,42 @@ public function technician_dashboard()
     $data['title'] = 'Technician Dashboard';
     $this->load->view('technician/dashboard', $data);
 }
-
-/**
- * Receptionist view - Lab & Procedure Requests
- */
 public function lab_records()
 {
     $this->check_receptionist_access('reception_management', 'view');
     
     $this->load->model('hospital_requests_model');
     
+    // Get PENDING requests (need approval)
     $data['pending_requests'] = $this->hospital_requests_model->get_pending_requests();
+    
+    // Get ALL lab records (approved, in_progress, completed)
+    $data['records'] = $this->hospital_requests_model->get_all_lab_records();
+    
+    // Get statistics
     $data['statistics'] = $this->hospital_requests_model->get_receptionist_statistics();
+    
+    // Get list of technicians
     $data['technicians'] = $this->hospital_requests_model->get_technicians();
     
     $data['title'] = 'Procedures & Lab Records';
     $this->load->view('lab_records', $data);
 }
-
+/**
+ * Approve pending request (AJAX)
+ */
+public function approve_request()
+{
+    $this->ajax_only();
+    $this->check_receptionist_access('reception_management', 'edit');
+    
+    $request_id = $this->input->post('request_id');
+    
+    $this->load->model('hospital_requests_model');
+    $result = $this->hospital_requests_model->approve_request($request_id);
+    
+    return $this->json_response($result['success'], $result['message'], [], true);
+}
 /**
  * Get request details (AJAX) - For modal
  */
@@ -2029,5 +2047,144 @@ public function save_surgery_request()
     }
     
     return $this->json_response(false, 'Failed to save surgery request', [], true);
+}
+
+/**
+ * Process Payment for Visit Request (Lab/Procedure)
+ * @param int $request_id
+ */
+public function process_payment($request_id = null)
+{
+    if (!has_permission('hospital_management', '', 'view')) {
+        access_denied('hospital_management');
+    }
+    
+    if (!$request_id) {
+        show_404();
+    }
+    
+    $this->load->model('hospital_requests_model');
+    
+    // Get payment details
+    $data['payment_details'] = $this->hospital_requests_model->get_request_payment_details($request_id);
+    
+    if (!$data['payment_details']) {
+        set_alert('danger', 'Request not found');
+        redirect(admin_url('hospital_management/lab_records'));
+    }
+    
+    // Check if payment already exists
+    $existing_payment = $this->hospital_requests_model->check_request_payment($request_id);
+    $data['existing_payment'] = $existing_payment;
+    
+    $data['title'] = _l('Process Payment');
+    $data['payment_methods'] = ['cash', 'card', 'upi', 'netbanking', 'cheque', 'insurance'];
+    
+    $this->load->view('payment_form', $data);
+}
+/**
+ * Save Payment (AJAX)
+ */
+public function save_payment()
+{
+    if (!has_permission('hospital_management', '', 'create')) {
+        ajax_access_denied();
+    }
+    
+    $this->load->model('hospital_requests_model');
+    
+    $request_id = $this->input->post('request_id');
+    
+    // Get request details
+    $payment_calc = $this->hospital_requests_model->get_request_payment_details($request_id);
+    
+    if (!$payment_calc) {
+        echo json_encode(['success' => false, 'message' => 'Invalid request']);
+        return;
+    }
+    
+    // Generate payment number
+    $payment_number = 'PAY-' . date('Ymd') . '-' . str_pad(rand(1, 9999), 4, '0', STR_PAD_LEFT);
+    
+    // Get form values
+    $subtotal = floatval($this->input->post('subtotal')); // From form
+    $discount_amount = floatval($this->input->post('discount_amount')); // From form (MANUAL)
+    $paid_amount = floatval($this->input->post('paid_amount'));
+    
+    // Calculate final amount AFTER discount
+    $final_amount = $subtotal - $discount_amount;
+    
+    // Calculate discount percentage
+    $discount_percentage = ($subtotal > 0) ? (($discount_amount / $subtotal) * 100) : 0;
+    
+    // Determine payment status
+    if ($paid_amount >= $final_amount) {
+        $payment_status = 'paid';
+        $balance = 0;
+    } elseif ($paid_amount > 0) {
+        $payment_status = 'partial';
+        $balance = $final_amount - $paid_amount;
+    } else {
+        $payment_status = 'unpaid';
+        $balance = $final_amount;
+    }
+    
+    // Prepare payment record
+    $insert_data = [
+        'payment_number' => $payment_number,
+        'patient_id' => $payment_calc['patient_id'],
+        'visit_id' => $payment_calc['visit_id'],
+        'visit_request_id' => $request_id,
+        'subtotal_amount' => $subtotal,
+        'discount_percentage' => number_format($discount_percentage, 2, '.', ''),
+        'discount_amount' => number_format($discount_amount, 2, '.', ''),
+        'final_amount' => number_format($final_amount, 2, '.', ''),
+        'paid_amount' => number_format($paid_amount, 2, '.', ''),
+        'balance_amount' => number_format($balance, 2, '.', ''),
+        'payment_status' => $payment_status,
+        'payment_method' => $this->input->post('payment_method'),
+        'payment_date' => date('Y-m-d H:i:s'),
+        'transaction_id' => $this->input->post('transaction_id') ?: null,
+        'payment_reference' => $this->input->post('payment_reference') ?: null,
+        'patient_type' => $payment_calc['patient_type'],
+        'discount_reason' => 'Manual discount applied by receptionist',
+        'request_category' => $payment_calc['category_name'],
+        'notes' => $this->input->post('notes') ?: null,
+        'collected_by' => get_staff_user_id(),
+        'created_by' => get_staff_user_id()
+    ];
+    
+    $this->db->insert(db_prefix() . 'hospital_payments', $insert_data);
+    $payment_id = $this->db->insert_id();
+    
+   if ($payment_id) {
+    // Update visit_request discount, final amounts, AND STATUS
+    $update_data = [
+        'discount_amount' => number_format($discount_amount, 2, '.', ''),
+        'final_amount' => number_format($final_amount, 2, '.', '')
+    ];
+    
+    // Auto-approve if fully paid
+    if ($payment_status === 'paid') {
+        $update_data['status'] = 'approved';
+        $update_data['approved_by'] = get_staff_user_id();
+        $update_data['approved_at'] = date('Y-m-d H:i:s');
+    }
+    
+    $this->db->where('id', $request_id);
+    $this->db->update(db_prefix() . 'hospital_visit_requests', $update_data);
+        
+        log_activity('Payment Processed: ' . $payment_number . ' for Request #' . $payment_calc['request_number']);
+        
+        echo json_encode([
+            'success' => true,
+            'message' => 'Payment processed successfully',
+            'payment_id' => $payment_id,
+            'payment_number' => $payment_number,
+            'redirect' => admin_url('hospital_management/lab_records')
+        ]);
+    } else {
+        echo json_encode(['success' => false, 'message' => 'Failed to save payment']);
+    }
 }
 }
