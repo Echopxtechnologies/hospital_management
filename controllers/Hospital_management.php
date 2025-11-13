@@ -1903,15 +1903,24 @@ public function cancel_request()
  */
 public function lab_requests()
 {
+    // Check if user is technician or has permission
     if (!is_technician() && !has_permission('technician_portal', '', 'view')) {
-        access_denied('Lab Requests');
+        access_denied('technician_portal');
     }
     
+    $staff_id = get_staff_user_id();
+    
+    // Load model
     $this->load->model('hospital_requests_model');
     
-    $staff_id = get_staff_user_id();
+    // CRITICAL FIX: Use get_technician_requests() which shows ALL approved requests
     $data['requests'] = $this->hospital_requests_model->get_technician_requests($staff_id);
+    
+    // Get statistics
     $data['statistics'] = $this->hospital_requests_model->get_technician_statistics($staff_id);
+    
+    // Debug logging
+    log_activity('Technician Portal: Staff #' . $staff_id . ' viewing lab requests. Found: ' . count($data['requests']) . ' requests');
     
     $data['title'] = 'My Lab Requests';
     $this->load->view('technician/lab_requests', $data);
@@ -1923,7 +1932,7 @@ public function lab_requests()
 public function lab_request($request_id)
 {
     if (!is_technician() && !has_permission('technician_portal', '', 'view')) {
-        access_denied('Lab Request Detail');
+        access_denied('technician_portal');
     }
     
     $this->load->model('hospital_requests_model');
@@ -1934,33 +1943,188 @@ public function lab_request($request_id)
         show_404();
     }
     
-    // Verify this request is assigned to current technician
-    if ($data['request']['assigned_technician_id'] != get_staff_user_id()) {
-        access_denied('This request is not assigned to you');
-    }
+    // Log view
+    log_activity('Technician viewing lab request #' . $request_id);
     
-    $data['title'] = 'Request Details - ' . $data['request']['request_number'];
+    $data['title'] = 'Lab Request Details';
     $this->load->view('technician/lab_request_detail', $data);
 }
 
 /**
- * Start processing request (AJAX)
+ * Lab Report Form (opens after clicking Start)
  */
-public function start_request()
+public function lab_report_form($request_id = null)
 {
-    $this->ajax_only();
+    if (!is_technician() && !has_permission('technician_portal', '', 'view')) {
+        access_denied('technician_portal');
+    }
     
+    if (!$request_id) {
+        show_404();
+    }
+    
+    $staff_id = get_staff_user_id();
+    
+    $this->load->model('hospital_requests_model');
+    
+    // Get request details
+    $data['request'] = $this->hospital_requests_model->get_request_with_items($request_id);
+    
+    if (!$data['request']) {
+        show_404();
+    }
+    
+    // Verify assigned to me
+    if ($data['request']['status'] != 'in_progress' || $data['request']['assigned_technician_id'] != $staff_id) {
+        set_alert('danger', 'This request is not assigned to you');
+        redirect(admin_url('hospital_management/lab_requests'));
+    }
+    
+    // Check existing report
+    $data['existing_report'] = $this->hospital_requests_model->get_lab_report($request_id);
+    
+    $data['title'] = 'Lab Report Entry';
+    $this->load->view('technician/lab_report_form', $data);
+}
+
+/**
+ * Save Lab Report (form submission)
+ */
+public function save_lab_report()
+{
     if (!is_technician() && !has_permission('technician_portal', '', 'edit')) {
-        ajax_access_denied();
+        access_denied('technician_portal');
     }
     
     $request_id = $this->input->post('request_id');
     $staff_id = get_staff_user_id();
     
     $this->load->model('hospital_requests_model');
+    
+    // Verify request
+    $this->db->where('id', $request_id);
+    $this->db->where('assigned_technician_id', $staff_id);
+    $this->db->where('status', 'in_progress');
+    $request = $this->db->get(db_prefix() . 'hospital_visit_requests')->row();
+    
+    if (!$request) {
+        set_alert('danger', 'Invalid request');
+        redirect(admin_url('hospital_management/lab_requests'));
+    }
+    
+    // Get patient ID from visit
+    $this->db->select('patient_id');
+    $this->db->where('id', $request->visit_id);
+    $visit = $this->db->get(db_prefix() . 'hospital_visits')->row();
+    
+    // Prepare report data
+    $report_data = [
+        'request_id' => $request_id,
+        'visit_id' => $request->visit_id,
+        'patient_id' => $visit ? $visit->patient_id : 0,
+        'technician_id' => $staff_id,
+        'report_date' => date('Y-m-d H:i:s'),
+        
+        // Bio-Chemistry
+        'fasting_blood_sugar' => $this->input->post('fasting_blood_sugar'),
+        'postprandial_blood_sugar' => $this->input->post('postprandial_blood_sugar'),
+        'blood_urea' => $this->input->post('blood_urea'),
+        'serum_creatinine' => $this->input->post('serum_creatinine'),
+        
+        // Serology
+        'hiv_1_2' => $this->input->post('hiv_1_2'),
+        'hbsag' => $this->input->post('hbsag'),
+        'hcv' => $this->input->post('hcv'),
+        
+        // Haematology
+        'haemoglobin' => $this->input->post('haemoglobin'),
+        'total_wbc_count' => $this->input->post('total_wbc_count'),
+        'neutrophils' => $this->input->post('neutrophils'),
+        'lymphocytes' => $this->input->post('lymphocytes'),
+        'eosinophils' => $this->input->post('eosinophils'),
+        'monocytes' => $this->input->post('monocytes'),
+        'basophils' => $this->input->post('basophils'),
+        'rbc' => $this->input->post('rbc'),
+        'platelet_count' => $this->input->post('platelet_count'),
+        'pcv' => $this->input->post('pcv'),
+        'mcv' => $this->input->post('mcv'),
+        'mch' => $this->input->post('mch'),
+        'mchc' => $this->input->post('mchc'),
+        'bleeding_time' => $this->input->post('bleeding_time'),
+        'clotting_time' => $this->input->post('clotting_time'),
+        
+        // Urine Analysis
+        'urine_colour' => $this->input->post('urine_colour'),
+        'urine_ph' => $this->input->post('urine_ph'),
+        'urine_sp_gravity' => $this->input->post('urine_sp_gravity'),
+        'urine_protein' => $this->input->post('urine_protein'),
+        'urine_glucose' => $this->input->post('urine_glucose'),
+        'pus_cells' => $this->input->post('pus_cells'),
+        'epithelial_cells' => $this->input->post('epithelial_cells'),
+        'rbc_urine' => $this->input->post('rbc_urine'),
+        
+        // Notes
+        'technician_notes' => $this->input->post('technician_notes'),
+        'updated_at' => date('Y-m-d H:i:s')
+    ];
+    
+    // Save report
+    $result = $this->hospital_requests_model->save_lab_report($report_data);
+    // print_r($result);
+    
+    if ($result['success']) {
+        // Complete request
+        $this->hospital_requests_model->complete_request($request_id, $staff_id, 'Lab report completed');
+        
+        set_alert('success', 'Lab report saved and request completed');
+    } else {
+        set_alert('danger', 'Failed to save lab report');
+    }
+    
+    redirect(admin_url('hospital_management/lab_requests'));
+}
+
+public function summa($request_id,$staff_id,$default = 'Lab report completed')
+{
+    $this->load->model('hospital_requests_model');
+    $result = $this->hospital_requests_model->complete_request($request_id, $staff_id, $default);
+    print_r($result);
+
+}
+/**
+ * Start request (AJAX) - CORRECTED
+ */
+public function start_request()
+{
+    $this->ajax_only();
+    
+    // Check technician permission
+    if (!is_technician() && !has_permission('technician_portal', '', 'edit')) {
+        return $this->json_response(false, 'Access denied', [], true);
+    }
+    
+    $request_id = $this->input->post('request_id');
+    $staff_id = get_staff_user_id();
+    
+    // Validate request_id
+    if (empty($request_id)) {
+        return $this->json_response(false, 'Invalid request ID', [], true);
+    }
+    
+    $this->load->model('hospital_requests_model');
     $result = $this->hospital_requests_model->start_processing($request_id, $staff_id);
     
-    return $this->json_response($result['success'], $result['message'], [], true);
+    if ($result['success']) {
+        // Add redirect URL to result
+        $result['redirect_url'] = admin_url('hospital_management/lab_report_form/' . $request_id);
+    }
+    
+    return $this->json_response(
+        $result['success'], 
+        $result['message'], 
+        ['redirect_url' => $result['redirect_url'] ?? ''], 
+        true
+    );
 }
 
 /**
@@ -1983,7 +2147,6 @@ public function complete_request()
     
     return $this->json_response($result['success'], $result['message'], [], true);
 }
-
 // ============================================
 // SURGERY COUNSELLING METHODS
 // ============================================

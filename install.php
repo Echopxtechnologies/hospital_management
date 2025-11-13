@@ -371,6 +371,7 @@ if (!$CI->db->table_exists(db_prefix() . 'hospital_visit_requests')) {
         `assigned_by` INT(11) NULL,
         `approved_by` INT(11) DEFAULT NULL,
         `approved_at` DATETIME DEFAULT NULL,
+        `started_at` DATETIME DEFAULT NULL,
         `completed_at` DATETIME DEFAULT NULL,
         `created_at` DATETIME DEFAULT CURRENT_TIMESTAMP,
         `updated_at` DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
@@ -549,6 +550,10 @@ if (!$CI->db->table_exists(db_prefix() . 'hospital_surgery_requests')) {
         `a_constant_used` VARCHAR(100) DEFAULT NULL,
         `formula_used` VARCHAR(100) DEFAULT NULL,
         `anesthesia` VARCHAR(100) DEFAULT NULL,
+        `total_amount` DECIMAL(10,2) NOT NULL DEFAULT 0.00,
+        `discount_amount` DECIMAL(10,2) DEFAULT 0.00,
+        `final_amount` DECIMAL(10,2) NOT NULL DEFAULT 0.00,
+        `payment_status` ENUM('unpaid', 'partial', 'paid', 'waived', 'cancelled') NOT NULL DEFAULT 'unpaid',
         `status` ENUM('pending', 'scheduled', 'completed', 'cancelled') DEFAULT 'pending',
         `requested_by` INT(11) DEFAULT NULL,
         `requested_at` DATETIME DEFAULT NULL,
@@ -573,3 +578,82 @@ if (!$CI->db->table_exists(db_prefix() . 'hospital_surgery_requests')) {
 }
 
 log_activity('Hospital Management Module - Installation Complete');
+
+// ==========================================
+// TABLE 16: hospital_lab_reports
+// ==========================================
+if (!$CI->db->table_exists(db_prefix() . 'hospital_lab_reports')) {
+    
+    $CI->db->query("CREATE TABLE " . db_prefix() . "hospital_lab_reports (
+        id INT(11) NOT NULL AUTO_INCREMENT,
+        request_id INT(11) NOT NULL,
+        visit_id INT(11) NOT NULL,
+        patient_id INT(11) NOT NULL,
+        technician_id INT(11) NOT NULL,
+        report_date DATETIME DEFAULT CURRENT_TIMESTAMP,
+        
+        -- BIO-CHEMISTRY
+        fasting_blood_sugar VARCHAR(50) DEFAULT NULL,
+        postprandial_blood_sugar VARCHAR(50) DEFAULT NULL,
+        blood_urea VARCHAR(50) DEFAULT NULL,
+        serum_creatinine VARCHAR(50) DEFAULT NULL,
+        
+        -- SEROLOGY
+        hiv_1_2 VARCHAR(50) DEFAULT NULL,
+        hbsag VARCHAR(50) DEFAULT NULL,
+        hcv VARCHAR(50) DEFAULT NULL,
+        
+        -- HAEMATOLOGY
+        haemoglobin VARCHAR(50) DEFAULT NULL,
+        total_wbc_count VARCHAR(50) DEFAULT NULL,
+        neutrophils VARCHAR(50) DEFAULT NULL,
+        lymphocytes VARCHAR(50) DEFAULT NULL,
+        eosinophils VARCHAR(50) DEFAULT NULL,
+        monocytes VARCHAR(50) DEFAULT NULL,
+        basophils VARCHAR(50) DEFAULT NULL,
+        rbc VARCHAR(50) DEFAULT NULL,
+        platelet_count VARCHAR(50) DEFAULT NULL,
+        pcv VARCHAR(50) DEFAULT NULL,
+        mcv VARCHAR(50) DEFAULT NULL,
+        mch VARCHAR(50) DEFAULT NULL,
+        mchc VARCHAR(50) DEFAULT NULL,
+        bleeding_time VARCHAR(50) DEFAULT NULL,
+        clotting_time VARCHAR(50) DEFAULT NULL,
+        
+        -- URINE ANALYSIS
+        urine_colour VARCHAR(50) DEFAULT NULL,
+        urine_ph VARCHAR(50) DEFAULT NULL,
+        urine_sp_gravity VARCHAR(50) DEFAULT NULL,
+        urine_protein VARCHAR(50) DEFAULT NULL,
+        urine_glucose VARCHAR(50) DEFAULT NULL,
+        pus_cells VARCHAR(50) DEFAULT NULL,
+        epithelial_cells VARCHAR(50) DEFAULT NULL,
+        rbc_urine VARCHAR(50) DEFAULT NULL,
+        
+        -- NOTES
+        technician_notes TEXT DEFAULT NULL,
+        
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+        
+        PRIMARY KEY (id),
+        UNIQUE KEY request_id (request_id),
+        KEY visit_id (visit_id),
+        KEY patient_id (patient_id),
+        KEY technician_id (technician_id),
+        CONSTRAINT fk_lab_report_request FOREIGN KEY (request_id) 
+            REFERENCES " . db_prefix() . "hospital_visit_requests (id) 
+            ON DELETE CASCADE ON UPDATE CASCADE,
+        CONSTRAINT fk_lab_report_visit FOREIGN KEY (visit_id) 
+            REFERENCES " . db_prefix() . "hospital_visits (id) 
+            ON DELETE CASCADE ON UPDATE CASCADE,
+        CONSTRAINT fk_lab_report_patient FOREIGN KEY (patient_id) 
+            REFERENCES " . db_prefix() . "hospital_patients (id) 
+            ON DELETE CASCADE ON UPDATE CASCADE,
+        CONSTRAINT fk_lab_report_technician FOREIGN KEY (technician_id) 
+            REFERENCES " . db_prefix() . "staff (staffid) 
+            ON DELETE RESTRICT ON UPDATE CASCADE
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb3 COLLATE=utf8mb3_general_ci;");
+    
+    log_activity('Hospital Management - Table Created: hospital_lab_reports');
+}
