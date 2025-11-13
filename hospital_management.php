@@ -83,6 +83,31 @@ function hospital_management_activation_hook()
         $CI->db->insert(db_prefix() . 'roles', $technician_role_data);
         log_activity('Hospital Management Module - Technician Role Created');
     }
+    // Create "Counselor" role if doesn't exist
+    $counselor_role_exists = $CI->db->get_where(db_prefix() . 'roles', ['name' => 'Counselor'])->num_rows();
+
+    if ($counselor_role_exists == 0) {
+        $counselor_role_data = [
+            'name' => 'Counselor',
+            'permissions' => serialize([])
+        ];
+        
+        $CI->db->insert(db_prefix() . 'roles', $counselor_role_data);
+        log_activity('Hospital Management Module - Counselor Role Created');
+    }
+
+    // Create "Nurse" role if doesn't exist
+    $nurse_role_exists = $CI->db->get_where(db_prefix() . 'roles', ['name' => 'Nurse'])->num_rows();
+
+    if ($nurse_role_exists == 0) {
+        $nurse_role_data = [
+            'name' => 'Nurse',
+            'permissions' => serialize([])
+        ];
+        
+        $CI->db->insert(db_prefix() . 'roles', $nurse_role_data);
+        log_activity('Hospital Management Module - Nurse Role Created');
+    }
 }   
 
 /**
@@ -265,6 +290,55 @@ function is_technician()
     return strtolower($role->name) === 'technician';
 }
 /**
+ * Helper function - Check if user has "Counselor" role
+ */
+function is_counselor()
+{
+    $CI = &get_instance();
+    $staff_id = get_staff_user_id();
+    
+    if (!$staff_id) {
+        return false;
+    }
+    
+    $staff = $CI->db->get_where(db_prefix() . 'staff', ['staffid' => $staff_id])->row();
+    if (!$staff) {
+        return false;
+    }
+    
+    $role = $CI->db->get_where(db_prefix() . 'roles', ['roleid' => $staff->role])->row();
+    if (!$role) {
+        return false;
+    }
+    
+    return strtolower($role->name) === 'counselor';
+}
+
+/**
+ * Helper function - Check if user has "Nurse" role
+ */
+function is_nurse()
+{
+    $CI = &get_instance();
+    $staff_id = get_staff_user_id();
+    
+    if (!$staff_id) {
+        return false;
+    }
+    
+    $staff = $CI->db->get_where(db_prefix() . 'staff', ['staffid' => $staff_id])->row();
+    if (!$staff) {
+        return false;
+    }
+    
+    $role = $CI->db->get_where(db_prefix() . 'roles', ['roleid' => $staff->role])->row();
+    if (!$role) {
+        return false;
+    }
+    
+    return strtolower($role->name) === 'nurse';
+}
+/**
  * Module Initialization
  * FIXED: Show menu for Administrator role OR users with permissions
  */
@@ -285,6 +359,8 @@ function hospital_management_init()
     register_staff_capabilities('reception_management', $capabilities, 'Reception Management');
     register_staff_capabilities('consultant_portal', $capabilities, 'Consultant Portal');
     register_staff_capabilities('technician_portal', $capabilities, 'Technician Portal');
+    register_staff_capabilities('counselor_portal', $capabilities, 'Counselor Portal');
+    register_staff_capabilities('nurse_portal', $capabilities, 'Nurse Portal');
     // ============================================
     // ADMINISTRATOR MENU (Hospital Management)
     // ============================================
@@ -434,6 +510,53 @@ function hospital_management_init()
             'position' => 2,
         ]);
     }
+    // ============================================
+    // COUNSELOR PORTAL MENU - NEW ADDITION
+    // ============================================
+    if (is_counselor() || has_permission('counselor_portal', '', 'view')) {
+        
+        // Main menu item - Counselor Portal
+        $CI->app_menu->add_sidebar_menu_item('counselor-portal', [
+            'slug'     => 'counselor-portal',
+            'name'     => 'Counselor Portal',
+            'icon'     => 'fa fa-comments',
+            'href'     => admin_url('hospital_management/counselor_dashboard'),
+            'position' => 33,
+        ]);
+        
+        // Submenu - Surgery Request
+        $CI->app_menu->add_sidebar_children_item('counselor-portal', [
+            'slug'     => 'surgery-request',
+            'name'     => 'Surgery Request',
+            'icon'     => 'fa fa-stethoscope',
+            'href'     => admin_url('hospital_management/surgery_request'),
+            'position' => 1,
+        ]);
+    }
+
+// ============================================
+// NURSE PORTAL MENU - NEW ADDITION
+// ============================================
+if (is_nurse() || has_permission('nurse_portal', '', 'view')) {
+    
+    // Main menu item - Nurse Portal
+    $CI->app_menu->add_sidebar_menu_item('nurse-portal', [
+        'slug'     => 'nurse-portal',
+        'name'     => 'Nurse Portal',
+        'icon'     => 'fa fa-user-nurse',
+        'href'     => admin_url('hospital_management/nurse_dashboard'),
+        'position' => 34,
+    ]);
+    
+    // Submenu - Patient Care (placeholder for future features)
+    $CI->app_menu->add_sidebar_children_item('nurse-portal', [
+        'slug'     => 'patient-care',
+        'name'     => 'Patient Care',
+        'icon'     => 'fa fa-heartbeat',
+        'href'     => admin_url('hospital_management/nurse_patient_care'),
+        'position' => 1,
+    ]);
+}
 }
 /**
  * Hide ALL menus except role-specific menus
@@ -456,6 +579,8 @@ function hospital_hide_other_menus()
     $show_reception_desk = is_receptionist() || has_permission('reception_management', '', 'view');
     $show_consultant_portal = is_consultant_or_jc() || has_permission('consultant_portal', '', 'view');
     $show_technician_portal = is_technician() || has_permission('technician_portal', '', 'view');
+    $show_counselor_portal = is_counselor() || has_permission('counselor_portal', '', 'view');
+    $show_nurse_portal = is_nurse() || has_permission('nurse_portal', '', 'view');
     // CSS FIRST - Hides menus INSTANTLY (no flash on refresh)
     echo '<style>
     /* INSTANT HIDE - Before JavaScript runs */
@@ -507,6 +632,27 @@ function hospital_hide_other_menus()
         }
         ';
     }
+    // SHOW COUNSELOR PORTAL MENU - NEW
+    if ($show_counselor_portal) {
+        echo '
+        #side-menu > li[class*="counselor"],
+        #side-menu > li[class*="counselor-portal"] {
+            display: block !important;
+            visibility: visible !important;
+        }
+        ';
+    }
+
+    // SHOW NURSE PORTAL MENU - NEW
+    if ($show_nurse_portal) {
+        echo '
+        #side-menu > li[class*="nurse"],
+        #side-menu > li[class*="nurse-portal"] {
+            display: block !important;
+            visibility: visible !important;
+        }
+        ';
+    }
     echo '</style>';
     
     // JavaScript cleanup - Removes from DOM after page loads
@@ -518,6 +664,8 @@ function hospital_hide_other_menus()
         var showReceptionDesk = ' . ($show_reception_desk ? 'true' : 'false') . ';
         var showConsultantPortal = ' . ($show_consultant_portal ? 'true' : 'false') . ';
         var showTechnicianPortal = ' . ($show_technician_portal ? 'true' : 'false') . ';
+        var showCounselorPortal = ' . ($show_counselor_portal ? 'true' : 'false') . ';
+        var showNursePortal = ' . ($show_nurse_portal ? 'true' : 'false') . ';
         function removeOtherMenus() {
             var menuItems = document.querySelectorAll("#side-menu > li");
             
@@ -595,7 +743,34 @@ function hospital_hide_other_menus()
                         shouldKeep = true;
                     }
                 }
-                
+                // KEEP COUNSELOR PORTAL MENU - NEW
+                if (showCounselorPortal) {
+                    var isCounselorMenu = 
+                        classes.indexOf("counselor-portal") !== -1 || 
+                        classes.indexOf("counselor_portal") !== -1 ||
+                        classes.indexOf("menu-item-counselor-portal") !== -1 ||
+                        (href && href.indexOf("counselor") !== -1) ||
+                        linkText.indexOf("counselor portal") !== -1 ||
+                        linkText.indexOf("surgery request") !== -1;
+                    
+                    if (isCounselorMenu) {
+                        shouldKeep = true;
+                    }
+                }
+                // KEEP NURSE PORTAL MENU - NEW
+                if (showNursePortal) {
+                    var isNurseMenu = 
+                        classes.indexOf("nurse-portal") !== -1 || 
+                        classes.indexOf("nurse_portal") !== -1 ||
+                        classes.indexOf("menu-item-nurse-portal") !== -1 ||
+                        (href && href.indexOf("nurse") !== -1) ||
+                        linkText.indexOf("nurse portal") !== -1 ||
+                        linkText.indexOf("patient care") !== -1;
+                    
+                    if (isNurseMenu) {
+                        shouldKeep = true;
+                    }
+                }
                 if (shouldKeep) {
                     console.log("Hospital: ✓ KEEPING", linkText);
                     item.style.display = "block";
@@ -658,6 +833,15 @@ function hospital_redirect_from_homepage()
          if (is_technician() || has_permission('technician_portal', '', 'view')) {
             redirect(admin_url('hospital_management/lab_requests'));
         }
+        // REDIRECT COUNSELOR TO SURGERY REQUEST - NEW
+        if (is_counselor() || has_permission('counselor_portal', '', 'view')) {
+            redirect(admin_url('hospital_management/surgery_request'));
+        }
+
+        // REDIRECT NURSE TO NURSE DASHBOARD - NEW
+        if (is_nurse() || has_permission('nurse_portal', '', 'view')) {
+            redirect(admin_url('hospital_management/nurse_patient_care'));
+        }
 
         // Redirect Administrator to Hospital Dashboard
         if (is_hospital_administrator() || has_permission('hospital_users', '', 'view')) {
@@ -691,7 +875,16 @@ function hospital_redirect_after_login($staff_id)
      if (is_technician() || has_permission('technician_portal', '', 'view')) {
         redirect(admin_url('hospital_management/lab_requests'));
     }
-    
+                
+   // REDIRECT COUNSELOR AFTER LOGIN - NEW
+    if (is_counselor() || has_permission('counselor_portal', '', 'view')) {
+        redirect(admin_url('hospital_management/surgery_request'));
+    }
+
+    // REDIRECT NURSE AFTER LOGIN - NEW
+    if (is_nurse() || has_permission('nurse_portal', '', 'view')) {
+        redirect(admin_url('hospital_management/nurse_patient_care'));
+    }
     // Administrator goes to Hospital Dashboard
     if (is_hospital_administrator() || has_permission('hospital_users', '', 'view')) {
         redirect(admin_url('hospital_management/index'));

@@ -187,6 +187,8 @@ if (!$CI->db->table_exists(db_prefix() . 'hospital_visits')) {
         `patient_id` INT(11) NOT NULL,
         `appointment_id` INT(11) DEFAULT NULL,
         `consultant_id` INT(11) NOT NULL,
+        `seen_by_jc_id` INT(11) DEFAULT NULL,
+        `seen_by_jc_at` DATETIME DEFAULT NULL,
         `visit_date` DATE NOT NULL,
         `visit_time` TIME NOT NULL,
         `visit_type` ENUM('appointment', 'walk_in', 'emergency', 'follow_up') NOT NULL DEFAULT 'walk_in',
@@ -203,13 +205,17 @@ if (!$CI->db->table_exists(db_prefix() . 'hospital_visits')) {
         `updated_at` DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
         PRIMARY KEY (`id`),
         UNIQUE KEY `visit_number` (`visit_number`),
+        KEY `seen_by_jc_id` (`seen_by_jc_id`),
         KEY `patient_id` (`patient_id`),
         CONSTRAINT `fk_visit_patient` FOREIGN KEY (`patient_id`) 
             REFERENCES `" . db_prefix() . "hospital_patients` (`id`) 
             ON DELETE CASCADE ON UPDATE CASCADE,
         CONSTRAINT `fk_visit_consultant` FOREIGN KEY (`consultant_id`) 
             REFERENCES `" . db_prefix() . "staff` (`staffid`) 
-            ON DELETE RESTRICT ON UPDATE CASCADE
+            ON DELETE RESTRICT ON UPDATE CASCADE,
+        CONSTRAINT `fk_visit_seen_by_jc` FOREIGN KEY (`seen_by_jc_id`) 
+            REFERENCES `" . db_prefix() . "staff` (`staffid`) 
+            ON DELETE SET NULL ON UPDATE CASCADE
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb3 COLLATE=utf8mb3_general_ci;");
     
     log_activity('Hospital Management Module - Table Created: hospital_visits');
