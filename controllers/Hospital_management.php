@@ -1532,51 +1532,64 @@ public function download_visit_pdf($visit_id)
     $html = $this->load->view('visit_pdf_template', $data, true);
     
     try {
-        // CORRECT PATH: Include TCPDF from vendor folder
-        require_once(APPPATH . 'vendor/tecnickcom/tcpdf/tcpdf.php');
+        // Load mPDF from module's vendor folder
+        $vendor_path = FCPATH . 'modules/hospital_management/vendor/autoload.php';
         
-        // Create new PDF instance
-        $pdf = new TCPDF(PDF_PAGE_ORIENTATION, PDF_UNIT, PDF_PAGE_FORMAT, true, 'UTF-8', false);
+        if (!file_exists($vendor_path)) {
+            throw new Exception('mPDF not found at: ' . $vendor_path);
+        }
+        
+        require_once($vendor_path);
+        
+        // Create mPDF instance with optimal settings
+        $mpdf = new \Mpdf\Mpdf([
+            'mode' => 'utf-8',
+            'format' => 'A4',
+            'margin_top' => 10,
+            'margin_right' => 12,
+            'margin_bottom' => 10,
+            'margin_left' => 12,
+            'margin_header' => 0,
+            'margin_footer' => 0,
+            'default_font' => 'dejavusans',
+            'tempDir' => sys_get_temp_dir(),
+            'useSubstitutions' => true,
+            'autoScriptToLang' => true,
+            'autoLangToFont' => true
+        ]);
         
         // Set document information
-        $pdf->SetCreator('Hospital Management System');
-        $pdf->SetAuthor('Dr ' . $appointment['consultant_firstname'] . ' ' . $appointment['consultant_lastname']);
-        $pdf->SetTitle('Visit Details - ' . $visit_record['visit_number']);
-        $pdf->SetSubject('Patient Visit Report');
+        $mpdf->SetCreator('Hospital Management System');
+        $mpdf->SetAuthor('Dr ' . $appointment['consultant_firstname'] . ' ' . $appointment['consultant_lastname']);
+        $mpdf->SetTitle('Visit Details - ' . $visit_record['visit_number']);
+        $mpdf->SetSubject('Patient Visit Report');
         
-        // Remove default header/footer
-        $pdf->setPrintHeader(false);
-        $pdf->setPrintFooter(false);
-        
-        // Set margins
-        $pdf->SetMargins(15, 15, 15);
-        $pdf->SetAutoPageBreak(TRUE, 15);
-        
-        // Add a page
-        $pdf->AddPage();
-        
-        // Set font
-        $pdf->SetFont('helvetica', '', 10);
+        // Enable better CSS handling for professional output
+        $mpdf->shrink_tables_to_fit = 1;
+        $mpdf->keep_table_proportions = true;
+        $mpdf->useFixedNormalLineHeight = true;
+        $mpdf->useFixedTextBaseline = true;
+        $mpdf->adjustFontDescLineheight = 1.14;
         
         // Write HTML content
-        $pdf->writeHTML($html, true, false, true, false, '');
+        $mpdf->WriteHTML($html);
         
         // Generate filename
         $filename = 'Visit_' . $visit_record['visit_number'] . '_' . date('Y-m-d') . '.pdf';
         
         // Output PDF (D = force download)
-        $pdf->Output($filename, 'D');
+        $mpdf->Output($filename, 'D');
         
+    } catch (\Mpdf\MpdfException $e) {
+        log_activity('mPDF Error: ' . $e->getMessage());
+        set_alert('danger', 'PDF Generation Error: ' . $e->getMessage());
+        redirect(admin_url('hospital_management/view_visit/' . $visit_id));
     } catch (Exception $e) {
-        // Log error
-        log_activity('PDF Generation Error: ' . $e->getMessage());
-        
-        // Show error to user
+        log_activity('PDF Error: ' . $e->getMessage());
         set_alert('danger', 'Failed to generate PDF: ' . $e->getMessage());
         redirect(admin_url('hospital_management/view_visit/' . $visit_id));
     }
 }
-
     // ==========================================
     // VISIT MANAGEMENT
     // ==========================================

@@ -510,14 +510,44 @@ public function get_surgery_requests_by_appointment($appointment_id)
     
     return $this->db->get()->result_array();
 }
+/**
+ * Check if staff is a Senior Consultant (not Junior Consultant)
+ * Senior Consultants have supervisor access to all patients
+ * 
+ * @param int $staff_id Staff ID
+ * @return bool True if Senior Consultant
+ */
+private function is_senior_consultant($staff_id)
+{
+    $this->db->select('role');
+    $this->db->where('staffid', $staff_id);
+    $staff = $this->db->get($this->staff_table)->row();
+    
+    if (!$staff) {
+        return false;
+    }
+    
+    // Get role name
+    $this->db->select('name');
+    $this->db->where('roleid', $staff->role);
+    $role = $this->db->get(db_prefix() . 'roles')->row();
+    
+    if (!$role) {
+        return false;
+    }
+    
+    // Check if role is "Consultant" (NOT "Junior Consultant")
+    $role_name = strtolower($role->name);
+    return $role_name === 'consultant';
+}
 
 /**
  * Start JC Consultation - Record Junior Consultant who is seeing the patient
- * Similar to Hospital_requests_model::start_processing() for lab requests
  * 
- * Updates tblhospitalvisit:
- * - seen_by_jc_id (staff_id of Junior Consultant)
- * - seen_by_jc_at (timestamp)
+ * ACCESS RULES:
+ * 1. Senior Consultants (Consultant role) = ALWAYS allowed, no restrictions
+ * 2. Same JC = Can access their own patients multiple times
+ * 3. Different JC = BLOCKED once claimed
  * 
  * @param int $visit_id Visit ID
  * @param int $jc_staff_id Junior Consultant staff ID
@@ -536,22 +566,50 @@ public function start_jc_consultation($visit_id, $jc_staff_id)
         ];
     }
     
-    // Check if JC already recorded (optional - remove if you want to allow re-recording)
+    // RULE 1: Check if user is Senior Consultant (they can ALWAYS access)
+    $is_senior_consultant = $this->is_senior_consultant($jc_staff_id);
+    
+    if ($is_senior_consultant) {
+        // Senior Consultants don't claim ownership, they just review/supervise
+        // So we don't update seen_by_jc fields for them
+        log_activity('Senior Consultant accessed Visit ID: ' . $visit_id . ' (Staff ID: ' . $jc_staff_id . ')');
+        
+        return [
+            'success' => true, 
+            'message' => 'Consultation accessed (Senior Consultant)'
+        ];
+    }
+    
+    // From here on, we're dealing with Junior Consultants only
+    
+    // Check if already seen by a JC
     if (!empty($visit->seen_by_jc_id)) {
-        // Get JC name
+        
+        // RULE 2: Same JC can access their own patients
+        if ($visit->seen_by_jc_id == $jc_staff_id) {
+            log_activity('Junior Consultant resumed consultation - Visit ID: ' . $visit_id . ' (Staff ID: ' . $jc_staff_id . ')');
+            
+            return [
+                'success' => true, 
+                'message' => 'Consultation resumed'
+            ];
+        }
+        
+        // RULE 3: Different JC trying to access - BLOCK
+        // Get the JC who already claimed this patient
         $this->db->select('firstname, lastname');
         $this->db->where('staffid', $visit->seen_by_jc_id);
         $jc = $this->db->get($this->staff_table)->row();
         
-        $jc_name = $jc ? ($jc->firstname . ' ' . $jc->lastname) : 'Unknown';
+        $jc_name = $jc ? ($jc->firstname . ' ' . $jc->lastname) : 'Another Junior Consultant';
         
         return [
             'success' => false, 
-            'message' => 'This patient has already been seen by ' . $jc_name . ' at ' . date('d M Y H:i', strtotime($visit->seen_by_jc_at))
+            'message' => 'This patient has already been seen by ' . $jc_name . ' at ' . date('d M Y H:i', strtotime($visit->seen_by_jc_at)) . '. Please coordinate with them.'
         ];
     }
     
-    // Update visit with JC information
+    // No one has seen this patient yet - Record the JC
     $update_data = [
         'seen_by_jc_id' => $jc_staff_id,
         'seen_by_jc_at' => date('Y-m-d H:i:s')
