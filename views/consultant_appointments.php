@@ -137,6 +137,26 @@
     background: #138496;
     color: white;
 }
+
+/* Seen By Column Styling */
+.seen-by-info {
+    font-size: 12px;
+}
+
+.seen-by-info strong {
+    color: #28a745;
+}
+
+.seen-by-info small {
+    display: block;
+    margin-top: 3px;
+    color: #6c757d;
+}
+
+.not-seen {
+    color: #999;
+    font-style: italic;
+}
 </style>
 
 <div id="wrapper">
@@ -282,6 +302,7 @@
                                         <th>Reason</th>
                                         <th>Mode</th>
                                         <th>Status</th>
+                                        <th>Seen By (JC)</th>
                                         <th>Actions</th>
                                     </tr>
                                 </thead>
@@ -346,13 +367,32 @@
                                                 </span>
                                             </td>
                                             <td>
+                                                <?php if (!empty($apt['seen_by_jc_id'])): ?>
+                                                    <div style="font-size: 12px;">
+                                                        <i class="fa fa-user-md text-success"></i>
+                                                        <strong>Dr. <?php echo $apt['jc_firstname'] . ' ' . $apt['jc_lastname']; ?></strong>
+                                                        <br>
+                                                        <small class="text-muted">
+                                                            <i class="fa fa-clock-o"></i>
+                                                            <?php echo date('d M Y, h:i A', strtotime($apt['seen_by_jc_at'])); ?>
+                                                        </small>
+                                                    </div>
+                                                <?php else: ?>
+                                                    <span class="text-muted">
+                                                        <i class="fa fa-minus-circle"></i> Not seen yet
+                                                    </span>
+                                                <?php endif; ?>
+                                            </td>
+                                            <td>
                                                 <!-- SEE PATIENT BUTTON - Only for confirmed appointments -->
                                                 <?php if ($apt['status'] === 'confirmed'): ?>
-                                                    <a href="<?php echo admin_url('hospital_management/consultant_see_patient/' . $apt['id']); ?>" 
-                                                       class="btn btn-medical btn-sm" 
-                                                       title="See Patient">
+                                                    <button type="button" 
+                                                            class="btn btn-medical btn-sm start-jc-consultation" 
+                                                            data-appointment-id="<?php echo $apt['id']; ?>"
+                                                            data-visit-id="<?php echo $apt['visit_id']; ?>"
+                                                            title="See Patient">
                                                         <i class="fa fa-user-md"></i> See Patient
-                                                    </a>
+                                                    </button>
                                                 <?php endif; ?>
                                                 
                                                 <!-- VIEW PATIENT DETAILS - Only if visit exists -->
@@ -389,15 +429,68 @@
 $(function() {
     'use strict';
     
-    // Initialize DataTable
-    $('#appointments-table').DataTable({
-        order: [[4, 'desc'], [5, 'desc']], // Sort by date and time
-        pageLength: 25,
-        responsive: true,
-        language: {
-            search: "_INPUT_",
-            searchPlaceholder: "Search appointments..."
+    // Check if DataTable already initialized by Perfex
+    if (!$.fn.DataTable.isDataTable('#appointments-table')) {
+        // Initialize DataTable only if not already initialized
+        $('#appointments-table').DataTable({
+            order: [[4, 'desc'], [5, 'desc']], // Sort by date and time
+            pageLength: 25,
+            responsive: true,
+            columnDefs: [
+                { orderable: false, targets: [9, 10] } // Disable sorting on "Seen By" and "Actions" columns
+            ],
+            language: {
+                search: "_INPUT_",
+                searchPlaceholder: "Search appointments..."
+            }
+        });
+    } else {
+        // Already initialized by Perfex, just get the instance and update settings
+        var table = $('#appointments-table').DataTable();
+        table.order([[4, 'desc'], [5, 'desc']]).draw();
+    }
+
+    // START JUNIOR CONSULTANT CONSULTATION (Similar to Start Process for Lab)
+    $(document).on('click', '.start-jc-consultation', function(e) {
+        e.preventDefault();
+        
+        var btn = $(this);
+        var appointmentId = btn.data('appointment-id');
+        var visitId = btn.data('visit-id');
+        
+        if (!visitId) {
+            alert_float('danger', 'Visit not found for this appointment');
+            return;
         }
+        
+        // Disable button
+        btn.prop('disabled', true);
+        btn.html('<i class="fa fa-spinner fa-spin"></i> Starting...');
+        
+        // Make AJAX call to start consultation
+        $.post(admin_url + 'hospital_management/start_jc_consultation', {
+            appointment_id: appointmentId,
+            visit_id: visitId
+        })
+        .done(function(response) {
+            if (response.success) {
+                alert_float('success', response.message);
+                
+                // Redirect to consultant form
+                if (response.redirect_url) {
+                    window.location.href = response.redirect_url;
+                }
+            } else {
+                alert_float('danger', response.message);
+                btn.prop('disabled', false);
+                btn.html('<i class="fa fa-user-md"></i> See Patient');
+            }
+        })
+        .fail(function() {
+            alert_float('danger', 'An error occurred. Please try again.');
+            btn.prop('disabled', false);
+            btn.html('<i class="fa fa-user-md"></i> See Patient');
+        });
     });
 });
 </script>

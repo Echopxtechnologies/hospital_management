@@ -61,14 +61,18 @@ public function get_appointments($staff_id, $is_jc = false, $from_date = null, $
         $this->visits_table . '.visit_type as patient_mode,' .
         $this->visits_table . '.id as visit_id,' .
         $this->visits_table . '.visit_number,' .
-        $this->visits_table . '.status as visit_status'
+        $this->visits_table . '.status as visit_status,' .
+        $this->visits_table . '.seen_by_jc_id,' .
+        $this->visits_table . '.seen_by_jc_at,' .
+        'jc_staff.firstname as jc_firstname,' .
+        'jc_staff.lastname as jc_lastname'
     );
     
     $this->db->from($this->appointments_table);
     $this->db->join($this->patients_table, $this->patients_table . '.id = ' . $this->appointments_table . '.patient_id', 'left');
     $this->db->join($this->staff_table, $this->staff_table . '.staffid = ' . $this->appointments_table . '.consultant_id', 'left');
     $this->db->join($this->visits_table, $this->visits_table . '.appointment_id = ' . $this->appointments_table . '.id', 'left');
-    
+     $this->db->join(db_prefix() . 'staff jc_staff', 'jc_staff.staffid = ' . $this->visits_table . '.seen_by_jc_id', 'left');
   // Regular consultants only see their own appointments
     if (!$is_jc) {
         $this->db->where($this->appointments_table . '.consultant_id', $staff_id);
@@ -505,5 +509,75 @@ public function get_surgery_requests_by_appointment($appointment_id)
     $this->db->order_by('sr.requested_at', 'DESC');
     
     return $this->db->get()->result_array();
+}
+
+/**
+ * Start JC Consultation - Record Junior Consultant who is seeing the patient
+ * Similar to Hospital_requests_model::start_processing() for lab requests
+ * 
+ * Updates tblhospitalvisit:
+ * - seen_by_jc_id (staff_id of Junior Consultant)
+ * - seen_by_jc_at (timestamp)
+ * 
+ * @param int $visit_id Visit ID
+ * @param int $jc_staff_id Junior Consultant staff ID
+ * @return array ['success' => bool, 'message' => string]
+ */
+public function start_jc_consultation($visit_id, $jc_staff_id)
+{
+    // Verify visit exists
+    $this->db->where('id', $visit_id);
+    $visit = $this->db->get($this->visits_table)->row();
+    
+    if (!$visit) {
+        return [
+            'success' => false, 
+            'message' => 'Visit not found'
+        ];
+    }
+    
+    // Check if JC already recorded (optional - remove if you want to allow re-recording)
+    if (!empty($visit->seen_by_jc_id)) {
+        // Get JC name
+        $this->db->select('firstname, lastname');
+        $this->db->where('staffid', $visit->seen_by_jc_id);
+        $jc = $this->db->get($this->staff_table)->row();
+        
+        $jc_name = $jc ? ($jc->firstname . ' ' . $jc->lastname) : 'Unknown';
+        
+        return [
+            'success' => false, 
+            'message' => 'This patient has already been seen by ' . $jc_name . ' at ' . date('d M Y H:i', strtotime($visit->seen_by_jc_at))
+        ];
+    }
+    
+    // Update visit with JC information
+    $update_data = [
+        'seen_by_jc_id' => $jc_staff_id,
+        'seen_by_jc_at' => date('Y-m-d H:i:s')
+    ];
+    
+    $this->db->where('id', $visit_id);
+    $updated = $this->db->update($this->visits_table, $update_data);
+    
+    if ($updated) {
+        // Get JC name for log
+        $this->db->select('firstname, lastname');
+        $this->db->where('staffid', $jc_staff_id);
+        $jc = $this->db->get($this->staff_table)->row();
+        $jc_name = $jc ? ($jc->firstname . ' ' . $jc->lastname) : 'Unknown';
+        
+        log_activity('Junior Consultant Consultation Started - Visit ID: ' . $visit_id . ' by ' . $jc_name . ' (Staff ID: ' . $jc_staff_id . ')');
+        
+        return [
+            'success' => true, 
+            'message' => 'Consultation started successfully'
+        ];
+    }
+    
+    return [
+        'success' => false, 
+        'message' => 'Failed to record consultation start'
+    ];
 }
 }

@@ -2147,6 +2147,52 @@ public function complete_request()
     
     return $this->json_response($result['success'], $result['message'], [], true);
 }
+
+
+
+
+/**
+ * Start JC Consultation (Similar to start_processing for lab requests)
+ * Records which Junior Consultant is seeing the patient
+ * 
+ * @return JSON response
+ */
+public function start_jc_consultation()
+{
+    $this->ajax_only();
+    
+    // Check if user is Junior Consultant or has consultant access
+    if (!is_junior_consultant() && !is_consultant() && !has_permission('consultant_portal', '', 'view')) {
+        return $this->json_response(false, 'Access denied. Only consultants can start consultations.', [], true);
+    }
+    
+    $appointment_id = $this->input->post('appointment_id');
+    $visit_id = $this->input->post('visit_id');
+    $staff_id = get_staff_user_id();
+    
+    // Validate inputs
+    if (empty($appointment_id) || empty($visit_id)) {
+        return $this->json_response(false, 'Missing required parameters', [], true);
+    }
+    
+    // Load model
+    $this->load->model('consultant_portal_model');
+    
+    // Call model method to record JC consultation start
+    $result = $this->consultant_portal_model->start_jc_consultation($visit_id, $staff_id);
+    
+    if ($result['success']) {
+        // Add redirect URL to result - redirect to consultant see patient page
+        $result['redirect_url'] = admin_url('hospital_management/consultant_see_patient/' . $appointment_id);
+    }
+    
+    return $this->json_response(
+        $result['success'], 
+        $result['message'], 
+        ['redirect_url' => $result['redirect_url'] ?? ''], 
+        true
+    );
+}
 // ============================================
 // SURGERY COUNSELLING METHODS
 // ============================================
@@ -2349,5 +2395,65 @@ public function save_payment()
     } else {
         echo json_encode(['success' => false, 'message' => 'Failed to save payment']);
     }
+}
+
+/**
+ * Check if user is Junior Consultant
+ * @return bool
+ */
+function is_junior_consultant()
+{
+    if (!is_logged_in()) {
+        return false;
+    }
+    
+    $CI = &get_instance();
+    $staff_id = get_staff_user_id();
+    
+    // Get staff role
+    $CI->db->select('role');
+    $CI->db->where('staffid', $staff_id);
+    $staff = $CI->db->get(db_prefix() . 'staff')->row();
+    
+    if (!$staff) {
+        return false;
+    }
+    
+    // Check if role name is "Junior Consultant"
+    $CI->db->select('name');
+    $CI->db->where('roleid', $staff->role);
+    $role = $CI->db->get(db_prefix() . 'roles')->row();
+    
+    return $role && strtolower($role->name) === 'junior consultant';
+}
+
+/**
+ * Check if user is Consultant
+ * @return bool
+ */
+function is_consultant()
+{
+    if (!is_logged_in()) {
+        return false;
+    }
+    
+    $CI = &get_instance();
+    $staff_id = get_staff_user_id();
+    
+    // Get staff role
+    $CI->db->select('role');
+    $CI->db->where('staffid', $staff_id);
+    $staff = $CI->db->get(db_prefix() . 'staff')->row();
+    
+    if (!$staff) {
+        return false;
+    }
+    
+    // Check if role name is "Consultant"
+    $CI->db->select('name');
+    $CI->db->where('roleid', $staff->role);
+    $role = $CI->db->get(db_prefix() . 'roles')->row();
+    
+    return $role && strtolower($role->name) === 'consultant';
 }
 }
