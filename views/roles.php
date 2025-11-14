@@ -36,6 +36,72 @@
     padding: 4px 8px;
     font-size: 12px;
 }
+
+/* ===================================================== */
+/* VALIDATION STYLING - RED/GREEN BORDERS               */
+/* ===================================================== */
+.form-control.is-valid {
+    border-color: #28a745 !important;
+    border-width: 2px !important;
+    box-shadow: 0 0 0 0.2rem rgba(40, 167, 69, 0.25) !important;
+    background-color: #E0F2F1 !important;
+    padding-right: calc(1.5em + 0.75rem);
+    background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3e%3cpath fill='%2328a745' d='M10.97 4.97a.75.75 0 0 1 1.07 1.05l-5 5a.75.75 0 0 1-1.08-.02L3.324 8.384a.75.75 0 1 1 1.06-1.06l2.094 2.093 4.49-4.45z'/%3e%3c/svg%3e");
+    background-repeat: no-repeat;
+    background-position: right calc(0.375em + 0.1875rem) center;
+    background-size: calc(0.75em + 0.375rem) calc(0.75em + 0.375rem);
+}
+
+.form-control.is-invalid {
+    border-color: #dc3545 !important;
+    border-width: 2px !important;
+    box-shadow: 0 0 0 0.2rem rgba(220, 53, 69, 0.25) !important;
+    background-color: #FFEBEE !important;
+    padding-right: calc(1.5em + 0.75rem);
+    background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' fill='none' stroke='%23dc3545' viewBox='0 0 12 12'%3e%3ccircle cx='6' cy='6' r='4.5'/%3e%3cpath stroke-linejoin='round' d='M5.8 3.6h.4L6 6.5z'/%3e%3ccircle cx='6' cy='8.2' r='.6' fill='%23dc3545' stroke='none'/%3e%3c/svg%3e");
+    background-repeat: no-repeat;
+    background-position: right calc(0.375em + 0.1875rem) center;
+    background-size: calc(0.75em + 0.375rem) calc(0.75em + 0.375rem);
+}
+
+.error-message {
+    color: #dc3545;
+    font-size: 11px;
+    margin-top: 3px;
+    display: block;
+    font-weight: 500;
+}
+
+.success-message {
+    color: #28a745;
+    font-size: 11px;
+    margin-top: 3px;
+    display: block;
+    font-weight: 500;
+}
+
+.char-counter {
+    font-size: 11px;
+    color: #6c757d;
+    margin-top: 3px;
+    display: block;
+}
+
+.char-counter.warning {
+    color: #dc3545;
+    font-weight: 600;
+}
+
+/* Remove spinner from number inputs */
+input[type="number"]::-webkit-inner-spin-button,
+input[type="number"]::-webkit-outer-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+}
+
+input[type="number"] {
+    -moz-appearance: textfield;
+}
 </style>
 
 <div id="wrapper">
@@ -152,9 +218,16 @@
                         <label for="role_name" class="control-label">
                             Role Name <span class="text-danger">*</span>
                         </label>
-                        <input type="text" id="role_name" name="role_name" class="form-control" 
-                               placeholder="e.g., Doctor, Nurse, Receptionist" required>
-                        <span class="help-block">Enter a unique name for this role</span>
+                        <input type="text" 
+                               id="role_name" 
+                               name="role_name" 
+                               class="form-control" 
+                               placeholder="e.g., Doctor, Nurse, Receptionist"
+                               maxlength="50"
+                               required>
+                        <span class="char-counter" id="role_name_counter">0/50 characters</span>
+                        <span class="help-block">Enter role name (letters and spaces only, 2-50 characters)</span>
+                        <span class="feedback-message" id="role_name_feedback"></span>
                     </div>
                 </form>
             </div>
@@ -173,73 +246,376 @@
 <?php init_tail(); ?>
 
 <script>
-$(document).ready(function() {
+(function() {
+    'use strict';
     
-    // Create role
-    $('#saveRoleBtn').on('click', function() {
-        const roleName = $('#role_name').val().trim();
-        
-        if (!roleName) {
-            alert_float('warning', 'Please enter a role name');
-            return;
+    try {
+        if (typeof $ === 'undefined') {
+            throw new Error('jQuery is not loaded');
         }
         
-        if (roleName.toLowerCase() === 'admin') {
-            alert_float('danger', 'Cannot create Admin role');
-            return;
+        if (typeof admin_url === 'undefined') {
+            throw new Error('Admin URL is not defined');
         }
         
-        const $btn = $(this);
-        $btn.addClass('disabled').prop('disabled', true).html('<i class="fa fa-spinner fa-spin"></i> Creating...');
+        if (typeof alert_float === 'undefined') {
+            console.warn('alert_float function not found, using fallback');
+            window.alert_float = function(type, message) {
+                alert(message);
+            };
+        }
         
-        $.ajax({
-            url: admin_url + 'hospital_management/create_role',
-            type: 'POST',
-            dataType: 'json',
-            data: { role_name: roleName },
-            success: function(response) {
-                if (response.success) {
-                    alert_float('success', response.message);
-                    $('#createRoleModal').modal('hide');
-                    $('#createRoleForm')[0].reset();
-                    setTimeout(function() { location.reload(); }, 1000);
-                } else {
-                    alert_float('danger', response.message);
-                    $btn.removeClass('disabled').prop('disabled', false).html('<i class="fa fa-check"></i> Create Role');
-                }
-            },
-            error: function(xhr) {
-                console.error('Create Role Error:', xhr);
-                alert_float('danger', 'An error occurred while creating role');
-                $btn.removeClass('disabled').prop('disabled', false).html('<i class="fa fa-check"></i> Create Role');
-            }
-        });
-    });
-    
-    // Delete role
-    $(document).on('click', '.btn-delete-role', function() {
-        const roleId = $(this).data('id');
-        const roleName = $(this).data('name');
-        
-        if (confirm('⚠️ WARNING: Delete role "' + roleName + '"?\n\nThis action cannot be undone.\n\nAre you sure?')) {
-            $.ajax({
-                url: admin_url + 'hospital_management/delete_role/' + roleId,
-                type: 'POST',
-                dataType: 'json',
-                success: function(response) {
-                    if (response.success) {
-                        alert_float('success', response.message);
-                        setTimeout(function() { location.reload(); }, 1000);
+        $(document).ready(function() {
+            
+            // ============================================================
+            // CONFIGURATION
+            // ============================================================
+            const CONFIG = {
+                MAX_ROLE_NAME_LENGTH: 50,
+                MIN_ROLE_NAME_LENGTH: 2,
+                RESERVED_NAMES: ['admin', 'administrator', 'superadmin', 'root']
+            };
+            
+            // ============================================================
+            // VALIDATION HELPER FUNCTIONS
+            // ============================================================
+            
+            function showValidationFeedback(fieldId, isValid, message = '') {
+                const $field = $('#' + fieldId);
+                const $feedback = $('#' + fieldId + '_feedback');
+                
+                $field.removeClass('is-valid is-invalid');
+                
+                if (isValid) {
+                    $field.addClass('is-valid');
+                    if (message) {
+                        $feedback.removeClass('error-message').addClass('success-message')
+                                 .html('<i class="fa fa-check-circle"></i> ' + message);
                     } else {
-                        alert_float('danger', response.message);
+                        $feedback.empty();
                     }
-                },
-                error: function(xhr) {
-                    console.error('Delete Role Error:', xhr);
-                    alert_float('danger', 'An error occurred while deleting role');
+                } else {
+                    $field.addClass('is-invalid');
+                    if (message) {
+                        $feedback.removeClass('success-message').addClass('error-message')
+                                 .html('<i class="fa fa-times-circle"></i> ' + message);
+                    } else {
+                        $feedback.empty();
+                    }
+                }
+            }
+            
+            function clearValidationFeedback(fieldId) {
+                const $field = $('#' + fieldId);
+                const $feedback = $('#' + fieldId + '_feedback');
+                
+                $field.removeClass('is-valid is-invalid');
+                $feedback.empty();
+            }
+            
+            function updateCharCounter(fieldId, currentLength, maxLength) {
+                const $counter = $('#' + fieldId + '_counter');
+                if ($counter.length) {
+                    $counter.text(currentLength + '/' + maxLength + ' characters');
+                    
+                    if (currentLength >= maxLength) {
+                        $counter.addClass('warning');
+                    } else {
+                        $counter.removeClass('warning');
+                    }
+                }
+            }
+            
+            function validateRoleName(name) {
+                const trimmed = name.trim();
+                
+                if (trimmed.length === 0) {
+                    return { valid: false, message: 'Role name is required' };
+                }
+                
+                if (trimmed.length < CONFIG.MIN_ROLE_NAME_LENGTH) {
+                    return { 
+                        valid: false, 
+                        message: 'Role name must be at least ' + CONFIG.MIN_ROLE_NAME_LENGTH + ' characters' 
+                    };
+                }
+                
+                if (trimmed.length > CONFIG.MAX_ROLE_NAME_LENGTH) {
+                    return { 
+                        valid: false, 
+                        message: 'Role name is too long. Maximum ' + CONFIG.MAX_ROLE_NAME_LENGTH + ' characters' 
+                    };
+                }
+                
+                // Check for letters and spaces only
+                if (!/^[a-zA-Z\s]+$/.test(trimmed)) {
+                    return { 
+                        valid: false, 
+                        message: 'Role name should only contain letters and spaces' 
+                    };
+                }
+                
+                // Check for reserved names
+                const lowerName = trimmed.toLowerCase();
+                if (CONFIG.RESERVED_NAMES.includes(lowerName)) {
+                    return { 
+                        valid: false, 
+                        message: 'Cannot use "' + trimmed + '" as role name. This name is reserved' 
+                    };
+                }
+                
+                return { valid: true, message: 'Role name is valid' };
+            }
+            
+            function escapeHtml(text) {
+                const map = {
+                    '&': '&amp;',
+                    '<': '&lt;',
+                    '>': '&gt;',
+                    '"': '&quot;',
+                    "'": '&#039;'
+                };
+                return text.replace(/[&<>"']/g, function(m) { return map[m]; });
+            }
+            
+            // ============================================================
+            // ROLE NAME REAL-TIME VALIDATION
+            // ============================================================
+            
+            $('#role_name').on('input', function() {
+                const $input = $(this);
+                let value = $input.val();
+                
+                // Real-time sanitization - remove numbers and special characters
+                const sanitized = value.replace(/[^a-zA-Z\s]/g, '');
+                
+                // Enforce maximum length
+                let finalValue = sanitized;
+                if (finalValue.length > CONFIG.MAX_ROLE_NAME_LENGTH) {
+                    finalValue = finalValue.substring(0, CONFIG.MAX_ROLE_NAME_LENGTH);
+                }
+                
+                // Update input if sanitized
+                if (finalValue !== value) {
+                    $input.val(finalValue);
+                    if (sanitized !== value) {
+                        alert_float('info', 'Role name can only contain letters and spaces');
+                    }
+                }
+                
+                // Update character counter
+                updateCharCounter('role_name', finalValue.length, CONFIG.MAX_ROLE_NAME_LENGTH);
+                
+                // Real-time validation feedback
+                if ($input.hasClass('is-invalid') && finalValue.trim().length >= CONFIG.MIN_ROLE_NAME_LENGTH) {
+                    const result = validateRoleName(finalValue);
+                    if (result.valid) {
+                        showValidationFeedback('role_name', true, result.message);
+                    }
                 }
             });
+            
+            $('#role_name').on('blur', function() {
+                const $input = $(this);
+                const value = $input.val().trim();
+                
+                const result = validateRoleName(value);
+                showValidationFeedback('role_name', result.valid, result.message);
+            });
+            
+            // ============================================================
+            // MODAL EVENTS
+            // ============================================================
+            
+            $('#createRoleModal').on('shown.bs.modal', function() {
+                $('#role_name').focus();
+                updateCharCounter('role_name', 0, CONFIG.MAX_ROLE_NAME_LENGTH);
+            });
+            
+            $('#createRoleModal').on('hidden.bs.modal', function() {
+                $('#createRoleForm')[0].reset();
+                clearValidationFeedback('role_name');
+                updateCharCounter('role_name', 0, CONFIG.MAX_ROLE_NAME_LENGTH);
+            });
+            
+            // ============================================================
+            // CREATE ROLE SUBMISSION
+            // ============================================================
+            
+            $('#saveRoleBtn').on('click', function() {
+                const $btn = $(this);
+                const $roleInput = $('#role_name');
+                const roleName = $roleInput.val().trim();
+                
+                // Trigger blur validation
+                $roleInput.trigger('blur');
+                
+                // Check if validation passed
+                if ($roleInput.hasClass('is-invalid')) {
+                    const errorMsg = $('#role_name_feedback').text().replace(/✖\s*/g, '');
+                    alert_float('warning', 'Please fix the error: ' + errorMsg);
+                    $roleInput.focus();
+                    return;
+                }
+                
+                // Final validation check
+                const result = validateRoleName(roleName);
+                if (!result.valid) {
+                    showValidationFeedback('role_name', false, result.message);
+                    alert_float('warning', result.message);
+                    $roleInput.focus();
+                    return;
+                }
+                
+                // Disable button and show loading
+                $btn.addClass('disabled').prop('disabled', true)
+                    .html('<i class="fa fa-spinner fa-spin"></i> Creating...');
+                
+                // Submit AJAX request
+                $.ajax({
+                    url: admin_url + 'hospital_management/create_role',
+                    type: 'POST',
+                    dataType: 'json',
+                    timeout: 15000,
+                    data: { role_name: roleName },
+                    success: function(response) {
+                        if (response && response.success) {
+                            alert_float('success', response.message || 'Role created successfully!');
+                            $('#createRoleModal').modal('hide');
+                            $('#createRoleForm')[0].reset();
+                            clearValidationFeedback('role_name');
+                            
+                            // Reload page after short delay
+                            setTimeout(function() { 
+                                location.reload(); 
+                            }, 1000);
+                        } else {
+                            const errorMessage = response.message || 'Failed to create role. Please try again.';
+                            alert_float('danger', errorMessage);
+                            
+                            // Show validation error if provided
+                            if (response.error && response.error.includes('already exists')) {
+                                showValidationFeedback('role_name', false, 'This role name already exists');
+                            }
+                            
+                            $btn.removeClass('disabled').prop('disabled', false)
+                                .html('<i class="fa fa-check"></i> Create Role');
+                        }
+                    },
+                    error: function(xhr, status, error) {
+                        console.error('Create Role Error:', {
+                            status: status,
+                            error: error,
+                            response: xhr.responseText
+                        });
+                        
+                        let errorMessage = 'An error occurred while creating role';
+                        
+                        if (status === 'timeout') {
+                            errorMessage = 'Request timed out. Please try again.';
+                        } else if (xhr.status === 0) {
+                            errorMessage = 'Network error. Please check your connection.';
+                        } else if (xhr.status === 403) {
+                            errorMessage = 'Access denied. You do not have permission to create roles.';
+                        } else if (xhr.status === 500) {
+                            errorMessage = 'Server error. Please contact support.';
+                        }
+                        
+                        alert_float('danger', errorMessage);
+                        $btn.removeClass('disabled').prop('disabled', false)
+                            .html('<i class="fa fa-check"></i> Create Role');
+                    }
+                });
+            });
+            
+            // Allow Enter key to submit
+            $('#role_name').on('keypress', function(e) {
+                if (e.which === 13) { // Enter key
+                    e.preventDefault();
+                    $('#saveRoleBtn').click();
+                }
+            });
+            
+            // ============================================================
+            // DELETE ROLE
+            // ============================================================
+            
+            $(document).on('click', '.btn-delete-role', function() {
+                const roleId = $(this).data('id');
+                const roleName = $(this).data('name');
+                
+                // Sanitize role name for display
+                const sanitizedRoleName = escapeHtml(roleName);
+                
+                // Show confirmation dialog
+                if (confirm('⚠️ WARNING: Delete role "' + sanitizedRoleName + '"?\n\nThis action cannot be undone.\n\nAre you sure?')) {
+                    
+                    // Show loading state
+                    const $btn = $(this);
+                    const originalHtml = $btn.html();
+                    $btn.prop('disabled', true).html('<i class="fa fa-spinner fa-spin"></i>');
+                    
+                    $.ajax({
+                        url: admin_url + 'hospital_management/delete_role/' + roleId,
+                        type: 'POST',
+                        dataType: 'json',
+                        timeout: 15000,
+                        success: function(response) {
+                            if (response && response.success) {
+                                alert_float('success', response.message || 'Role deleted successfully');
+                                
+                                // Remove row with animation
+                                $btn.closest('tr').fadeOut(300, function() {
+                                    $(this).remove();
+                                });
+                                
+                                // Reload after delay
+                                setTimeout(function() { 
+                                    location.reload(); 
+                                }, 1000);
+                            } else {
+                                const errorMessage = response.message || 'Failed to delete role. Please try again.';
+                                alert_float('danger', errorMessage);
+                                $btn.prop('disabled', false).html(originalHtml);
+                            }
+                        },
+                        error: function(xhr, status, error) {
+                            console.error('Delete Role Error:', {
+                                status: status,
+                                error: error,
+                                response: xhr.responseText
+                            });
+                            
+                            let errorMessage = 'An error occurred while deleting role';
+                            
+                            if (status === 'timeout') {
+                                errorMessage = 'Request timed out. Please try again.';
+                            } else if (xhr.status === 403) {
+                                errorMessage = 'Access denied. You do not have permission to delete roles.';
+                            } else if (xhr.status === 404) {
+                                errorMessage = 'Role not found. It may have been already deleted.';
+                            } else if (xhr.status === 500) {
+                                errorMessage = 'Server error. Please contact support.';
+                            }
+                            
+                            alert_float('danger', errorMessage);
+                            $btn.prop('disabled', false).html(originalHtml);
+                        }
+                    });
+                }
+            });
+            
+        }); // End document.ready
+        
+    } catch (error) {
+        console.error('Critical error in role management:', error);
+        
+        if (typeof alert_float !== 'undefined') {
+            alert_float('danger', 'Page initialization error. Please refresh the page.');
+        } else {
+            alert('Error: ' + error.message + '\n\nPlease refresh the page.');
         }
-    });
-});
+    }
+    
+})();
 </script>

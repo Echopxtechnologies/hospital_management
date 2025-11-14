@@ -110,6 +110,18 @@ textarea.form-control {
     color: #dc3545;
 }
 
+.char-counter {
+    font-size: 11px;
+    color: #6c757d;
+    margin-top: 3px;
+    display: block;
+}
+
+.char-counter.warning {
+    color: #dc3545;
+    font-weight: 600;
+}
+
 .role-select-wrapper {
     display: flex;
     gap: 10px;
@@ -302,7 +314,7 @@ textarea.form-control {
                     </div>
                     
                     <div class="form-body">
-                        <!-- ✅ FIXED: Error Summary Box -->
+                        <!-- Error Summary Box -->
                         <div class="error-summary" id="errorSummary">
                             <div class="error-summary-title">
                                 <i class="fa fa-exclamation-triangle"></i>
@@ -313,7 +325,6 @@ textarea.form-control {
                         
                         <?php echo form_open('', ['id' => 'user_form', 'autocomplete' => 'off']); ?>
                         
-                        <!-- ✅ FIXED: Added CSRF Token -->
                         <?php echo form_hidden($this->security->get_csrf_token_name(), $this->security->get_csrf_hash()); ?>
                         
                         <?php if (isset($user)) { ?>
@@ -333,8 +344,9 @@ textarea.form-control {
                                            class="form-control" 
                                            value="<?php echo isset($user) ? htmlspecialchars($user->first_name, ENT_QUOTES, 'UTF-8') : ''; ?>"
                                            placeholder="Enter first name"
-                                           maxlength="100"
+                                           maxlength="50"
                                            required>
+                                    <span class="char-counter" id="first_name_counter">0/50 characters</span>
                                     <div class="invalid-feedback"></div>
                                     <div class="valid-feedback">Looks good!</div>
                                 </div>
@@ -352,8 +364,9 @@ textarea.form-control {
                                            class="form-control" 
                                            value="<?php echo isset($user) ? htmlspecialchars($user->last_name, ENT_QUOTES, 'UTF-8') : ''; ?>"
                                            placeholder="Enter last name"
-                                           maxlength="100"
+                                           maxlength="50"
                                            required>
+                                    <span class="char-counter" id="last_name_counter">0/50 characters</span>
                                     <div class="invalid-feedback"></div>
                                     <div class="valid-feedback">Looks good!</div>
                                 </div>
@@ -550,9 +563,12 @@ textarea.form-control {
                                name="role_name" 
                                class="form-control" 
                                placeholder="e.g., Doctor, Nurse, Receptionist"
-                               maxlength="150"
+                               maxlength="50"
                                required>
-                        <span class="help-block">Enter a unique name for this role</span>
+                        <span class="char-counter" id="role_name_counter">0/50 characters</span>
+                        <span class="help-block">Enter role name (letters and spaces only, 2-50 characters)</span>
+                        <div class="invalid-feedback"></div>
+                        <div class="valid-feedback">Role name is valid!</div>
                     </div>
                 </form>
             </div>
@@ -571,12 +587,10 @@ textarea.form-control {
 <?php init_tail(); ?>
 
 <script>
-// ✅ WRAP EVERYTHING IN TRY-CATCH TO PREVENT WHITE SCREEN CRASHES
 (function() {
     'use strict';
     
     try {
-        // ✅ CHECK IF REQUIRED GLOBALS EXIST
         if (typeof $ === 'undefined') {
             throw new Error('jQuery is not loaded');
         }
@@ -593,20 +607,24 @@ textarea.form-control {
         }
         
         $(document).ready(function() {
-            // ✅ CONFIGURATION
+            // CONFIGURATION
             const CONFIG = {
                 EMAIL_CHECK_DELAY: 500,
                 AJAX_TIMEOUT: 15000,
-                MIN_PASSWORD_LENGTH: 3
+                MIN_PASSWORD_LENGTH: 3,
+                MAX_NAME_LENGTH: 50,
+                MIN_NAME_LENGTH: 2,
+                MAX_ROLE_NAME_LENGTH: 50,
+                MIN_ROLE_NAME_LENGTH: 2
             };
             
-            // ✅ STATE MANAGEMENT
+            // STATE MANAGEMENT
             let emailCheckTimeout = null;
             let emailCheckXhr = null;
             const userId = <?php echo isset($user) ? json_encode((int)$user->id, JSON_HEX_TAG | JSON_HEX_AMP) : 'null'; ?>;
             const isEditMode = userId !== null;
             
-            // ✅ ERROR TRACKING
+            // ERROR TRACKING
             let formErrors = {};
             
             // ===================================================
@@ -658,7 +676,6 @@ textarea.form-control {
                 
                 $summary.addClass('show');
                 
-                // Scroll to error summary
                 $('html, body').animate({
                     scrollTop: $summary.offset().top - 100
                 }, 300);
@@ -676,12 +693,13 @@ textarea.form-control {
             }
             
             function isValidEmail(email) {
-                // More robust email validation
+                // Enhanced email validation - prevent multiple dots
+                if (/\.{2,}/.test(email)) return false;
+                if (/^\.|\.$|@\.|\.@/.test(email)) return false;
                 return /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email);
             }
             
             function isValidPhone(phone) {
-                // Allow international formats: +91-9876543210, (080) 1234-5678, etc.
                 return /^[0-9+\-\s()]+$/.test(phone) && phone.replace(/[^0-9]/g, '').length >= 10;
             }
             
@@ -694,14 +712,56 @@ textarea.form-control {
                     'role_id': 'User Role',
                     'phone_number': 'Phone Number',
                     'landline_number': 'Landline Number',
-                    'address': 'Address'
+                    'address': 'Address',
+                    'role_name': 'Role Name'
                 };
                 return labels[fieldId] || fieldId;
             }
             
+            function updateCharCounter(fieldId, currentLength, maxLength) {
+                const $counter = $('#' + fieldId + '_counter');
+                if ($counter.length) {
+                    $counter.text(currentLength + '/' + maxLength + ' characters');
+                    
+                    if (currentLength >= maxLength) {
+                        $counter.addClass('warning');
+                    } else {
+                        $counter.removeClass('warning');
+                    }
+                }
+            }
+            
             // ===================================================
-            // FIELD VALIDATION - FIRST NAME & LAST NAME
+            // FIRST NAME & LAST NAME VALIDATION
             // ===================================================
+            
+            $('#first_name, #last_name').on('input', function() {
+                const $input = $(this);
+                const fieldId = $input.attr('id');
+                let value = $input.val();
+                
+                // Real-time sanitization - remove numbers and special characters
+                value = value.replace(/[^a-zA-Z\s]/g, '');
+                
+                // Enforce maximum length
+                if (value.length > CONFIG.MAX_NAME_LENGTH) {
+                    value = value.substring(0, CONFIG.MAX_NAME_LENGTH);
+                }
+                
+                // Update input if sanitized
+                if (value !== $input.val()) {
+                    $input.val(value);
+                    alert_float('info', 'Special characters and numbers are not allowed in names');
+                }
+                
+                // Update character counter
+                updateCharCounter(fieldId, value.length, CONFIG.MAX_NAME_LENGTH);
+                
+                // Real-time validation feedback
+                if ($input.hasClass('is-invalid') && value.trim().length >= CONFIG.MIN_NAME_LENGTH) {
+                    setValid($input);
+                }
+            });
             
             $('#first_name, #last_name').on('blur', function() {
                 const $input = $(this);
@@ -710,8 +770,10 @@ textarea.form-control {
                 
                 if (value.length === 0) {
                     setInvalid($input, fieldLabel + ' is required. Please enter a value.');
-                } else if (value.length < 1) {
-                    setInvalid($input, fieldLabel + ' must be at least 1 characters long.');
+                } else if (value.length < CONFIG.MIN_NAME_LENGTH) {
+                    setInvalid($input, fieldLabel + ' must be at least ' + CONFIG.MIN_NAME_LENGTH + ' characters long.');
+                } else if (value.length > CONFIG.MAX_NAME_LENGTH) {
+                    setInvalid($input, fieldLabel + ' is too long. Maximum ' + CONFIG.MAX_NAME_LENGTH + ' characters allowed.');
                 } else if (!/^[a-zA-Z\s]+$/.test(value)) {
                     setInvalid($input, fieldLabel + ' should only contain letters and spaces.');
                 } else {
@@ -719,14 +781,11 @@ textarea.form-control {
                 }
             });
             
-            $('#first_name, #last_name').on('input', function() {
-                const $input = $(this);
-                if ($input.hasClass('is-invalid')) {
-                    const value = $input.val().trim();
-                    if (value.length >= 2 && /^[a-zA-Z\s]+$/.test(value)) {
-                        setValid($input);
-                    }
-                }
+            // Initialize character counters on page load
+            $('#first_name, #last_name').each(function() {
+                const fieldId = $(this).attr('id');
+                const currentLength = $(this).val().length;
+                updateCharCounter(fieldId, currentLength, CONFIG.MAX_NAME_LENGTH);
             });
             
             // ===================================================
@@ -737,29 +796,24 @@ textarea.form-control {
                 const $input = $(this);
                 const value = $input.val().trim().toLowerCase();
                 
-                // Clear previous timeout
                 if (emailCheckTimeout) {
                     clearTimeout(emailCheckTimeout);
                 }
                 
-                // Cancel pending AJAX request
                 if (emailCheckXhr && emailCheckXhr.readyState !== 4) {
                     emailCheckXhr.abort();
                 }
                 
-                // Validate empty
                 if (value.length === 0) {
                     setInvalid($input, 'Email address is required. Please enter your email.');
                     return;
                 }
                 
-                // Validate format
                 if (!isValidEmail(value)) {
-                    setInvalid($input, 'Invalid email format. Please enter a valid email address (e.g., user@example.com).');
+                    setInvalid($input, 'Invalid email format. Please enter a valid email (no consecutive dots allowed).');
                     return;
                 }
                 
-                // Check if email exists (with delay for UX)
                 emailCheckTimeout = setTimeout(function() {
                     emailCheckXhr = $.ajax({
                         url: admin_url + 'hospital_management/check_email',
@@ -775,25 +829,21 @@ textarea.form-control {
                                 if (response.available) {
                                     setValid($input);
                                 } else {
-                                    setInvalid($input, 'This email address is already registered. Please use a different email or contact support.');
+                                    setInvalid($input, 'This email address is already registered. Please use a different email.');
                                 }
                             } else {
-                                console.warn('Invalid response from email check');
                                 setNeutral($input);
                             }
                         },
                         error: function(xhr, status, error) {
                             if (status === 'abort') {
-                                return; // Silently ignore aborted requests
+                                return;
                             }
-                            
-                            console.error('Email check failed:', status, error);
                             
                             if (status === 'timeout') {
                                 setInvalid($input, 'Email verification timed out. Please try again.');
                             } else {
                                 setNeutral($input);
-                                alert_float('warning', 'Could not verify email availability. Please try again.');
                             }
                         }
                     });
@@ -818,21 +868,18 @@ textarea.form-control {
                 const $input = $(this);
                 const value = $input.val();
                 
-                // Password required only for new users
                 if (!isEditMode && value.length === 0) {
-                    setInvalid($input, 'Password is required for new users. Please create a strong password.');
+                    setInvalid($input, 'Password is required for new users.');
                     return;
                 }
                 
-                // If password provided, validate strength
                 if (value.length > 0) {
                     if (value.length < CONFIG.MIN_PASSWORD_LENGTH) {
-                        setInvalid($input, 'Password must be at least ' + CONFIG.MIN_PASSWORD_LENGTH + ' characters long for security.');
+                        setInvalid($input, 'Password must be at least ' + CONFIG.MIN_PASSWORD_LENGTH + ' characters long.');
                     } else {
                         setValid($input);
                     }
                 } else {
-                    // Edit mode with empty password - OK
                     setNeutral($input);
                 }
             });
@@ -856,14 +903,14 @@ textarea.form-control {
                 const value = $input.val();
                 
                 if (!value || value === '') {
-                    setInvalid($input, 'Please select a user role from the dropdown. Role is required.');
+                    setInvalid($input, 'Please select a user role. Role is required.');
                 } else {
                     setValid($input);
                 }
             });
             
             // ===================================================
-            // OPTIONAL FIELDS - PHONE & LANDLINE
+            // PHONE & LANDLINE VALIDATION
             // ===================================================
             
             $('#phone_number, #landline_number').on('blur', function() {
@@ -871,10 +918,9 @@ textarea.form-control {
                 const value = $input.val().trim();
                 const fieldLabel = getFieldLabel($input.attr('id'));
                 
-                // Only validate if user enters something
                 if (value.length > 0) {
                     if (!isValidPhone(value)) {
-                        setInvalid($input, fieldLabel + ' format is invalid. Please use format like +91-9876543210 or (080) 1234-5678.');
+                        setInvalid($input, fieldLabel + ' format is invalid.');
                     } else if (value.replace(/[^0-9]/g, '').length < 10) {
                         setInvalid($input, fieldLabel + ' must have at least 10 digits.');
                     } else {
@@ -896,7 +942,7 @@ textarea.form-control {
             });
             
             // ===================================================
-            // ADDRESS VALIDATION (OPTIONAL)
+            // ADDRESS VALIDATION
             // ===================================================
             
             $('#address').on('blur', function() {
@@ -911,16 +957,64 @@ textarea.form-control {
             });
             
             // ===================================================
+            // ROLE NAME VALIDATION (IN MODAL)
+            // ===================================================
+            
+            $('#role_name').on('input', function() {
+                const $input = $(this);
+                let value = $input.val();
+                
+                // Real-time sanitization - remove numbers and special characters
+                value = value.replace(/[^a-zA-Z\s]/g, '');
+                
+                // Enforce maximum length
+                if (value.length > CONFIG.MAX_ROLE_NAME_LENGTH) {
+                    value = value.substring(0, CONFIG.MAX_ROLE_NAME_LENGTH);
+                }
+                
+                // Update input if sanitized
+                if (value !== $input.val()) {
+                    $input.val(value);
+                    alert_float('info', 'Role name can only contain letters and spaces');
+                }
+                
+                // Update character counter
+                updateCharCounter('role_name', value.length, CONFIG.MAX_ROLE_NAME_LENGTH);
+                
+                // Real-time validation feedback
+                if ($input.hasClass('is-invalid') && value.trim().length >= CONFIG.MIN_ROLE_NAME_LENGTH) {
+                    setValid($input);
+                }
+            });
+            
+            $('#role_name').on('blur', function() {
+                const $input = $(this);
+                const value = $input.val().trim();
+                
+                if (value.length === 0) {
+                    setInvalid($input, 'Role name is required.');
+                } else if (value.length < CONFIG.MIN_ROLE_NAME_LENGTH) {
+                    setInvalid($input, 'Role name must be at least ' + CONFIG.MIN_ROLE_NAME_LENGTH + ' characters.');
+                } else if (value.length > CONFIG.MAX_ROLE_NAME_LENGTH) {
+                    setInvalid($input, 'Role name is too long. Maximum ' + CONFIG.MAX_ROLE_NAME_LENGTH + ' characters.');
+                } else if (!/^[a-zA-Z\s]+$/.test(value)) {
+                    setInvalid($input, 'Role name should only contain letters and spaces.');
+                } else if (value.toLowerCase() === 'admin' || value.toLowerCase() === 'administrator') {
+                    setInvalid($input, 'Cannot use "Admin" or "Administrator" as role name. Reserved.');
+                } else {
+                    setValid($input);
+                }
+            });
+            
+            // ===================================================
             // FORM SUBMISSION
             // ===================================================
             
             $('#saveBtn').on('click', function(e) {
                 e.preventDefault();
                 
-                // Clear existing errors
                 formErrors = {};
                 
-                // Define required fields
                 const requiredFields = [
                     { id: 'first_name', label: 'First Name' },
                     { id: 'last_name', label: 'Last Name' },
@@ -928,47 +1022,39 @@ textarea.form-control {
                     { id: 'role_id', label: 'User Role' }
                 ];
                 
-                // Add password to required fields for new users
                 if (!isEditMode) {
                     requiredFields.push({ id: 'password', label: 'Password' });
                 }
                 
-                // Trigger blur on all required fields
                 requiredFields.forEach(function(field) {
                     $('#' + field.id).trigger('blur');
                 });
                 
-                // Also validate optional fields if they have content
                 $('#phone_number, #landline_number').each(function() {
                     if ($(this).val().trim().length > 0) {
                         $(this).trigger('blur');
                     }
                 });
                 
-                // Wait a moment for AJAX email check to complete
                 setTimeout(function() {
                     const errorCount = $('.is-invalid').length;
                     
                     if (errorCount > 0) {
-                        // Find first error field
                         const $firstError = $('.is-invalid').first();
                         const firstErrorLabel = getFieldLabel($firstError.attr('id'));
                         
-                        // Show specific error message
                         if (errorCount === 1) {
-                            alert_float('danger', 'Please fix the error in "' + firstErrorLabel + '" field before submitting.');
+                            alert_float('danger', 'Please fix the error in "' + firstErrorLabel + '" field.');
                         } else {
-                            alert_float('danger', 'Please fix ' + errorCount + ' errors in the form before submitting. Check the highlighted fields above.');
+                            alert_float('danger', 'Please fix ' + errorCount + ' errors in the form.');
                         }
                         
-                        // Focus first error
                         $firstError.focus();
                         return;
                     }
                     
-                    // All validations passed - Submit form
                     submitForm();
-                }, 600); // Wait for email check
+                }, 600);
             });
             
             // ===================================================
@@ -978,9 +1064,7 @@ textarea.form-control {
             function submitForm() {
                 const $btn = $('#saveBtn');
                 $btn.addClass('btn-loading').prop('disabled', true);
-                $(window).off('beforeunload');
-
-+
+                
                 $.ajax({
                     url: admin_url + 'hospital_management/save',
                     type: 'POST',
@@ -991,17 +1075,15 @@ textarea.form-control {
                         if (response && response.success) {
                             alert_float('success', response.message || 'User saved successfully!');
                             
-                            // Redirect after short delay
                             setTimeout(function() {
                                 window.location.href = admin_url + 'hospital_management/users';
                             }, 1000);
                         } else {
-                            const errorMessage = response.message || 'Failed to save user. Please try again.';
+                            const errorMessage = response.message || 'Failed to save user.';
                             alert_float('danger', errorMessage);
                             
                             $btn.removeClass('btn-loading').prop('disabled', false);
                             
-                            // Show server-side validation errors
                             if (response.errors && typeof response.errors === 'object') {
                                 $.each(response.errors, function(fieldName, message) {
                                     const $field = $('#' + fieldName);
@@ -1013,22 +1095,14 @@ textarea.form-control {
                         }
                     },
                     error: function(xhr, status, error) {
-                        console.error('Form submission error:', status, error);
-                        
-                        let errorMessage = 'An unexpected error occurred. Please try again.';
+                        let errorMessage = 'An unexpected error occurred.';
                         
                         if (status === 'timeout') {
-                            errorMessage = 'Request timed out. The server is taking too long to respond. Please check your connection and try again.';
-                        } else if (status === 'error') {
-                            if (xhr.status === 0) {
-                                errorMessage = 'Network error. Please check your internet connection and try again.';
-                            } else if (xhr.status === 403) {
-                                errorMessage = 'Access denied. You do not have permission to perform this action.';
-                            } else if (xhr.status === 404) {
-                                errorMessage = 'Server endpoint not found. Please contact support.';
-                            } else if (xhr.status === 500) {
-                                errorMessage = 'Server error occurred. Please contact your system administrator.';
-                            }
+                            errorMessage = 'Request timed out. Please try again.';
+                        } else if (xhr.status === 403) {
+                            errorMessage = 'Access denied.';
+                        } else if (xhr.status === 500) {
+                            errorMessage = 'Server error. Please contact support.';
                         }
                         
                         alert_float('danger', errorMessage);
@@ -1043,27 +1117,26 @@ textarea.form-control {
             
             $('#saveRoleBtn').on('click', function() {
                 const $btn = $(this);
-                const roleName = $('#role_name').val().trim();
+                const $roleInput = $('#role_name');
                 
-                // Validate role name
+                // Trigger validation
+                $roleInput.trigger('blur');
+                
+                // Check if validation passed
+                if ($roleInput.hasClass('is-invalid')) {
+                    alert_float('warning', 'Please fix the error in role name field.');
+                    $roleInput.focus();
+                    return;
+                }
+                
+                const roleName = $roleInput.val().trim();
+                
                 if (!roleName || roleName.length === 0) {
-                    alert_float('warning', 'Role name is required. Please enter a name for the new role.');
-                    $('#role_name').focus();
+                    alert_float('warning', 'Role name is required.');
+                    $roleInput.focus();
                     return;
                 }
                 
-                if (roleName.length < 2) {
-                    alert_float('warning', 'Role name must be at least 2 characters long.');
-                    $('#role_name').focus();
-                    return;
-                }
-                
-                if (roleName.toLowerCase() === 'admin') {
-                    alert_float('danger', 'Cannot create "Admin" role. This role name is reserved for system administrators.');
-                    return;
-                }
-                
-                // Submit role creation
                 $btn.addClass('btn-loading').prop('disabled', true);
                 
                 $.ajax({
@@ -1076,7 +1149,6 @@ textarea.form-control {
                         if (response && response.success) {
                             alert_float('success', response.message || 'Role created successfully!');
                             
-                            // Add new role to dropdown
                             const newOption = $('<option></option>')
                                 .val(response.role_id)
                                 .text(response.role_name)
@@ -1084,32 +1156,26 @@ textarea.form-control {
                             
                             $('#role_id').append(newOption);
                             
-                            // Refresh selectpicker if available
                             if (typeof $.fn.selectpicker !== 'undefined') {
                                 $('#role_id').selectpicker('refresh');
                             }
                             
-                            // Close modal and reset form
                             $('#createRoleModal').modal('hide');
                             $('#createRoleForm')[0].reset();
+                            setNeutral($roleInput);
                             
-                            // Trigger validation on role field
                             $('#role_id').trigger('change');
                         } else {
-                            alert_float('danger', response.message || 'Failed to create role. Please try again.');
+                            alert_float('danger', response.message || 'Failed to create role.');
                         }
                         
                         $btn.removeClass('btn-loading').prop('disabled', false);
                     },
                     error: function(xhr, status, error) {
-                        console.error('Role creation error:', status, error);
-                        
-                        let errorMessage = 'Failed to create role. Please try again.';
+                        let errorMessage = 'Failed to create role.';
                         
                         if (status === 'timeout') {
                             errorMessage = 'Request timed out. Please try again.';
-                        } else if (xhr.status === 403) {
-                            errorMessage = 'You do not have permission to create roles.';
                         }
                         
                         alert_float('danger', errorMessage);
@@ -1118,29 +1184,31 @@ textarea.form-control {
                 });
             });
             
-            // Reset role form when modal closes
             $('#createRoleModal').on('hidden.bs.modal', function() {
                 $('#createRoleForm')[0].reset();
+                setNeutral($('#role_name'));
+                updateCharCounter('role_name', 0, CONFIG.MAX_ROLE_NAME_LENGTH);
+            });
+            
+            $('#createRoleModal').on('shown.bs.modal', function() {
+                $('#role_name').focus();
             });
             
         }); // End document.ready
         
     } catch (error) {
-        // ✅ CATCH ALL JAVASCRIPT ERRORS
-        console.error('Critical error in form initialization:', error);
+        console.error('Critical error:', error);
         
-        // Show user-friendly error message
         if (typeof alert_float !== 'undefined') {
-            alert_float('danger', 'Form could not be loaded properly. Please refresh the page. If the problem persists, contact support.');
+            alert_float('danger', 'Form error. Please refresh the page.');
         } else {
-            alert('Form error: ' + error.message + '\n\nPlease refresh the page and try again.');
+            alert('Form error: ' + error.message);
         }
         
-        // Disable submit button to prevent data loss
         $('#saveBtn').prop('disabled', true)
                      .removeClass('btn-dark-modern')
                      .addClass('btn-danger')
-                     .html('<i class="fa fa-exclamation-triangle"></i> Form Error - Please Refresh Page');
+                     .html('<i class="fa fa-exclamation-triangle"></i> Form Error - Refresh Page');
     }
 })();
 </script>

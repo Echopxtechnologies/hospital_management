@@ -6,7 +6,7 @@
    HOSPITAL THEME - AQUA BLUE & WHITE
    ===================================================== */
 :root {
-    --hospital-primary: #00ACC1;      /* Aqua Blue */
+    --hospital-primary: #00ACC1;
     --hospital-primary-dark: #0097A7;
     --hospital-primary-light: #B2EBF2;
     --hospital-secondary: #FFFFFF;
@@ -17,7 +17,51 @@
     --hospital-border: #E0F7FA;
 }
 
-/* Stats Grid - Simple Rectangular Design */
+/* =====================================================
+   VALIDATION STYLING - RED/GREEN BORDERS
+   ===================================================== */
+.form-control.is-invalid {
+    border-color: #E53935 !important;
+    border-width: 2px !important;
+    box-shadow: 0 0 0 0.2rem rgba(229, 57, 53, 0.25) !important;
+    background-color: #FFEBEE !important;
+}
+
+.form-control.is-valid {
+    border-color: #26A69A !important;
+    border-width: 2px !important;
+    box-shadow: 0 0 0 0.2rem rgba(38, 166, 154, 0.25) !important;
+    background-color: #E0F2F1 !important;
+}
+
+.error-message {
+    color: #E53935;
+    font-size: 11px;
+    margin-top: 3px;
+    display: block;
+    font-weight: 500;
+}
+
+.success-message {
+    color: #26A69A;
+    font-size: 11px;
+    margin-top: 3px;
+    display: block;
+    font-weight: 500;
+}
+
+/* Remove spinner from number inputs */
+input[type="number"]::-webkit-inner-spin-button,
+input[type="number"]::-webkit-outer-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+}
+
+input[type="number"] {
+    -moz-appearance: textfield;
+}
+
+/* Stats Grid */
 .stats-grid {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
@@ -61,13 +105,10 @@
     letter-spacing: 0.5px;
 }
 
-/* Specific stat card colors */
 .stat-card.today { border-left-color: var(--hospital-info); }
 .stat-card.today i { color: var(--hospital-info); }
-
 .stat-card.pending { border-left-color: var(--hospital-warning); }
 .stat-card.pending i { color: var(--hospital-warning); }
-
 .stat-card.confirmed { border-left-color: var(--hospital-success); }
 .stat-card.confirmed i { color: var(--hospital-success); }
 
@@ -244,7 +285,7 @@
     border-top: 2px solid var(--hospital-border);
 }
 
-/* ============ TIME PICKER STYLES ============ */
+/* Time Picker */
 .time-picker-container {
     display: flex;
     gap: 10px;
@@ -320,25 +361,21 @@
                 <!-- Statistics -->
                 <div class="stats-grid">
                     <div class="stat-card today">
-                       
                         <h3><?php echo $statistics['today']; ?></h3>
                         <p>Today's Appointments</p>
                     </div>
                     
                     <div class="stat-card pending">
-                 
                         <h3><?php echo $statistics['pending']; ?></h3>
                         <p>Pending</p>
                     </div>
                     
                     <div class="stat-card confirmed">
-                    
                         <h3><?php echo $statistics['confirmed']; ?></h3>
                         <p>Confirmed</p>
                     </div>
                     
                     <div class="stat-card">
-                       
                         <h3><?php echo $statistics['total']; ?></h3>
                         <p>Total Appointments</p>
                     </div>
@@ -378,11 +415,11 @@
                                     <td><?php echo date('d M Y', strtotime($apt->appointment_date)); ?></td>
                                     <td><?php echo $apt->consultant_firstname . ' ' . $apt->consultant_lastname; ?></td>
                                     <td><?php echo !empty($apt->visit_reason) ? ucfirst($apt->visit_reason) : '-'; ?></td>
-                                        <td>
-                                            <span class="label label-default">
-                                                <?php echo !empty($apt->visit_type) ? ucfirst(str_replace('_', '-', $apt->visit_type)) : '-'; ?>
-                                            </span>
-                                        </td>
+                                    <td>
+                                        <span class="label label-default">
+                                            <?php echo !empty($apt->visit_type) ? ucfirst(str_replace('_', '-', $apt->visit_type)) : '-'; ?>
+                                        </span>
+                                    </td>
                                     <td>
                                         <span class="text-info">
                                             <i class="fa fa-clock-o"></i> 
@@ -492,7 +529,7 @@
                         </div>
                     </div>
                     
-                    <!-- ========== SECTION 1: EXISTING PATIENT SELECTION ========== -->
+                    <!-- EXISTING PATIENT SELECTION -->
                     <div id="existingPatientSection" style="display:block;">
                         <div class="patient-search-info">
                             <i class="fa fa-info-circle"></i> 
@@ -506,7 +543,6 @@
                             </select>
                         </div>
                         
-                        <!-- Mode selection for existing patient -->
                         <div id="existingPatientModeSection" style="display:none;">
                             <div class="form-group">
                                 <label class="control-label"><strong>Appointment Mode:</strong></label>
@@ -524,7 +560,7 @@
                         </div>
                     </div>
                     
-                    <!-- ========== SECTION 2: PATIENT FORM (UNIFIED FOR ALL MODES) ========== -->
+                    <!-- PATIENT FORM -->
                     <div id="patientFormSection" style="display:none;">
                         <div class="alert alert-info" id="formModeInfo">
                             <i class="fa fa-info-circle"></i> <span id="formModeText">Quick registration</span>
@@ -537,7 +573,9 @@
                             <div class="col-md-6">
                                 <div class="form-group">
                                     <label class="control-label">Name <span class="text-danger" id="name_required">*</span></label>
-                                    <input type="text" name="name" id="name" class="form-control" placeholder="Full name">
+                                    <input type="text" name="name" id="name" class="form-control" placeholder="Full name" maxlength="100">
+                                    <small class="text-muted">Letters and spaces only, 3-100 characters</small>
+                                    <span class="feedback-message" id="name_feedback"></span>
                                 </div>
                             </div>
                             
@@ -565,7 +603,9 @@
                             <div class="col-md-4">
                                 <div class="form-group">
                                     <label class="control-label">Date of Birth</label>
-                                    <input type="date" name="dob" id="dob" class="form-control">
+                                    <input type="date" name="dob" id="dob" class="form-control" max="<?php echo date('Y-m-d'); ?>">
+                                    <small class="text-muted">Cannot be a future date</small>
+                                    <span class="feedback-message" id="dob_feedback"></span>
                                 </div>
                             </div>
                             
@@ -593,21 +633,27 @@
                             <div class="col-md-4">
                                 <div class="form-group">
                                     <label class="control-label">Mobile <span class="text-danger" id="mobile_required">*</span></label>
-                                    <input type="tel" name="mobile_number" id="mobile_number" class="form-control">
+                                    <input type="tel" name="mobile_number" id="mobile_number" class="form-control" maxlength="10" placeholder="10-digit mobile">
+                                    <small class="text-muted">10 digits, starts with 6-9</small>
+                                    <span class="feedback-message" id="mobile_feedback"></span>
                                 </div>
                             </div>
                             
                             <div class="col-md-4" id="phone_group">
                                 <div class="form-group">
-                                    <label class="control-label">Phone</label>
-                                    <input type="tel" name="phone" id="phone" class="form-control">
+                                    <label class="control-label">Alternate Phone</label>
+                                    <input type="tel" name="phone" id="phone" class="form-control" maxlength="10" placeholder="10-digit phone">
+                                    <small class="text-muted">10 digits only</small>
+                                    <span class="feedback-message" id="phone_feedback"></span>
                                 </div>
                             </div>
                             
                             <div class="col-md-4" id="email_group">
                                 <div class="form-group">
                                     <label class="control-label">Email</label>
-                                    <input type="email" name="email" id="email" class="form-control">
+                                    <input type="email" name="email" id="email" class="form-control" maxlength="100" placeholder="email@example.com">
+                                    <small class="text-muted">Valid email format</small>
+                                    <span class="feedback-message" id="email_feedback"></span>
                                 </div>
                             </div>
                         </div>
@@ -620,7 +666,8 @@
                                 <div class="col-md-12">
                                     <div class="form-group">
                                         <label class="control-label">Address</label>
-                                        <textarea name="address" id="address" class="form-control" rows="2"></textarea>
+                                        <textarea name="address" id="address" class="form-control" rows="2" maxlength="250" placeholder="Maximum 250 characters"></textarea>
+                                        <small class="text-muted"><span id="address_count">0</span>/250 characters</small>
                                     </div>
                                 </div>
                             </div>
@@ -629,28 +676,34 @@
                                 <div class="col-md-4">
                                     <div class="form-group">
                                         <label class="control-label">Landmark</label>
-                                        <input type="text" name="address_landmark" id="address_landmark" class="form-control">
+                                        <input type="text" name="address_landmark" id="address_landmark" class="form-control" maxlength="100">
                                     </div>
                                 </div>
                                 
                                 <div class="col-md-3">
                                     <div class="form-group">
                                         <label class="control-label">City</label>
-                                        <input type="text" name="city" id="city" class="form-control">
+                                        <input type="text" name="city" id="city" class="form-control" maxlength="50" placeholder="Letters only">
+                                        <small class="text-muted">Letters and spaces only</small>
+                                        <span class="feedback-message" id="city_feedback"></span>
                                     </div>
                                 </div>
                                 
                                 <div class="col-md-3">
                                     <div class="form-group">
                                         <label class="control-label">State</label>
-                                        <input type="text" name="state" id="state" class="form-control">
+                                        <input type="text" name="state" id="state" class="form-control" maxlength="50" placeholder="Letters only">
+                                        <small class="text-muted">Letters and spaces only</small>
+                                        <span class="feedback-message" id="state_feedback"></span>
                                     </div>
                                 </div>
                                 
                                 <div class="col-md-2">
                                     <div class="form-group">
                                         <label class="control-label">Pincode</label>
-                                        <input type="text" name="pincode" id="pincode" class="form-control">
+                                        <input type="text" name="pincode" id="pincode" class="form-control" maxlength="6" placeholder="6 digits">
+                                        <small class="text-muted">6 digits only</small>
+                                        <span class="feedback-message" id="pincode_feedback"></span>
                                     </div>
                                 </div>
                             </div>
@@ -675,13 +728,13 @@
                                     </div>
                                 </div>
                                 
-                                <!-- Other Hospital Patient ID - shown only when Yes is selected -->
                                 <div class="col-md-6" id="other_hospital_id_section" style="display:none;">
                                     <div class="form-group">
                                         <label class="control-label">Patient ID of Other Hospital</label>
                                         <input type="text" name="other_hospital_patient_id" id="other_hospital_patient_id" 
-                                               class="form-control" placeholder="Enter patient ID from other hospital">
-                                        <small class="text-muted">Enter the patient registration ID from the other hospital</small>
+                                               class="form-control" placeholder="Alphanumeric only" maxlength="50">
+                                        <small class="text-muted">Alphanumeric only, max 50 characters</small>
+                                        <span class="feedback-message" id="other_hospital_id_feedback"></span>
                                     </div>
                                 </div>
 
@@ -729,7 +782,9 @@
                                     <div class="col-md-6">
                                         <div class="form-group">
                                             <label class="control-label">Recommended By</label>
-                                            <input type="text" name="recommended_by" id="recommended_by" class="form-control">
+                                            <input type="text" name="recommended_by" id="recommended_by" class="form-control" maxlength="100" placeholder="Name (letters only)">
+                                            <small class="text-muted">Letters and spaces only</small>
+                                            <span class="feedback-message" id="recommended_by_feedback"></span>
                                         </div>
                                     </div>
                                     
@@ -737,7 +792,7 @@
                                         <div class="form-group">
                                             <label class="control-label">Recommendation File (Multiple files allowed)</label>
                                             <input type="file" name="recommendation_file[]" id="recommendation_file" class="form-control" accept=".pdf,.jpg,.jpeg,.png,.doc,.docx" multiple>
-                                            <small class="text-muted">Upload recommendation letter/document(s)</small>
+                                            <small class="text-muted">Max 5MB per file, PDF/JPG/PNG/DOC/DOCX only</small>
                                         </div>
                                     </div>
                                 </div>
@@ -745,29 +800,28 @@
                         </div>
                         
                         <!-- Membership Section -->
-             
-                                <div id="membership_section">
-                                    <div class="form-section-title"><i class="fa fa-id-card"></i> Membership (Optional)</div>
-                                    
-                                    <div class="row">
-                                        <div class="col-md-6">
-                                            <div class="form-group">
-                                                <label>Membership ID</label>
-                                                <input type="text" 
-                                                    name="membership_id" 
-                                                    id="membership_id" 
-                                                    class="form-control" 
-                                                    placeholder="e.g., MEM2025001 or GOLD12345"
-                                                    maxlength="100">
-                                                <small class="text-muted">Enter patient's membership ID if they have one</small>
-                                            </div>
-                                        </div>
+                        <div id="membership_section">
+                            <div class="form-section-title"><i class="fa fa-id-card"></i> Membership (Optional)</div>
+                            
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <div class="form-group">
+                                        <label>Membership ID</label>
+                                        <input type="text" 
+                                            name="membership_id" 
+                                            id="membership_id" 
+                                            class="form-control" 
+                                            placeholder="e.g., MEM2025001"
+                                            maxlength="50">
+                                        <small class="text-muted">Alphanumeric only, max 50 characters</small>
+                                        <span class="feedback-message" id="membership_id_feedback"></span>
                                     </div>
                                 </div>
-                    
+                            </div>
+                        </div>
                     </div>
                     
-                    <!-- ========== SECTION 3: APPOINTMENT DETAILS (ALWAYS VISIBLE) ========== -->
+                    <!-- APPOINTMENT DETAILS -->
                     <div class="form-section-divider"></div>
                     <h5 style="margin-bottom: 15px; color: #333;"><i class="fa fa-calendar"></i> Appointment Details</h5>
                     
@@ -775,7 +829,7 @@
                         <div class="col-md-6">
                             <div class="form-group">
                                 <label for="reason_for_appointment" class="control-label">Reason for Appointment *</label>
-                               <select id="reason_for_appointment" name="reason_for_appointment" class="form-control selectpicker" data-width="100%" required>
+                                <select id="reason_for_appointment" name="reason_for_appointment" class="form-control selectpicker" data-width="100%" required>
                                     <option value="">-- Select --</option>
                                     <option value="consultation">Consultation</option>
                                     <option value="procedure">Procedure</option>
@@ -788,7 +842,7 @@
                             <div class="form-group">
                                 <label for="appointment_date" class="control-label">Appointment Date *</label>
                                 <select id="appointment_date" name="appointment_date" class="form-control" required>
-                                    <option value="">-- Select Appointment Date --</option>
+                                    <option value="">-- Select Date --</option>
                                     <?php
                                     for ($i = 0; $i < 15; $i++) {
                                         $date = date('Y-m-d', strtotime("+$i days"));
@@ -850,10 +904,10 @@
                         </div>
                     </div>
                     
-                    <!-- Consultant Dropdown -->
+                    <!-- Consultant -->
                     <div class="row">
                         <div class="col-md-12">
-                           <div class="form-group">
+                            <div class="form-group">
                                 <label for="consultant_id" class="control-label">
                                     <span class="text-danger">*</span> Consultant
                                 </label>
@@ -880,7 +934,8 @@
                         <div class="col-md-12">
                             <div class="form-group">
                                 <label for="notes" class="control-label">Notes (Optional)</label>
-                                <textarea id="notes" name="notes" class="form-control" rows="2" placeholder="Additional notes"></textarea>
+                                <textarea id="notes" name="notes" class="form-control" rows="2" placeholder="Additional notes" maxlength="500"></textarea>
+                                <small class="text-muted"><span id="notes_count">0</span>/500 characters</small>
                             </div>
                         </div>
                     </div>
@@ -911,7 +966,8 @@
                 <input type="hidden" id="cancel_appointment_id">
                 <div class="form-group">
                     <label>Cancellation Reason:</label>
-                    <textarea id="cancellation_reason" class="form-control" rows="3" placeholder="Enter reason for cancellation"></textarea>
+                    <textarea id="cancellation_reason" class="form-control" rows="3" placeholder="Enter reason" maxlength="250"></textarea>
+                    <small class="text-muted"><span id="cancel_count">0</span>/250 characters</small>
                 </div>
             </div>
             <div class="modal-footer">
@@ -928,47 +984,401 @@
 
 <script>
 // ============================================================================
-// CONFIGURATION & GLOBALS
+// GLOBALS
 // ============================================================================
 let csrfTokenName = '<?php echo $this->security->get_csrf_token_name(); ?>';
 let csrfTokenHash = '<?php echo $this->security->get_csrf_hash(); ?>';
 
 // ============================================================================
-// DOCUMENT READY
+// ENHANCED VALIDATION FUNCTIONS WITH VISUAL FEEDBACK
 // ============================================================================
-$(document).ready(function() {
-    // Initialize plugins
-    $('.selectpicker').selectpicker();
+
+/**
+ * Show validation feedback (green border + success message OR red border + error message)
+ */
+function showValidationFeedback(fieldId, isValid, message = '') {
+    const $field = $('#' + fieldId);
+    const $feedback = $('#' + fieldId + '_feedback');
     
-    // Load patients for dropdown
-    loadPatients();
+    // Remove previous classes
+    $field.removeClass('is-valid is-invalid');
     
-    // ========== EVENT HANDLERS ==========
-    
-    // Patient Type Selection (Existing vs New)
-    $('input[name="patient_type_option"]').on('change', handlePatientTypeChange);
-    
-    // Mode Selection for New Patients
-    $('input[name="mode_option"]').on('change', handleNewPatientModeChange);
-    
-    // Existing Patient Selection
-    $('#existing_patient_dropdown').on('change', handleExistingPatientSelection);
-    
-    // Existing Patient Mode Selection
-    $('input[name="existing_mode_option"]').on('change', handleExistingPatientModeChange);
-    
-    // Recommendation Toggle
-    $('.recommendation_toggle').on('change', function() {
-        if ($('input[name="recommended_to_hospital"]:checked').val() == '1') {
-            $('#recommendation_details').slideDown();
+    if (isValid) {
+        $field.addClass('is-valid');
+        if (message) {
+            $feedback.removeClass('error-message').addClass('success-message').html('<i class="fa fa-check-circle"></i> ' + message);
         } else {
-            $('#recommendation_details').slideUp();
+            $feedback.empty();
         }
+    } else {
+        $field.addClass('is-invalid');
+        if (message) {
+            $feedback.removeClass('success-message').addClass('error-message').html('<i class="fa fa-times-circle"></i> ' + message);
+        } else {
+            $feedback.empty();
+        }
+    }
+}
+
+/**
+ * Clear validation feedback
+ */
+function clearValidationFeedback(fieldId) {
+    const $field = $('#' + fieldId);
+    const $feedback = $('#' + fieldId + '_feedback');
+    
+    $field.removeClass('is-valid is-invalid');
+    $feedback.empty();
+}
+
+/**
+ * Validate name - only letters and spaces, 3-100 characters
+ */
+function validateName(name, fieldId) {
+    const trimmed = name.trim();
+    
+    if (trimmed.length === 0) {
+        clearValidationFeedback(fieldId);
+        return { valid: false, message: '' };
+    }
+    
+    if (trimmed.length < 3) {
+        return { valid: false, message: 'Minimum 3 characters required' };
+    }
+    
+    const nameRegex = /^[a-zA-Z\s]+$/;
+    if (!nameRegex.test(trimmed)) {
+        return { valid: false, message: 'Only letters and spaces allowed' };
+    }
+    
+    return { valid: true, message: 'Valid name' };
+}
+
+/**
+ * Enhanced email validation - prevents multiple consecutive dots
+ */
+function validateEmail(email, fieldId) {
+    const trimmed = email.trim();
+    
+    if (trimmed.length === 0) {
+        clearValidationFeedback(fieldId);
+        return { valid: true, message: '' }; // Optional field
+    }
+    
+    // Check for multiple consecutive dots
+    if (/\.{2,}/.test(trimmed)) {
+        return { valid: false, message: 'Multiple consecutive dots not allowed' };
+    }
+    
+    // Check for dots at start or end of local part or domain
+    if (/^\.|\.$|@\.|\.@/.test(trimmed)) {
+        return { valid: false, message: 'Invalid dot placement' };
+    }
+    
+    // Standard email format validation
+    const emailRegex = /^[a-zA-Z0-9._-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
+    if (!emailRegex.test(trimmed)) {
+        return { valid: false, message: 'Invalid email format' };
+    }
+    
+    // Check domain has valid structure (no consecutive dots in domain)
+    const domain = trimmed.split('@')[1];
+    if (domain && /\.{2,}/.test(domain)) {
+        return { valid: false, message: 'Invalid domain format' };
+    }
+    
+    return { valid: true, message: 'Valid email' };
+}
+
+/**
+ * Validate mobile - exactly 10 digits, starts with 6-9
+ */
+function validateMobile(mobile, fieldId) {
+    const trimmed = mobile.trim();
+    
+    if (trimmed.length === 0) {
+        clearValidationFeedback(fieldId);
+        return { valid: false, message: '' };
+    }
+    
+    if (trimmed.length < 10) {
+        return { valid: false, message: '10 digits required' };
+    }
+    
+    const mobileRegex = /^[6-9]\d{9}$/;
+    if (!mobileRegex.test(trimmed)) {
+        return { valid: false, message: 'Must start with 6-9 and be 10 digits' };
+    }
+    
+    return { valid: true, message: 'Valid mobile number' };
+}
+
+/**
+ * Validate phone - exactly 10 digits
+ */
+function validatePhone(phone, fieldId) {
+    const trimmed = phone.trim();
+    
+    if (trimmed.length === 0) {
+        clearValidationFeedback(fieldId);
+        return { valid: true, message: '' }; // Optional
+    }
+    
+    if (trimmed.length < 10) {
+        return { valid: false, message: '10 digits required' };
+    }
+    
+    const phoneRegex = /^\d{10}$/;
+    if (!phoneRegex.test(trimmed)) {
+        return { valid: false, message: 'Exactly 10 digits required' };
+    }
+    
+    return { valid: true, message: 'Valid phone number' };
+}
+
+/**
+ * Validate pincode - exactly 6 digits
+ */
+function validatePincode(pincode, fieldId) {
+    const trimmed = pincode.trim();
+    
+    if (trimmed.length === 0) {
+        clearValidationFeedback(fieldId);
+        return { valid: true, message: '' }; // Optional
+    }
+    
+    if (trimmed.length < 6) {
+        return { valid: false, message: '6 digits required' };
+    }
+    
+    const pincodeRegex = /^\d{6}$/;
+    if (!pincodeRegex.test(trimmed)) {
+        return { valid: false, message: 'Exactly 6 digits required' };
+    }
+    
+    return { valid: true, message: 'Valid pincode' };
+}
+
+/**
+ * Validate city/state - only letters and spaces
+ */
+function validateTextOnly(text, fieldId) {
+    const trimmed = text.trim();
+    
+    if (trimmed.length === 0) {
+        clearValidationFeedback(fieldId);
+        return { valid: true, message: '' }; // Optional
+    }
+    
+    const textRegex = /^[a-zA-Z\s]+$/;
+    if (!textRegex.test(trimmed)) {
+        return { valid: false, message: 'Only letters and spaces allowed' };
+    }
+    
+    return { valid: true, message: 'Valid' };
+}
+
+/**
+ * Validate alphanumeric (for IDs, membership)
+ */
+function validateAlphanumeric(text, fieldId) {
+    const trimmed = text.trim();
+    
+    if (trimmed.length === 0) {
+        clearValidationFeedback(fieldId);
+        return { valid: true, message: '' }; // Optional
+    }
+    
+    const alphanumericRegex = /^[a-zA-Z0-9\s]+$/;
+    if (!alphanumericRegex.test(trimmed)) {
+        return { valid: false, message: 'Only letters and numbers allowed' };
+    }
+    
+    return { valid: true, message: 'Valid' };
+}
+
+/**
+ * Validate DOB - cannot be future date
+ */
+function validateDOB(dob, fieldId) {
+    if (!dob) {
+        clearValidationFeedback(fieldId);
+        return { valid: true, message: '' }; // Optional
+    }
+    
+    const inputDate = new Date(dob);
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    
+    if (inputDate > today) {
+        return { valid: false, message: 'Future date not allowed' };
+    }
+    
+    return { valid: true, message: 'Valid date' };
+}
+
+/**
+ * Calculate age from DOB
+ */
+function calculateAge(dob) {
+    if (!dob) return '';
+    
+    const birthDate = new Date(dob);
+    const today = new Date();
+    
+    let age = today.getFullYear() - birthDate.getFullYear();
+    const monthDiff = today.getMonth() - birthDate.getMonth();
+    
+    if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
+        age--;
+    }
+    
+    return age >= 0 ? age : '';
+}
+
+/**
+ * Validate file
+ */
+function validateFile(file) {
+    const maxSize = 5 * 1024 * 1024; // 5MB
+    const allowedTypes = ['application/pdf', 'image/jpeg', 'image/jpg', 'image/png', 
+                          'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'];
+    
+    if (file.size > maxSize) {
+        return { valid: false, message: file.name + ': File size must be less than 5MB' };
+    }
+    
+    if (!allowedTypes.includes(file.type)) {
+        return { valid: false, message: file.name + ': Only PDF, JPG, PNG, DOC, DOCX files allowed' };
+    }
+    
+    return { valid: true };
+}
+
+// ============================================================================
+// REAL-TIME INPUT VALIDATION WITH VISUAL FEEDBACK
+// ============================================================================
+
+function setupInputValidations() {
+    
+    // Name validation
+    $('#name, #recommended_by').on('input', function() {
+        const fieldId = $(this).attr('id');
+        let value = $(this).val();
+        
+        // Remove numbers and special characters
+        value = value.replace(/[^a-zA-Z\s]/g, '');
+        $(this).val(value);
+        
+        // Validate and show feedback
+        const result = validateName(value, fieldId);
+        showValidationFeedback(fieldId, result.valid, result.message);
     });
     
-    // DOB change - Auto calculate age
+    // Email validation with enhanced checks
+    $('#email').on('input blur', function() {
+        const value = $(this).val().trim();
+        const result = validateEmail(value, 'email');
+        showValidationFeedback('email', result.valid, result.message);
+    });
+    
+    // Mobile number validation
+    $('#mobile_number').on('input', function() {
+        let value = $(this).val().replace(/\D/g, ''); // Remove non-digits
+        
+        if (value.length > 10) {
+            value = value.substring(0, 10);
+        }
+        
+        $(this).val(value);
+        
+        const result = validateMobile(value, 'mobile_number');
+        showValidationFeedback('mobile_number', result.valid, result.message);
+    });
+    
+    // Alternate phone validation
+    $('#phone').on('input', function() {
+        let value = $(this).val().replace(/\D/g, '');
+        
+        if (value.length > 10) {
+            value = value.substring(0, 10);
+        }
+        
+        $(this).val(value);
+        
+        const result = validatePhone(value, 'phone');
+        showValidationFeedback('phone', result.valid, result.message);
+    });
+    
+    // Pincode validation
+    $('#pincode').on('input', function() {
+        let value = $(this).val().replace(/\D/g, '');
+        
+        if (value.length > 6) {
+            value = value.substring(0, 6);
+        }
+        
+        $(this).val(value);
+        
+        const result = validatePincode(value, 'pincode');
+        showValidationFeedback('pincode', result.valid, result.message);
+    });
+    
+    // City validation
+    $('#city').on('input', function() {
+        let value = $(this).val();
+        value = value.replace(/[^a-zA-Z\s]/g, '');
+        $(this).val(value);
+        
+        const result = validateTextOnly(value, 'city');
+        showValidationFeedback('city', result.valid, result.message);
+    });
+    
+    // State validation
+    $('#state').on('input', function() {
+        let value = $(this).val();
+        value = value.replace(/[^a-zA-Z\s]/g, '');
+        $(this).val(value);
+        
+        const result = validateTextOnly(value, 'state');
+        showValidationFeedback('state', result.valid, result.message);
+    });
+    
+    // Other Hospital Patient ID - alphanumeric
+    $('#other_hospital_patient_id').on('input', function() {
+        let value = $(this).val();
+        value = value.replace(/[^a-zA-Z0-9\s]/g, '');
+        $(this).val(value);
+        
+        const result = validateAlphanumeric(value, 'other_hospital_patient_id');
+        showValidationFeedback('other_hospital_patient_id', result.valid, result.message);
+    });
+    
+    // Membership ID - alphanumeric
+    $('#membership_id').on('input', function() {
+        let value = $(this).val();
+        value = value.replace(/[^a-zA-Z0-9\s]/g, '');
+        $(this).val(value);
+        
+        const result = validateAlphanumeric(value, 'membership_id');
+        showValidationFeedback('membership_id', result.valid, result.message);
+    });
+    
+    // DOB validation
     $('#dob').on('change', function() {
         const dob = $(this).val();
+        const result = validateDOB(dob, 'dob');
+        
+        if (!result.valid) {
+            showValidationFeedback('dob', false, result.message);
+            $(this).val('');
+            $('#age').val('');
+            alert_float('warning', 'Date of birth cannot be a future date');
+            return;
+        }
+        
+        showValidationFeedback('dob', true, result.message);
+        
         if (dob) {
             const age = calculateAge(dob);
             $('#age').val(age);
@@ -980,43 +1390,287 @@ $(document).ready(function() {
         }
     });
     
-    // Mobile number formatting
-    $('#mobile_number').on('input', function() {
-        let value = $(this).val().replace(/\D/g, ''); // Remove non-digits
-        if (value.length > 10) {
-            value = value.substring(0, 10);
+    // Character counters
+    $('#address').on('input', function() {
+        const count = $(this).val().length;
+        $('#address_count').text(count);
+        
+        if (count >= 250) {
+            $(this).addClass('is-invalid');
+        } else if (count > 0) {
+            $(this).removeClass('is-invalid').addClass('is-valid');
+        } else {
+            $(this).removeClass('is-valid is-invalid');
         }
-        $(this).val(value);
     });
     
-    // Pincode formatting
-    $('#pincode').on('input', function() {
-        let value = $(this).val().replace(/\D/g, ''); // Remove non-digits
-        if (value.length > 6) {
-            value = value.substring(0, 6);
-        }
-        $(this).val(value);
+    $('#notes').on('input', function() {
+        $('#notes_count').text($(this).val().length);
     });
-    // Other Hospital Registration Toggle
+    
+    $('#cancellation_reason').on('input', function() {
+        $('#cancel_count').text($(this).val().length);
+    });
+    
+    // File upload validation
+    $('#recommendation_file').on('change', function() {
+        const files = this.files;
+        let totalSize = 0;
+        let errors = [];
+        
+        for (let i = 0; i < files.length; i++) {
+            const file = files[i];
+            totalSize += file.size;
+            
+            const validation = validateFile(file);
+            if (!validation.valid) {
+                errors.push(validation.message);
+            }
+        }
+        
+        if (totalSize > 10 * 1024 * 1024) {
+            errors.push('Total file size must be less than 10MB');
+        }
+        
+        if (errors.length > 0) {
+            alert_float('danger', errors.join('<br>'));
+            $(this).val('');
+            return false;
+        }
+        
+        if (files.length > 0) {
+            alert_float('success', files.length + ' file(s) selected successfully');
+        }
+    });
+}
+
+// ============================================================================
+// FORM VALIDATION
+// ============================================================================
+
+function validateAppointmentForm() {
+    const isNewPatient = $('#is_new_patient').val();
+    const patientMode = $('#patient_mode').val();
+    
+    // Validate appointment fields
+    if (!$('#appointment_date').val()) {
+        alert_float('warning', 'Please select appointment date');
+        $('#appointment_date').focus();
+        return false;
+    }
+    
+    if (!$('#appointment_time').val()) {
+        alert_float('warning', 'Please select appointment time');
+        return false;
+    }
+    
+    if (!$('#consultant_id').val()) {
+        alert_float('warning', 'Please select a consultant');
+        $('#consultant_id').selectpicker('toggle');
+        return false;
+    }
+    
+    if (!$('#reason_for_appointment').val()) {
+        alert_float('warning', 'Please select reason for appointment');
+        $('#reason_for_appointment').selectpicker('toggle');
+        return false;
+    }
+    
+    // Validate patient data for new patients
+    if (isNewPatient == '1') {
+        
+        // Name
+        const name = $('#name').val().trim();
+        const nameResult = validateName(name, 'name');
+        if (!nameResult.valid) {
+            alert_float('warning', 'Please enter a valid patient name (3-100 characters, letters only)');
+            $('#name').focus();
+            showValidationFeedback('name', false, nameResult.message || 'Invalid name');
+            return false;
+        }
+        
+        // Mobile
+        const mobile = $('#mobile_number').val().trim();
+        const mobileResult = validateMobile(mobile, 'mobile_number');
+        if (!mobileResult.valid) {
+            alert_float('warning', 'Please enter a valid 10-digit mobile number starting with 6-9');
+            $('#mobile_number').focus();
+            showValidationFeedback('mobile_number', false, mobileResult.message || 'Invalid mobile');
+            return false;
+        }
+        
+        // Walk-in specific validations
+        if (patientMode === 'walk_in') {
+            const gender = $('#gender').val();
+            if (!gender) {
+                alert_float('warning', 'Please select gender for walk-in registration');
+                $('#gender').focus();
+                return false;
+            }
+            
+            const patientType = $('#patient_type').val();
+            if (!patientType) {
+                alert_float('warning', 'Please select patient type for walk-in registration');
+                $('#patient_type').focus();
+                return false;
+            }
+            
+            // Email
+            const email = $('#email').val().trim();
+            if (email) {
+                const emailResult = validateEmail(email, 'email');
+                if (!emailResult.valid) {
+                    alert_float('warning', 'Please enter a valid email address: ' + emailResult.message);
+                    $('#email').focus();
+                    showValidationFeedback('email', false, emailResult.message);
+                    return false;
+                }
+            }
+            
+            // Phone
+            const phone = $('#phone').val().trim();
+            if (phone) {
+                const phoneResult = validatePhone(phone, 'phone');
+                if (!phoneResult.valid) {
+                    alert_float('warning', 'Alternate phone must be exactly 10 digits');
+                    $('#phone').focus();
+                    showValidationFeedback('phone', false, phoneResult.message);
+                    return false;
+                }
+            }
+            
+            // DOB
+            const dob = $('#dob').val();
+            if (dob) {
+                const dobResult = validateDOB(dob, 'dob');
+                if (!dobResult.valid) {
+                    alert_float('warning', 'Date of birth cannot be a future date');
+                    $('#dob').focus();
+                    showValidationFeedback('dob', false, dobResult.message);
+                    return false;
+                }
+            }
+            
+            // City
+            const city = $('#city').val().trim();
+            if (city) {
+                const cityResult = validateTextOnly(city, 'city');
+                if (!cityResult.valid) {
+                    alert_float('warning', 'City name must contain only letters and spaces');
+                    $('#city').focus();
+                    showValidationFeedback('city', false, cityResult.message);
+                    return false;
+                }
+            }
+            
+            // State
+            const state = $('#state').val().trim();
+            if (state) {
+                const stateResult = validateTextOnly(state, 'state');
+                if (!stateResult.valid) {
+                    alert_float('warning', 'State name must contain only letters and spaces');
+                    $('#state').focus();
+                    showValidationFeedback('state', false, stateResult.message);
+                    return false;
+                }
+            }
+            
+            // Pincode
+            const pincode = $('#pincode').val().trim();
+            if (pincode) {
+                const pincodeResult = validatePincode(pincode, 'pincode');
+                if (!pincodeResult.valid) {
+                    alert_float('warning', 'Pincode must be exactly 6 digits');
+                    $('#pincode').focus();
+                    showValidationFeedback('pincode', false, pincodeResult.message);
+                    return false;
+                }
+            }
+            
+            // Other Hospital ID
+            const otherHospitalId = $('#other_hospital_patient_id').val().trim();
+            if (otherHospitalId) {
+                const idResult = validateAlphanumeric(otherHospitalId, 'other_hospital_patient_id');
+                if (!idResult.valid) {
+                    alert_float('warning', 'Other hospital patient ID must be alphanumeric only');
+                    $('#other_hospital_patient_id').focus();
+                    showValidationFeedback('other_hospital_patient_id', false, idResult.message);
+                    return false;
+                }
+            }
+            
+            // Recommended By
+            const recommendedBy = $('#recommended_by').val().trim();
+            if (recommendedBy) {
+                const recResult = validateName(recommendedBy, 'recommended_by');
+                if (!recResult.valid) {
+                    alert_float('warning', 'Recommended by name must contain only letters and spaces');
+                    $('#recommended_by').focus();
+                    showValidationFeedback('recommended_by', false, recResult.message);
+                    return false;
+                }
+            }
+            
+            // Membership ID
+            const membershipId = $('#membership_id').val().trim();
+            if (membershipId) {
+                const memResult = validateAlphanumeric(membershipId, 'membership_id');
+                if (!memResult.valid) {
+                    alert_float('warning', 'Membership ID must be alphanumeric only');
+                    $('#membership_id').focus();
+                    showValidationFeedback('membership_id', false, memResult.message);
+                    return false;
+                }
+            }
+        }
+        
+    } else {
+        // Existing patient validation
+        if (!$('#patient_id').val()) {
+            alert_float('warning', 'Please select a patient');
+            $('#existing_patient_dropdown').selectpicker('toggle');
+            return false;
+        }
+    }
+    
+    return true;
+}
+
+// ============================================================================
+// DOCUMENT READY
+// ============================================================================
+$(document).ready(function() {
+    $('.selectpicker').selectpicker();
+    setupInputValidations();
+    loadPatients();
+    
+    $('input[name="patient_type_option"]').on('change', handlePatientTypeChange);
+    $('input[name="mode_option"]').on('change', handleNewPatientModeChange);
+    $('#existing_patient_dropdown').on('change', handleExistingPatientSelection);
+    $('input[name="existing_mode_option"]').on('change', handleExistingPatientModeChange);
+    
+    $('.recommendation_toggle').on('change', function() {
+        if ($('input[name="recommended_to_hospital"]:checked').val() == '1') {
+            $('#recommendation_details').slideDown();
+        } else {
+            $('#recommendation_details').slideUp();
+        }
+    });
+    
     $('input[name="registered_other_hospital"]').on('change', function() {
         if ($(this).val() == '1') {
             $('#other_hospital_id_section').slideDown();
         } else {
             $('#other_hospital_id_section').slideUp();
-            $('#other_hospital_patient_id').val(''); // Clear value when hidden
+            $('#other_hospital_patient_id').val('');
+            clearValidationFeedback('other_hospital_patient_id');
         }
     });
     
-    // Time Picker
     initializeTimePicker();
-    
-    // Save Button
     $('#saveAppointmentBtn').on('click', handleSaveAppointment);
-    
-    // Modal Reset
     $('#appointmentModal').on('hidden.bs.modal', resetModal);
     
-    // Initialize default state
     handlePatientTypeChange();
 });
 
@@ -1027,25 +1681,18 @@ function handlePatientTypeChange() {
     const type = $('input[name="patient_type_option"]:checked').val();
     
     if (type === 'existing') {
-        // EXISTING PATIENT MODE
         $('#is_new_patient').val('0');
         $('#existingPatientSection').show();
         $('#modeSelection').hide();
         $('#patientFormSection').hide();
-        
-        // Reset patient selection
         $('#existing_patient_dropdown').val('').selectpicker('refresh');
         $('#patient_id').val('');
         $('#existingPatientModeSection').hide();
-        
     } else {
-        // NEW PATIENT MODE
         $('#is_new_patient').val('1');
         $('#existingPatientSection').hide();
         $('#modeSelection').show();
         $('#patient_id').val('');
-        
-        // Trigger mode selection
         handleNewPatientModeChange();
     }
 }
@@ -1055,10 +1702,8 @@ function handleNewPatientModeChange() {
     $('#patient_mode').val(mode);
     
     if (mode === 'appointment') {
-        // APPOINTMENT MODE - Minimal fields
         showPatientForm('minimal');
     } else {
-        // WALK-IN MODE - Full form
         showPatientForm('full');
     }
 }
@@ -1069,8 +1714,6 @@ function handleExistingPatientSelection() {
     if (patientId) {
         $('#patient_id').val(patientId);
         $('#existingPatientModeSection').show();
-        
-        // Load patient data
         loadPatientData(patientId);
     } else {
         $('#patient_id').val('');
@@ -1091,71 +1734,34 @@ function handleExistingPatientModeChange() {
     }
     
     if (mode === 'appointment') {
-        // APPOINTMENT MODE - Hide patient form
         $('#patientFormSection').hide();
     } else {
-        // WALK-IN MODE - Show full form with patient data
         loadPatientData(patientId, function() {
             showPatientForm('full');
         });
     }
 }
 
-// ============================================================================
-// FORM VISIBILITY CONTROL
-// ============================================================================
 function showPatientForm(mode) {
     $('#patientFormSection').show();
     
     if (mode === 'minimal') {
-        // Quick registration - only essential fields
         $('#formModeText').text('Quick registration - Only Name and Mobile required');
+        $('#name_required, #mobile_required').show();
+        $('#gender_required, #patient_type_required').hide();
+        $('#gender_group, #age_group, #extended_basic_fields, #phone_group, #email_group').hide();
+        $('#address_section, #other_details_section, #recommendation_section, #membership_section').hide();
         
-        // Show minimal fields
-        $('#name_required').show();
-        $('#mobile_required').show();
-        $('#gender_required').hide();
-        $('#patient_type_required').hide();
-        
-        // Hide extended sections
-        $('#gender_group').hide();
-        $('#age_group').hide();
-        $('#extended_basic_fields').hide();
-        $('#phone_group').hide();
-        $('#email_group').hide();
-        $('#address_section').hide();
-        $('#other_details_section').hide();
-        $('#recommendation_section').hide();
-        $('#membership_section').hide();
-        
-        // Set defaults for hidden fields
         $('#gender').val('other');
         $('#patient_type').val('Regular');
         $('input[name="registered_other_hospital"][value="0"]').prop('checked', true);
         $('input[name="fee_payment"][value="not_applicable"]').prop('checked', true);
         $('input[name="recommended_to_hospital"][value="0"]').prop('checked', true);
-        $('input[name="has_membership"][value="0"]').prop('checked', true);
-        
     } else {
-        // Full registration - all fields
         $('#formModeText').text('Complete patient registration - Fields marked with * are required');
-        
-        // Show all required markers
-        $('#name_required').show();
-        $('#mobile_required').show();
-        $('#gender_required').show();
-        $('#patient_type_required').show();
-        
-        // Show all sections
-        $('#gender_group').show();
-        $('#age_group').show();
-        $('#extended_basic_fields').show();
-        $('#phone_group').show();
-        $('#email_group').show();
-        $('#address_section').show();
-        $('#other_details_section').show();
-        $('#recommendation_section').show();
-        $('#membership_section').show();
+        $('#name_required, #mobile_required, #gender_required, #patient_type_required').show();
+        $('#gender_group, #age_group, #extended_basic_fields, #phone_group, #email_group').show();
+        $('#address_section, #other_details_section, #recommendation_section, #membership_section').show();
     }
 }
 
@@ -1188,7 +1794,6 @@ function loadPatientData(patientId, callback) {
             if (response.success) {
                 const p = response.patient;
                 
-                // Populate all form fields with consistent names
                 $('#name').val(p.name || '');
                 $('#gender').val(p.gender || '');
                 $('#age').val(p.age || '');
@@ -1203,17 +1808,16 @@ function loadPatientData(patientId, callback) {
                 $('#state').val(p.state || '');
                 $('#pincode').val(p.pincode || '');
                 
-                // Radio buttons
                 $('input[name="registered_other_hospital"][value="' + (p.registered_other_hospital || '0') + '"]').prop('checked', true);
                 $('input[name="fee_payment"][value="' + (p.fee_payment || 'not_applicable') + '"]').prop('checked', true);
-                 if (p.registered_other_hospital == '1') {
+                
+                if (p.registered_other_hospital == '1') {
                     $('#other_hospital_id_section').show();
                     $('#other_hospital_patient_id').val(p.other_hospital_patient_id || '');
                 } else {
                     $('#other_hospital_id_section').hide();
-                    $('#other_hospital_patient_id').val('');
                 }
-                // Recommendation
+                
                 const recommended = p.recommended_to_hospital == '1' ? '1' : '0';
                 $('input[name="recommended_to_hospital"][value="' + recommended + '"]').prop('checked', true);
                 if (recommended == '1') {
@@ -1221,16 +1825,7 @@ function loadPatientData(patientId, callback) {
                     $('#recommended_by').val(p.recommended_by || '');
                 }
                 
-                // Membership
-                const hasMembership = p.has_membership == '1' ? '1' : '0';
-                $('input[name="has_membership"][value="' + hasMembership + '"]').prop('checked', true);
-                if (hasMembership == '1') {
-                    $('#membership_details').show();
-                    $('#membership_type').val(p.membership_type || '');
-                    $('#membership_number').val(p.membership_number || '');
-                    $('#membership_expiry_date').val(p.membership_expiry_date || '');
-                    $('#membership_notes').val(p.membership_notes || '');
-                }
+                $('#membership_id').val(p.membership_id || '');
                 
                 if (callback) callback();
             }
@@ -1271,221 +1866,42 @@ function initializeTimePicker() {
 }
 
 // ============================================================================
-// AGE CALCULATION
-// ============================================================================
-function calculateAge(dob) {
-    if (!dob) return '';
-    
-    const birthDate = new Date(dob);
-    const today = new Date();
-    
-    let age = today.getFullYear() - birthDate.getFullYear();
-    const monthDiff = today.getMonth() - birthDate.getMonth();
-    
-    if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
-        age--;
-    }
-    
-    return age >= 0 ? age : '';
-}
-
-// ============================================================================
-// VALIDATION FUNCTIONS
-// ============================================================================
-function validateMobileNumber(mobile) {
-    // Indian mobile number: starts with 6-9, has 10 digits
-    const mobileRegex = /^[6-9]\d{9}$/;
-    return mobileRegex.test(mobile);
-}
-
-function validateEmail(email) {
-    if (!email) return true; // Optional
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    return emailRegex.test(email);
-}
-
-function validatePincode(pincode) {
-    if (!pincode) return true; // Optional
-    const pincodeRegex = /^\d{6}$/;
-    return pincodeRegex.test(pincode);
-}
-
-function validateAppointmentForm() {
-    const isNewPatient = $('#is_new_patient').val();
-    const patientMode = $('#patient_mode').val();
-    
-    // Validate appointment fields (always required)
-    if (!$('#appointment_date').val()) {
-        alert_float('warning', 'Please select appointment date');
-        $('#appointment_date').focus();
-        return false;
-    }
-    
-    if (!$('#appointment_time').val()) {
-        alert_float('warning', 'Please select appointment time');
-        return false;
-    }
-    
-    if (!$('#consultant_id').val()) {
-        alert_float('warning', 'Please select a consultant');
-        $('#consultant_id').selectpicker('toggle');
-        return false;
-    }
-    
-    if (!$('#reason_for_appointment').val()) {
-        alert_float('warning', 'Please select reason for appointment');
-        $('#reason_for_appointment').selectpicker('toggle');
-        return false;
-    }
-    
-    // Validate patient data for new patients
-    if (isNewPatient == '1') {
-        const name = $('#name').val().trim();
-        const mobile = $('#mobile_number').val().trim();
-        const gender = $('#gender').val();
-        
-        // Name validation
-        if (!name) {
-            alert_float('warning', 'Please enter patient name');
-            $('#name').focus();
-            return false;
-        }
-        
-        if (name.length < 3) {
-            alert_float('warning', 'Patient name must be at least 3 characters');
-            $('#name').focus();
-            return false;
-        }
-        
-        // Mobile validation
-        if (!mobile) {
-            alert_float('warning', 'Please enter mobile number');
-            $('#mobile_number').focus();
-            return false;
-        }
-        
-        if (!validateMobileNumber(mobile)) {
-            alert_float('warning', 'Please enter a valid 10-digit mobile number starting with 6-9');
-            $('#mobile_number').focus();
-            return false;
-        }
-        
-        // Walk-in specific validations
-        if (patientMode === 'walk_in') {
-            if (!gender) {
-                alert_float('warning', 'Please select gender for walk-in');
-                $('#gender').focus();
-                return false;
-            }
-            
-            const patientType = $('#patient_type').val();
-            if (!patientType) {
-                alert_float('warning', 'Please select patient type for walk-in');
-                $('#patient_type').focus();
-                return false;
-            }
-        }
-        
-        // Email validation (if provided)
-        const email = $('#email').val().trim();
-        if (email && !validateEmail(email)) {
-            alert_float('warning', 'Please enter a valid email address');
-            $('#email').focus();
-            return false;
-        }
-        
-        // Pincode validation (if provided)
-        const pincode = $('#pincode').val().trim();
-        if (pincode && !validatePincode(pincode)) {
-            alert_float('warning', 'Please enter a valid 6-digit pincode');
-            $('#pincode').focus();
-            return false;
-        }
-    } else {
-        // Existing patient validation
-        if (!$('#patient_id').val()) {
-            alert_float('warning', 'Please select a patient');
-            $('#existing_patient_dropdown').selectpicker('toggle');
-            return false;
-        }
-    }
-    
-    return true;
-}
-
-// ============================================================================
 // SAVE APPOINTMENT
 // ============================================================================
 function handleSaveAppointment() {
     const $btn = $(this);
     
-    // Validate form before submission
-    if (!validateAppointmentForm()) {
-        return;
-    }
-    // Validate form before submission
     if (!validateAppointmentForm()) {
         return;
     }
     
     const isNewPatient = $('#is_new_patient').val();
     const patientMode = $('#patient_mode').val();
-    const reason = $('#reason_for_appointment').val();
-    
-    console.log('=== SAVE DEBUG ===');
-    console.log('Is New Patient:', isNewPatient);
-    console.log('Patient Mode:', patientMode);
-    console.log('Reason for Appointment:', reason);
-    console.log('Patient ID:', $('#patient_id').val());
-    console.log('==================');
     
     $btn.prop('disabled', true).html('<i class="fa fa-spinner fa-spin"></i> Processing...');
     
-    // ✅ STEP 1: Create FormData FIRST
     const formData = new FormData($('#appointmentForm')[0]);
     
-    // ✅ STEP 2: Remove patient data if existing patient
     if (isNewPatient == '0') {
-        // Remove all patient-related fields for existing patients
         const patientFields = [
             'name', 'gender', 'age', 'dob', 'patient_type',
             'mobile_number', 'phone', 'email', 
             'address', 'address_landmark', 'city', 'state', 'pincode',
             'registered_other_hospital', 'other_hospital_patient_id',
             'recommended_to_hospital', 'recommended_by',
-            'membership_id',
-            'recommendation_file[]'
+            'membership_id', 'recommendation_file[]'
         ];
         
         patientFields.forEach(field => {
             formData.delete(field);
         });
-        
-        console.log('Existing patient - removed patient data from submission');
     }
     
-    // ✅ STEP 3: Explicitly add hidden fields
     formData.set('patient_id', $('#patient_id').val());
     formData.set('is_new_patient', isNewPatient);
     formData.set('patient_mode', patientMode);
-    
-    // If reason is empty for walk-in, set to empty (server will default it)
-    if (!reason && patientMode === 'walk_in') {
-        formData.set('reason_for_appointment', '');
-        console.log('Reason empty for walk-in - server will default');
-    }
-    
-    // ✅ STEP 4: Add CSRF token
     formData.append(csrfTokenName, csrfTokenHash);
     
-    // Debug log
-    console.log('=== FORM DATA BEING SENT ===');
-    for (let pair of formData.entries()) {
-        console.log(pair[0] + ': ' + pair[1]);
-    }
-    console.log('============================');
-    
-    // ✅ STEP 5: Submit
     $.ajax({
         url: admin_url + 'hospital_management/save_appointment',
         type: 'POST',
@@ -1494,8 +1910,6 @@ function handleSaveAppointment() {
         contentType: false,
         dataType: 'json',
         success: function(response) {
-            console.log('Server Response:', response);
-            
             if (response.success) {
                 if (response.csrf_token_name && response.csrf_token_hash) {
                     csrfTokenName = response.csrf_token_name;
@@ -1511,16 +1925,11 @@ function handleSaveAppointment() {
             }
         },
         error: function(xhr, status, error) {
-            console.error('AJAX Error:', status, error);
-            console.error('Response:', xhr.responseText);
-            
             let errorMsg = 'Error creating appointment';
             if (xhr.status === 419) {
-                errorMsg = 'Session expired. Please refresh the page and try again.';
+                errorMsg = 'Session expired. Please refresh and try again.';
             } else if (xhr.responseJSON && xhr.responseJSON.message) {
                 errorMsg = xhr.responseJSON.message;
-            } else if (xhr.responseText) {
-                errorMsg = 'Server error: ' + xhr.responseText.substring(0, 100);
             }
             alert_float('danger', errorMsg);
             $btn.prop('disabled', false).html('<i class="fa fa-check"></i> Create Appointment');
@@ -1546,15 +1955,21 @@ function resetModal() {
     $('#patientFormSection').hide();
     $('#existingPatientModeSection').hide();
     $('#recommendation_details').hide();
-    $('#membership_id').val('');
+    $('#other_hospital_id_section').hide();
     
     $('.selectpicker').selectpicker('refresh');
     
-    // Reset time picker
     $('#hourButtons .time-btn').removeClass('selected');
     $('#minuteButtons .time-btn').removeClass('selected');
     $('#appointment_time').val('');
     $('#timeDisplay').hide();
+    
+    $('#address_count').text('0');
+    $('#notes_count').text('0');
+    
+    // Clear all validation feedback
+    $('.form-control').removeClass('is-valid is-invalid');
+    $('.feedback-message').empty();
 }
 
 // ============================================================================
@@ -1580,12 +1995,24 @@ function confirmAppointment(id) {
 
 function cancelAppointment(id) {
     $('#cancel_appointment_id').val(id);
+    $('#cancel_count').text('0');
+    $('#cancellation_reason').val('');
     $('#cancelModal').modal('show');
 }
 
 function submitCancellation() {
     const id = $('#cancel_appointment_id').val();
-    const reason = $('#cancellation_reason').val();
+    const reason = $('#cancellation_reason').val().trim();
+    
+    if (!reason) {
+        alert_float('warning', 'Please enter cancellation reason');
+        return;
+    }
+    
+    if (reason.length < 10) {
+        alert_float('warning', 'Cancellation reason must be at least 10 characters');
+        return;
+    }
     
     $.ajax({
         url: admin_url + 'hospital_management/cancel_appointment',
@@ -1605,7 +2032,7 @@ function submitCancellation() {
 }
 
 function deleteAppointment(id) {
-    if (confirm('Are you sure you want to delete this appointment?')) {
+    if (confirm('Are you sure you want to delete this appointment? This action cannot be undone.')) {
         $.ajax({
             url: admin_url + 'hospital_management/delete_appointment/' + id,
             type: 'POST',
