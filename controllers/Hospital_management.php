@@ -2469,4 +2469,45 @@ function is_consultant()
     
     return $role && strtolower($role->name) === 'consultant';
 }
+
+// helper
+/**
+ * Check if mobile number exists (AJAX)
+ */
+public function check_mobile_exists()
+{
+    $this->ajax_only();
+    
+    $mobile = $this->input->post('mobile_number');
+    $patient_id = $this->input->post('patient_id');
+    
+    if (empty($mobile)) {
+        return $this->json_response(false, 'Mobile number is required', ['exists' => false], true);
+    }
+    
+    // Check in database
+    $this->db->select('id, patient_number, name, mobile_number');
+    $this->db->where('mobile_number', $mobile);
+    
+    // Exclude current patient if updating
+    if (!empty($patient_id)) {
+        $this->db->where('id !=', $patient_id);
+    }
+    
+    $existing = $this->db->get(db_prefix() . 'hospital_patients')->row();
+    
+    if ($existing) {
+        return $this->json_response(true, '', [
+            'exists' => true,
+            'patient' => [
+                'id' => $existing->id,
+                'patient_number' => $existing->patient_number,
+                'name' => $existing->name,
+                'mobile_number' => $existing->mobile_number
+            ]
+        ], true);
+    }
+    
+    return $this->json_response(true, '', ['exists' => false], true);
+}
 }

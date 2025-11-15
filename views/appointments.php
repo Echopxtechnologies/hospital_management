@@ -1284,16 +1284,34 @@ function setupInputValidations() {
     
     // Mobile number validation
     $('#mobile_number').on('input', function() {
-        let value = $(this).val().replace(/\D/g, ''); // Remove non-digits
+        let value = $(this).val().replace(/\D/g, '');
         
         if (value.length > 10) {
             value = value.substring(0, 10);
         }
         
         $(this).val(value);
+        $('#mobile_exists_alert').remove();
         
+        // Format validation
         const result = validateMobile(value, 'mobile_number');
         showValidationFeedback('mobile_number', result.valid, result.message);
+        
+        // DB check if valid (debounced)
+        if (result.valid) {
+            clearTimeout(mobileCheckTimeout);
+            mobileCheckTimeout = setTimeout(function() {
+                checkMobileExists(value, 'mobile_number');
+            }, 800);
+        }
+    });
+    
+    $('#mobile_number').on('blur', function() {
+        const value = $(this).val().trim();
+        if (value.length === 10) {
+            clearTimeout(mobileCheckTimeout);
+            checkMobileExists(value, 'mobile_number');
+        }
     });
     
     // Alternate phone validation
@@ -1490,12 +1508,19 @@ function validateAppointmentForm() {
         }
         
         // Mobile
-        const mobile = $('#mobile_number').val().trim();
+      const mobile = $('#mobile_number').val().trim();
         const mobileResult = validateMobile(mobile, 'mobile_number');
         if (!mobileResult.valid) {
             alert_float('warning', 'Please enter a valid 10-digit mobile number starting with 6-9');
             $('#mobile_number').focus();
             showValidationFeedback('mobile_number', false, mobileResult.message || 'Invalid mobile');
+            return false;
+        }
+        
+        // Check if duplicate alert is showing
+        if ($('#mobile_exists_alert').length > 0) {
+            alert_float('warning', 'This mobile number already exists. Please use the existing patient or enter a different number.');
+            $('#mobile_number').focus();
             return false;
         }
         
@@ -2047,5 +2072,87 @@ function deleteAppointment(id) {
             }
         });
     }
+}
+
+// ============================================================================
+// MOBILE NUMBER VALIDATION WITH DB CHECK (MAIN MOBILE ONLY)
+// ============================================================================
+
+let mobileCheckTimeout = null;
+
+/**
+ * Check if mobile exists in database (AJAX)
+ */
+function checkMobileExists(mobile, fieldId) {
+    const patientId = $('#patient_id').val();
+    const isNewPatient = $('#is_new_patient').val();
+    
+    // Only check for NEW patients
+    if (isNewPatient == '0' && patientId) {
+        return;
+    }
+    
+    $.ajax({
+        url: admin_url + 'hospital_management/check_mobile_exists',
+        type: 'POST',
+        data: {
+            mobile_number: mobile,
+            patient_id: patientId,
+            [csrfTokenName]: csrfTokenHash
+        },
+        dataType: 'json',
+        success: function(response) {
+            if (response.csrf_token_name && response.csrf_token_hash) {
+                csrfTokenName = response.csrf_token_name;
+                csrfTokenHash = response.csrf_token_hash;
+            }
+            
+            if (response.exists) {
+                const patient = response.patient;
+                const message = `Exists: ${patient.patient_number} - ${patient.name}`;
+                showValidationFeedback(fieldId, false, message);
+                showMobileExistsAlert(patient);
+            } else {
+                showValidationFeedback(fieldId, true, 'Available');
+            }
+        },
+        error: function() {
+            console.error('Failed to check mobile number');
+        }
+    });
+}
+
+/**
+ * Show alert when mobile number exists
+ */
+function showMobileExistsAlert(patient) {
+    const alertHtml = `
+        <div class="alert alert-warning" id="mobile_exists_alert" style="margin-top: 10px;">
+            <button type="button" class="close" data-dismiss="alert">&times;</button>
+            <i class="fa fa-exclamation-triangle"></i>
+            <strong>Patient Already Exists!</strong><br>
+            Patient: <strong>${patient.patient_number} - ${patient.name}</strong><br>
+            Mobile: <strong>${patient.mobile_number}</strong>
+            <hr style="margin: 10px 0;">
+            <button type="button" class="btn btn-sm btn-info" onclick="useExistingPatient(${patient.id})">
+                <i class="fa fa-user"></i> Use This Patient
+            </button>
+        </div>
+    `;
+    
+    $('#mobile_exists_alert').remove();
+    $('#mobile_number').closest('.form-group').after(alertHtml);
+}
+
+/**
+ * Use existing patient
+ */
+function useExistingPatient(patientId) {
+    $('input[name="patient_type_option"][value="existing"]').prop('checked', true).trigger('change');
+    $('#existing_patient_dropdown').val(patientId).selectpicker('refresh').trigger('change');
+    $('#mobile_exists_alert').remove();
+    clearValidationFeedback('mobile_number');
+    $('#mobile_number').val('');
+    alert_float('success', 'Existing patient selected');
 }
 </script>
