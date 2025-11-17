@@ -62,7 +62,7 @@ class Hospital_requests_model extends App_Model
         $this->db->join(db_prefix() . 'staff s', 's.staffid = r.requested_by', 'left');
         $this->db->join($this->request_items_table . ' ri', 'ri.request_id = r.id', 'left');
         
-        $this->db->where('r.status', 'pending');
+        $this->db->where_in('r.status', ['pending', 'cancelled']);
         $this->db->where_in('r.category_id', [1, 2, 3]); // Lab + Procedure + Diagnostics
         
         $this->db->group_by('r.id');
@@ -629,5 +629,77 @@ public function get_lab_report($request_id)
 {
     $this->db->where('request_id', $request_id);
     return $this->db->get(db_prefix() . 'hospital_lab_reports')->row();
+}
+
+// ==========================================
+// COUNSELOR METHODS
+// ==========================================
+
+/**
+ * Get all surgery requests for counselors
+ * Shows all surgery requests regardless of status
+ */
+/**
+ * Get all surgery requests for counselors
+ * Shows all surgery requests regardless of status
+ */
+public function get_all_surgery_requests()
+{
+    $this->db->select(
+        'sr.*, ' .
+        'st.surgery_name, ' .
+        'st.surgery_code, ' .
+        'st.category as surgery_category, ' .
+        'p.id as patient_id, ' .
+        'p.patient_number, ' .
+        'p.name as patient_name, ' .
+        'p.mobile_number as patient_mobile, ' .
+        'p.age as patient_age, ' .
+        'p.gender as patient_gender, ' .
+        'p.patient_type, ' .
+        'v.visit_number, ' .
+        'v.visit_date, ' .
+        's.firstname as doctor_firstname, ' .
+        's.lastname as doctor_lastname'
+    );
+    $this->db->from(db_prefix() . 'hospital_surgery_requests sr');
+    $this->db->join(db_prefix() . 'hospital_surgery_types st', 'st.id = sr.surgery_type_id', 'left');
+    $this->db->join(db_prefix() . 'hospital_visits v', 'v.id = sr.visit_id', 'left');
+    $this->db->join(db_prefix() . 'hospital_patients p', 'p.id = sr.patient_id', 'left');
+    $this->db->join(db_prefix() . 'staff s', 's.staffid = sr.requested_by', 'left');
+    
+    // Order by most recent first
+    $this->db->order_by('sr.requested_at', 'DESC');
+    
+    return $this->db->get()->result_array();
+}
+
+/**
+ * Get counselor statistics
+ */
+public function get_counselor_statistics()
+{
+    $stats = [];
+    
+    // Total surgery requests
+    $stats['total_requests'] = $this->db->count_all_results(db_prefix() . 'hospital_surgery_requests');
+    
+    // Pending requests
+    $this->db->where('status', 'pending');
+    $stats['pending'] = $this->db->count_all_results(db_prefix() . 'hospital_surgery_requests');
+    
+    // Approved requests
+    $this->db->where('status', 'approved');
+    $stats['approved'] = $this->db->count_all_results(db_prefix() . 'hospital_surgery_requests');
+    
+    // Today's requests - FIXED: Use requested_at instead of created_at
+    $this->db->where('DATE(requested_at)', date('Y-m-d'));
+    $stats['today_requests'] = $this->db->count_all_results(db_prefix() . 'hospital_surgery_requests');
+    
+    // Completed requests
+    $this->db->where('status', 'completed');
+    $stats['completed'] = $this->db->count_all_results(db_prefix() . 'hospital_surgery_requests');
+    
+    return $stats;
 }
 }

@@ -59,108 +59,132 @@
             </div>
 
             <!-- PENDING APPROVAL SECTION -->
-            <?php if (!empty($pending_requests)): ?>
-            <div class="col-md-12">
-                <div class="panel_s lab-pending-panel" style="background:#00FFFF;">
-                    <div class="panel-body lab-gradient-header" >
-                        <h4 class="lab-header-title">
-                            <i class="fa fa-clock-o"></i> Pending Approval 
-                            <span class="badge lab-badge"><?php echo count($pending_requests); ?></span>
-                        </h4>
-                        <p class="text-muted">These requests need payment and approval before technicians can process them.</p>
-                        <hr>
+           <!-- PENDING & CANCELLED APPROVAL SECTION -->
+<?php if (!empty($pending_requests)): ?>
+<div class="col-md-12">
+    <div class="panel_s lab-pending-panel" style="background:#00FFFF;">
+        <div class="panel-body lab-gradient-header">
+            <h4 class="lab-header-title">
+                <i class="fa fa-clock-o"></i> Pending Approval 
+                <span class="badge lab-badge"><?php echo count($pending_requests); ?></span>
+            </h4>
+            <p class="text-muted">These requests need payment and approval before technicians can process them.</p>
+            <hr>
+            
+            <!-- ADD STATUS COLUMN TO TABLE -->
+            <table class="table table-striped dt-table" id="pending-requests-table" data-order-col="10" data-order-type="desc">
+                <thead class="lab-table-header">
+                    <tr>
+                        <th>Status</th><!-- NEW COLUMN -->
+                        <th>Request #</th>
+                        <th>Patient</th>
+                        <th>Patient Type</th>
+                        <th>Category</th>
+                        <th>Doctor</th>
+                        <th>Items</th>
+                        <th>Amount</th>
+                        <th>Payment Status</th>
+                        <th>Priority</th>
+                        <th>Created</th>
+                        <th class="text-center not-export" width="220">Action</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <?php foreach ($pending_requests as $req): ?>
+                    <tr>
+                        <!-- STATUS COLUMN -->
+                        <td>
+                            <?php if ($req['status'] == 'cancelled'): ?>
+                                <span class="label label-danger"><i class="fa fa-ban"></i> CANCELLED</span>
+                            <?php else: ?>
+                                <span class="label label-warning"><i class="fa fa-clock-o"></i> PENDING</span>
+                            <?php endif; ?>
+                        </td>
                         
-                        <!-- Pending Requests Table - LET PERFEX AUTO-INITIALIZE -->
-                        <table class="table table-striped dt-table" id="pending-requests-table" data-order-col="9" data-order-type="desc">
-                            <thead class="lab-table-header">
-                                <tr>
-                                    <th>Request #</th>
-                                    <th>Patient</th>
-                                    <th>Patient Type</th>
-                                    <th>Category</th>
-                                    <th>Doctor</th>
-                                    <th>Items</th>
-                                    <th>Amount</th>
-                                    <th>Payment Status</th>
-                                    <th>Priority</th>
-                                    <th>Created</th>
-                                    <th class="text-center not-export" width="220">Action</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                <?php foreach ($pending_requests as $req): ?>
-                                <tr>
-                                    <td><?php echo htmlspecialchars($req['request_number']); ?></td>
-                                    <td>
-                                        <?php echo htmlspecialchars($req['patient_name']); ?><br>
-                                        <small class="text-muted"><?php echo htmlspecialchars($req['patient_number']); ?></small>
-                                    </td>
-                                    <td>
-                                        <span class="label label-info">
-                                            <?php echo htmlspecialchars($req['patient_type']); ?>
-                                        </span>
-                                    </td>
-                                    <td><?php echo htmlspecialchars($req['category_name']); ?></td>
-                                    <td>Dr <?php echo htmlspecialchars($req['doctor_firstname'] . ' ' . $req['doctor_lastname']); ?></td>
-                                    <td><?php echo (int)$req['items_count']; ?></td>
-                                    <td data-order="<?php echo (float)$req['final_amount']; ?>">
-                                        ₹<?php echo number_format((float)$req['final_amount'], 2); ?>
-                                    </td>
-                                    <td>
-                                        <?php 
-                                        $payment = $this->hospital_requests_model->check_request_payment($req['id']);
-                                        if ($payment && $payment->payment_status === 'paid'): ?>
-                                            <span class="label label-success"><i class="fa fa-check"></i> Paid</span>
-                                        <?php elseif ($payment && $payment->payment_status === 'partial'): ?>
-                                            <span class="label label-warning"><i class="fa fa-exclamation"></i> Partial</span>
-                                        <?php else: ?>
-                                            <span class="label label-danger"><i class="fa fa-times"></i> Unpaid</span>
-                                        <?php endif; ?>
-                                    </td>
-                                    <td data-order="<?php echo ($req['priority'] == 'emergency') ? 3 : (($req['priority'] == 'urgent') ? 2 : 1); ?>">
-                                        <?php if ($req['priority'] == 'emergency'): ?>
-                                            <span class="label label-danger"><i class="fa fa-exclamation-triangle"></i> EMERGENCY</span>
-                                        <?php elseif ($req['priority'] == 'urgent'): ?>
-                                            <span class="label label-warning"><i class="fa fa-exclamation"></i> Urgent</span>
-                                        <?php else: ?>
-                                            <span class="label label-default">Normal</span>
-                                        <?php endif; ?>
-                                    </td>
-                                    <td data-order="<?php echo strtotime($req['created_at']); ?>">
-                                        <?php echo _dt($req['created_at']); ?>
-                                    </td>
-                                    <td class="text-center">
-                                        <?php 
-                                        $payment_check = $this->hospital_requests_model->check_request_payment($req['id']);
-                                        if (!$payment_check || $payment_check->payment_status !== 'paid'): ?>
-                                            <a href="<?php echo admin_url('hospital_management/process_payment/' . (int)$req['id']); ?>" 
-                                               class="btn btn-primary btn-sm"
-                                               style="background:#28A745; color:white;">
-                                                <i class="fa fa-credit-card"></i> Pay
-                                            </a>
-                                        <?php else: ?>
-                                            <button type="button" 
-                                                    class="btn btn-success btn-sm approve-btn" 
-                                                    data-id="<?php echo (int)$req['id']; ?>" 
-                                                    data-request="<?php echo htmlspecialchars($req['request_number']); ?>">
-                                                <i class="fa fa-check"></i> Approve
-                                            </button>
-                                        <?php endif; ?>
-                                        <button type="button" 
-                                                class="btn btn-danger btn-sm cancel-btn" 
-                                                data-id="<?php echo (int)$req['id']; ?>" 
-                                                data-request="<?php echo htmlspecialchars($req['request_number']); ?>">
-                                            <i class="fa fa-times"></i> Cancel
-                                        </button>
-                                    </td>
-                                </tr>
-                                <?php endforeach; ?>
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
-            </div>
-            <?php endif; ?>
+                        <td><?php echo htmlspecialchars($req['request_number']); ?></td>
+                        <td>
+                            <?php echo htmlspecialchars($req['patient_name']); ?><br>
+                            <small class="text-muted"><?php echo htmlspecialchars($req['patient_number']); ?></small>
+                        </td>
+                        <td>
+                            <span class="label label-info">
+                                <?php echo htmlspecialchars($req['patient_type']); ?>
+                            </span>
+                        </td>
+                        <td><?php echo htmlspecialchars($req['category_name']); ?></td>
+                        <td>Dr <?php echo htmlspecialchars($req['doctor_firstname'] . ' ' . $req['doctor_lastname']); ?></td>
+                        <td><?php echo (int)$req['items_count']; ?></td>
+                        <td data-order="<?php echo (float)$req['final_amount']; ?>">
+                            ₹<?php echo number_format((float)$req['final_amount'], 2); ?>
+                        </td>
+                        <td>
+                            <?php 
+                            $payment = $this->hospital_requests_model->check_request_payment($req['id']);
+                            if ($payment && $payment->payment_status === 'paid'): ?>
+                                <span class="label label-success"><i class="fa fa-check"></i> Paid</span>
+                            <?php elseif ($payment && $payment->payment_status === 'partial'): ?>
+                                <span class="label label-warning"><i class="fa fa-exclamation"></i> Partial</span>
+                            <?php else: ?>
+                                <span class="label label-danger"><i class="fa fa-times"></i> Unpaid</span>
+                            <?php endif; ?>
+                        </td>
+                        <td data-order="<?php echo ($req['priority'] == 'emergency') ? 3 : (($req['priority'] == 'urgent') ? 2 : 1); ?>">
+                            <?php if ($req['priority'] == 'emergency'): ?>
+                                <span class="label label-danger"><i class="fa fa-exclamation-triangle"></i> EMERGENCY</span>
+                            <?php elseif ($req['priority'] == 'urgent'): ?>
+                                <span class="label label-warning"><i class="fa fa-exclamation"></i> Urgent</span>
+                            <?php else: ?>
+                                <span class="label label-default">Normal</span>
+                            <?php endif; ?>
+                        </td>
+                        <td data-order="<?php echo strtotime($req['created_at']); ?>">
+                            <?php echo _dt($req['created_at']); ?>
+                        </td>
+                        
+                        <!-- CONDITIONAL ACTION COLUMN -->
+                        <td class="text-center">
+                            <?php if ($req['status'] == 'cancelled'): ?>
+                                <!-- Show Cancelled Message -->
+                                <span class="text-danger">
+                                    <i class="fa fa-ban"></i> Cancelled
+                                    <?php if (!empty($req['lab_notes']) && strpos($req['lab_notes'], 'CANCELLED:') !== false): ?>
+                                        <br><small><?php echo htmlspecialchars(str_replace('CANCELLED: ', '', $req['lab_notes'])); ?></small>
+                                    <?php endif; ?>
+                                </span>
+                            <?php else: ?>
+                                <!-- Show Pay/Approve/Cancel Buttons for Pending -->
+                                <?php 
+                                $payment_check = $this->hospital_requests_model->check_request_payment($req['id']);
+                                if (!$payment_check || $payment_check->payment_status !== 'paid'): ?>
+                                    <a href="<?php echo admin_url('hospital_management/process_payment/' . (int)$req['id']); ?>" 
+                                       class="btn btn-primary btn-sm"
+                                       style="background:#28A745; color:white;">
+                                        <i class="fa fa-credit-card"></i> Pay
+                                    </a>
+                                <?php else: ?>
+                                    <button type="button" 
+                                            class="btn btn-success btn-sm approve-btn" 
+                                            data-id="<?php echo (int)$req['id']; ?>" 
+                                            data-request="<?php echo htmlspecialchars($req['request_number']); ?>">
+                                        <i class="fa fa-check"></i> Approve
+                                    </button>
+                                <?php endif; ?>
+                                <button type="button" 
+                                        class="btn btn-danger btn-sm cancel-btn" 
+                                        data-id="<?php echo (int)$req['id']; ?>" 
+                                        data-request="<?php echo htmlspecialchars($req['request_number']); ?>">
+                                    <i class="fa fa-times"></i> Cancel
+                                </button>
+                            <?php endif; ?>
+                        </td>
+                    </tr>
+                    <?php endforeach; ?>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+<?php endif; ?>
             
             <!-- Main Lab Records -->
             <div class="col-md-12">

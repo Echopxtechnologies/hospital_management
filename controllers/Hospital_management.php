@@ -2277,7 +2277,7 @@ public function save_surgery_request()
  */
 public function process_payment($request_id = null)
 {
-    if (!has_permission('hospital_management', '', 'view')) {
+    if (!is_hospital_administrator() && !is_receptionist() && !has_permission('hospital_management', '', 'view')) {
         access_denied('hospital_management');
     }
     
@@ -2309,7 +2309,7 @@ public function process_payment($request_id = null)
  */
 public function save_payment()
 {
-    if (!has_permission('hospital_management', '', 'create')) {
+    if (!is_hospital_administrator() && !is_receptionist() && !has_permission('hospital_management', '', 'create')) {
         ajax_access_denied();
     }
     
@@ -2509,5 +2509,194 @@ public function check_mobile_exists()
     }
     
     return $this->json_response(true, '', ['exists' => false], true);
+}
+
+// ==========================================
+// COUNSELOR PORTAL
+// ==========================================
+
+/**
+ * Counselor Surgery Requests View
+ */
+public function counselor_surgery_requests()
+{
+    // Permission check
+    if (!is_counselor() && !has_permission('hospital_management', '', 'view')) {
+        access_denied('hospital_management');
+    }
+    
+    $this->load->model('hospital_requests_model');
+    
+    // Get statistics
+    $data['stats'] = $this->hospital_requests_model->get_counselor_statistics();
+    
+    // Get all surgery requests
+    $data['surgery_requests'] = $this->hospital_requests_model->get_all_surgery_requests();
+    
+    $data['title'] = 'Surgery Requests Management';
+    $this->load->view('counselor_surgery_requests', $data);
+}
+
+/**
+ * View Patient Details (for counselors)
+ */
+public function view_patient_details($patient_id)
+{
+    // Permission check
+    if (!is_counselor() && !has_permission('hospital_management', '', 'view')) {
+        access_denied('hospital_management');
+    }
+    
+    // Get patient details
+    $this->load->model('hospital_patients_model');
+    $data['patient'] = $this->hospital_patients_model->get($patient_id);
+    
+    if (!$data['patient']) {
+        show_404();
+    }
+    
+    // Get patient's visit history
+    $this->db->select('v.*, a.appointment_date, a.appointment_time, s.firstname, s.lastname');
+    $this->db->from(db_prefix() . 'hospital_visits v');
+    $this->db->join(db_prefix() . 'hospital_appointments a', 'a.id = v.appointment_id', 'left');
+    $this->db->join(db_prefix() . 'staff s', 's.staffid = a.consultant_id', 'left');
+    $this->db->where('a.patient_id', $patient_id);
+    $this->db->order_by('v.visit_date', 'DESC');
+    $data['visits'] = $this->db->get()->result_array();
+    
+    // Get patient's surgery requests
+    $this->db->select('sr.*, v.visit_number, s.firstname as doctor_firstname, s.lastname as doctor_lastname');
+    $this->db->from(db_prefix() . 'hospital_surgery_requests sr');
+    $this->db->join(db_prefix() . 'hospital_visits v', 'v.id = sr.visit_id', 'left');
+    $this->db->join(db_prefix() . 'hospital_appointments a', 'a.id = v.appointment_id', 'left');
+    $this->db->join(db_prefix() . 'staff s', 's.staffid = sr.requested_by', 'left');
+    $this->db->where('a.patient_id', $patient_id);
+    $this->db->order_by('sr.created_at', 'DESC');
+    $data['surgery_history'] = $this->db->get()->result_array();
+    
+    $data['title'] = 'Patient Details - ' . $data['patient']->name;
+    $this->load->view('patient_details', $data);
+}
+
+/**
+ * View Patient Counseling Form (for counselors)
+ */
+public function view_patient_counseling($surgery_request_id)
+{
+    // Permission check
+    if (!is_counselor() && !has_permission('hospital_management', '', 'view')) {
+        access_denied('hospital_management');
+    }
+    
+    // Get surgery request details with surgery type name
+    $this->db->select('sr.*, st.surgery_name, st.surgery_code, st.category as surgery_category,
+                       p.id as patient_id, p.patient_number, p.name as patient_name, 
+                       p.mobile_number, p.age, p.gender, v.visit_number, v.visit_date');
+    $this->db->from(db_prefix() . 'hospital_surgery_requests sr');
+    $this->db->join(db_prefix() . 'hospital_surgery_types st', 'st.id = sr.surgery_type_id', 'left');
+    $this->db->join(db_prefix() . 'hospital_patients p', 'p.id = sr.patient_id', 'left');
+    $this->db->join(db_prefix() . 'hospital_visits v', 'v.id = sr.visit_id', 'left');
+    $this->db->where('sr.id', $surgery_request_id);
+    $data['surgery_request'] = $this->db->get()->row();
+    
+    if (!$data['surgery_request']) {
+        show_404();
+    }
+    
+    // Get ONLY staff with Consultant role
+    $this->db->select('s.staffid, s.firstname, s.lastname, s.email');
+    $this->db->from(db_prefix() . 'staff s');
+    $this->db->join(db_prefix() . 'roles r', 'r.roleid = s.role', 'inner');
+    $this->db->where('s.active', 1);
+    $this->db->where('LOWER(r.name)', 'consultant');
+    $this->db->order_by('s.firstname', 'ASC');
+    $data['consultants'] = $this->db->get()->result_array();
+    
+    // Get room types
+    $data['room_types'] = ['General Ward', 'Semi-Private', 'Private', 'Deluxe', 'ICU'];
+    
+    // Get IOL types
+    $data['iol_types'] = [
+        'Monofocal',
+        'Multifocal',
+        'Toric',
+        'Extended Depth of Focus (EDOF)',
+        'Accommodating IOL'
+    ];
+    
+    // Get anesthesia types
+    $data['anesthesia_types'] = [
+        'Topical',
+        'Local',
+        'General',
+        'Peribulbar',
+        'Retrobulbar'
+    ];
+    
+    $data['title'] = 'Patient Counseling - ' . $data['surgery_request']->patient_name;
+    $this->load->view('patient_counseling', $data);
+}
+
+/**
+ * Save Counseling Data (AJAX)
+ */
+/**
+ * Save Counseling Data (AJAX)
+ */
+public function save_counseling()
+{
+    $this->ajax_only();
+    
+    // Permission check
+    if (!is_counselor() && !has_permission('hospital_management', '', 'edit')) {
+        ajax_access_denied();
+    }
+    
+    $surgery_request_id = $this->input->post('surgery_request_id');
+    
+    if (!$surgery_request_id) {
+        return $this->json_response(false, 'Invalid surgery request');
+    }
+    
+    // Calculate quoted amount
+    $surgery_amount = floatval($this->input->post('surgery_amount'));
+    $discount_amount = floatval($this->input->post('counseling_discount_amount'));
+    $quoted_amount = $surgery_amount - $discount_amount;
+    
+    // Prepare counseling data
+    $counseling_data = [
+        'op_number' => $this->input->post('op_number'),
+        'iol_type' => $this->input->post('iol_type'),
+        'anaesthesia_type' => $this->input->post('anaesthesia_type'),
+        'fix_surgery' => $this->input->post('fix_surgery') ?: 'no',
+        'assigned_consultant_id' => $this->input->post('assigned_consultant_id') ?: null,
+        'admission_date' => $this->input->post('admission_date') ?: null,
+        'surgery_date' => $this->input->post('surgery_date') ?: null,
+        'surgery_consent' => $this->input->post('surgery_consent') ?: 'no',
+        'room_type' => $this->input->post('room_type'),
+        'counseling_remarks' => $this->input->post('counseling_remarks'),
+        'counseling_status' => $this->input->post('counseling_status') ?: 'pending',
+        'payment_type' => $this->input->post('payment_type') ?: 'cash',
+        'surgery_amount' => number_format($surgery_amount, 2, '.', ''),
+        'counseling_discount_amount' => number_format($discount_amount, 2, '.', ''),
+        'quoted_amount' => number_format($quoted_amount, 2, '.', ''),
+        'copay_amount' => floatval($this->input->post('copay_amount')),
+        'counseled_by' => get_staff_user_id(),
+        'counseled_at' => date('Y-m-d H:i:s'),
+        
+        // Update total_amount in surgery request (for receptionist payment later)
+        'total_amount' => number_format($quoted_amount, 2, '.', '')
+    ];
+    
+    // Update surgery request
+    $this->db->where('id', $surgery_request_id);
+    $updated = $this->db->update(db_prefix() . 'hospital_surgery_requests', $counseling_data);
+    
+    if ($updated) {
+        log_activity('Counseling Data Saved for Surgery Request #' . $surgery_request_id);
+        return $this->json_response(true, 'Counseling data saved successfully');
+    }
+    
+    return $this->json_response(false, 'Failed to save counseling data');
 }
 }

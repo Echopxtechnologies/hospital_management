@@ -663,3 +663,28 @@ if (!$CI->db->table_exists(db_prefix() . 'hospital_lab_reports')) {
     
     log_activity('Hospital Management - Table Created: hospital_lab_reports');
 }
+
+
+
+// -- Add Counseling Fields to tblhospital_surgery_requests
+// ALTER TABLE `tblhospital_surgery_requests` 
+// ADD COLUMN `op_number` VARCHAR(50) NULL AFTER `notes`,
+// ADD COLUMN `iol_type` VARCHAR(100) NULL AFTER `op_number`,
+// ADD COLUMN `anaesthesia_type` VARCHAR(100) NULL AFTER `iol_type`,
+// ADD COLUMN `assigned_consultant_id` INT NULL AFTER `anaesthesia_type`,
+// ADD COLUMN `admission_date` DATE NULL AFTER `assigned_consultant_id`,
+// ADD COLUMN `surgery_date` DATE NULL AFTER `admission_date`,
+// ADD COLUMN `surgery_consent` ENUM('yes', 'no') DEFAULT 'no' AFTER `surgery_date`,
+// ADD COLUMN `room_type` VARCHAR(100) NULL AFTER `surgery_consent`,
+// ADD COLUMN `counseling_remarks` TEXT NULL AFTER `room_type`,
+// ADD COLUMN `counseling_status` ENUM('pending', 'accepted', 'rejected') DEFAULT 'pending' AFTER `counseling_remarks`,
+// ADD COLUMN `payment_type` ENUM('cash', 'cashless') DEFAULT 'cash' AFTER `counseling_status`,
+// ADD COLUMN `surgery_amount` DECIMAL(10,2) DEFAULT 0.00 AFTER `payment_type`,
+// ADD COLUMN `counseling_discount_amount` DECIMAL(10,2) DEFAULT 0.00 AFTER `surgery_amount`,
+// ADD COLUMN `quoted_amount` DECIMAL(10,2) DEFAULT 0.00 AFTER `counseling_discount_amount`,
+// ADD COLUMN `copay_amount` DECIMAL(10,2) DEFAULT 0.00 AFTER `quoted_amount`,
+// ADD COLUMN `counseled_by` INT NULL AFTER `copay_amount`,
+// ADD COLUMN `counseled_at` DATETIME NULL AFTER `counseled_by`;
+
+// ALTER TABLE `tblhospital_surgery_requests` 
+// ADD COLUMN `fix_surgery` ENUM('yes', 'no') DEFAULT 'no' AFTER `surgery_consent`;

@@ -520,16 +520,16 @@ if (is_counselor() || has_permission('counselor_portal', '', 'view')) {
         'slug'     => 'counselor-portal',
         'name'     => 'Counselor Portal',
         'icon'     => 'fa fa-comments',
-        'href'     => admin_url('hospital_management/counselor_dashboard'),
+        'href'     => admin_url('hospital_management/counselor_surgery_requests'),
         'position' => 33,
     ]);
     
-    // Submenu - My Sessions (placeholder for future features)
+    // Submenu - Surgery Requests
     $CI->app_menu->add_sidebar_children_item('counselor-portal', [
-        'slug'     => 'my-sessions',
-        'name'     => 'My Sessions',
-        'icon'     => 'fa fa-calendar-check-o',
-        'href'     => admin_url('hospital_management/counselor_sessions'),
+        'slug'     => 'surgery-requests',
+        'name'     => 'Surgery Requests',
+        'icon'     => 'fa fa-procedures',
+        'href'     => admin_url('hospital_management/counselor_surgery_requests'),
         'position' => 1,
     ]);
 }
@@ -836,7 +836,7 @@ function hospital_redirect_from_homepage()
         }
         // REDIRECT COUNSELOR TO COUNSELOR DASHBOARD - NEW
         if (is_counselor() || has_permission('counselor_portal', '', 'view')) {
-            redirect(admin_url('hospital_management/counselor_sessions'));
+           redirect(admin_url('hospital_management/counselor_surgery_requests'));
         }
 
         // REDIRECT NURSE TO NURSE DASHBOARD - NEW
@@ -879,7 +879,7 @@ function hospital_redirect_after_login($staff_id)
     
     // REDIRECT COUNSELOR AFTER LOGIN - NEW
 if (is_counselor() || has_permission('counselor_portal', '', 'view')) {
-    redirect(admin_url('hospital_management/counselor_sessions'));
+    redirect(admin_url('hospital_management/counselor_surgery_requests'));
 }
 
 // REDIRECT NURSE AFTER LOGIN - NEW
