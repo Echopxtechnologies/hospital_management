@@ -32,46 +32,11 @@
         margin: 0;
     }
     
-    .stat-card.stat-available {
-        border-left-color: #17a2b8;
-    }
-    
-    .stat-card.stat-assigned {
-        border-left-color: #ffc107;
-    }
-    
-    .stat-card.stat-progress {
-        border-left-color: #007bff;
-    }
-    
-    .stat-card.stat-completed {
-        border-left-color: #28a745;
-    }
-    
-    .stat-card.stat-urgent {
-        border-left-color: #dc3545;
-    }
-    
-    .request-item {
-        margin-bottom: 20px;
-    }
-    
-    .request-item .panel_s {
-        transition: all 0.3s ease;
-        height: 100%;
-        box-shadow: 0 2px 4px rgba(0,0,0,0.05);
-    }
-    
-    .request-item .panel_s:hover {
-        box-shadow: 0 6px 16px rgba(0,0,0,0.15);
-        transform: translateY(-3px);
-    }
-    
-    .filter-btn.active {
-        background-color: #17a2b8;
-        color: white;
-        border-color: #17a2b8;
-    }
+    .stat-card.stat-available { border-left-color: #17a2b8; }
+    .stat-card.stat-assigned { border-left-color: #ffc107; }
+    .stat-card.stat-progress { border-left-color: #007bff; }
+    .stat-card.stat-completed { border-left-color: #28a745; }
+    .stat-card.stat-urgent { border-left-color: #dc3545; }
     
     .priority-indicator {
         width: 10px;
@@ -99,24 +64,21 @@
         50% { opacity: 0.5; }
     }
     
-    .badge-hospital {
-        background: #17a2b8;
-        color: white;
-        padding: 4px 8px;
-        border-radius: 3px;
-        font-size: 12px;
+    /* DataTable custom styling */
+    .table-lab-requests {
+        font-size: 13px;
     }
     
-    .empty-state {
-        text-align: center;
-        padding: 60px 20px;
-        color: #6c757d;
+    .table-lab-requests td {
+        vertical-align: middle !important;
     }
     
-    .empty-state i {
-        font-size: 64px;
-        color: #dee2e6;
-        margin-bottom: 20px;
+    .btn-action-group {
+        white-space: nowrap;
+    }
+    
+    .btn-action-group .btn {
+        margin-right: 5px;
     }
 </style>
 
@@ -130,7 +92,7 @@
                         <i class="fa fa-flask"></i> Lab Requests Portal
                     </h3>
                     <p class="no-margin" style="opacity: 0.9; margin-top: 5px;">
-                        View and manage your assigned lab requests
+                        View and manage your assigned lab test requests (Category 1 only)
                     </p>
                 </div>
                 <div class="col-md-4 text-right">
@@ -208,181 +170,167 @@
                     <p class="text-muted no-margin">
                         <i class="fa fa-exclamation-triangle"></i> Urgent
                     </p>
-                    <small class="text-muted">High priority</small>
+                    <small class="text-muted">Needs attention</small>
                 </div>
             </div>
         </div>
 
-        <!-- Main Content -->
+        <!-- DataTable -->
         <div class="row mtop20">
             <div class="col-md-12">
                 <div class="panel_s">
                     <div class="panel-body">
-                        <!-- Filter Bar -->
-                        <div class="row">
-                            <div class="col-md-8">
-                                <h4 class="no-margin">
-                                    <i class="fa fa-list"></i> My Lab Requests
-                                    <span class="badge-hospital"><?php echo count($requests); ?> Total</span>
-                                </h4>
-                            </div>
-                            <div class="col-md-4 text-right">
-                                <div class="btn-group">
-                                    <button type="button" class="btn btn-default filter-btn active" data-filter="all">
-                                        <i class="fa fa-list"></i> All 
-                                        <span class="badge"><?php echo count($requests); ?></span>
-                                    </button>
-                                    <button type="button" class="btn btn-default filter-btn" data-filter="approved">
-                                        <i class="fa fa-inbox"></i> Available
-                                        <span class="badge badge-info"><?php 
-                                            $available = 0;
-                                            foreach ($requests as $r) {
-                                                if ($r['status'] == 'approved') $available++;
-                                            }
-                                            echo $available;
-                                        ?></span>
-                                    </button>
-                                    <button type="button" class="btn btn-default filter-btn" data-filter="in_progress">
-                                        <i class="fa fa-spinner"></i> Working
-                                        <span class="badge badge-primary"><?php 
-                                            $in_progress = 0;
-                                            foreach ($requests as $r) {
-                                                if ($r['status'] == 'in_progress') $in_progress++;
-                                            }
-                                            echo $in_progress;
-                                        ?></span>
-                                    </button>
-                                </div>
-                            </div>
-                        </div>
-                        <hr class="hr-panel-heading">
+                        <div class="clearfix"></div>
                         
-                        <?php if (empty($requests)): ?>
-                            <!-- Empty State -->
-                            <div class="empty-state">
-                                <i class="fa fa-clipboard"></i>
-                                <h4>No Lab Requests Available</h4>
-                                <p class="text-muted">
-                                    There are currently no lab requests assigned to you or available for pickup.<br>
-                                    New requests will appear here once they are approved by the receptionist.
-                                </p>
-                            </div>
-                        <?php else: ?>
-                            <!-- Requests Grid -->
-                            <div class="row" id="requests-container">
-                                <?php foreach ($requests as $request): ?>
-                                    <div class="col-md-6 col-lg-4 request-item" data-status="<?php echo $request['status']; ?>">
-                                        <div class="panel_s" style="border-left: 4px solid <?php 
-                                            echo $request['priority'] == 'emergency' ? '#dc3545' : 
-                                                 ($request['priority'] == 'urgent' ? '#ffc107' : '#28a745'); 
-                                        ?>;">
-                                            <div class="panel-body">
-                                                <!-- Header -->
-                                                <div class="row">
-                                                    <div class="col-md-12">
-                                                        <h5 class="bold no-margin" style="color: #17a2b8;">
-                                                            <i class="fa fa-flask"></i> <?php echo $request['request_number']; ?>
-                                                        </h5>
-                                                        <p class="text-muted no-margin" style="font-size: 12px; margin-top: 5px;">
-                                                            <i class="fa fa-user-circle"></i> 
-                                                            <?php echo $request['patient_name']; ?>
-                                                        </p>
-                                                        <p class="text-muted no-margin" style="font-size: 11px;">
-                                                            <?php echo $request['patient_number']; ?>
-                                                        </p>
-                                                    </div>
-                                                </div>
+                        <!-- DataTable -->
+                        <table class="table dt-table table-lab-requests table-striped table-hover" data-order-col="0" data-order-type="desc">
+                            <thead>
+                                <tr>
+                                    <th>Request #</th>
+                                    <th>Patient</th>
+                                    <th>Visit #</th>
+                                    <th>Category</th>
+                                    <th>Items</th>
+                                    <th>Priority</th>
+                                    <th>Status</th>
+                                    <th>Requested By</th>
+                                    <th>Technician</th>
+                                    <th>Date</th>
+                                    <th class="text-center">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <?php if (!empty($requests)): ?>
+                                    <?php foreach ($requests as $request): ?>
+                                        <tr>
+                                            <!-- Request Number -->
+                                            <td>
+                                                <strong><?php echo $request['request_number']; ?></strong>
+                                            </td>
+                                            
+                                            <!-- Patient Info -->
+                                            <td>
+                                                <strong><?php echo $request['patient_name']; ?></strong><br>
+                                                <small class="text-muted">
+                                                    <?php echo $request['patient_number']; ?> | 
+                                                    <?php echo $request['patient_age']; ?>Y / <?php echo $request['patient_gender']; ?>
+                                                </small>
+                                            </td>
+                                            
+                                            <!-- Visit Number -->
+                                            <td>
+                                                <?php echo $request['visit_number']; ?><br>
+                                                <small class="text-muted"><?php echo date('d M Y', strtotime($request['visit_date'])); ?></small>
+                                            </td>
+                                            
+                                            <!-- Category -->
+                                            <td>
+                                                <span class="label label-info">
+                                                    <?php echo $request['category_name']; ?>
+                                                </span>
+                                            </td>
+                                            
+                                            <!-- Items Count -->
+                                            <td class="text-center">
+                                                <span class="badge badge-primary">
+                                                    <?php echo $request['items_count']; ?> item(s)
+                                                </span>
+                                            </td>
+                                            
+                                            <!-- Priority -->
+                                            <td>
+                                                <?php if ($request['priority'] == 'emergency'): ?>
+                                                    <span class="label label-danger">
+                                                        <span class="priority-indicator priority-emergency"></span> EMERGENCY
+                                                    </span>
+                                                <?php elseif ($request['priority'] == 'urgent'): ?>
+                                                    <span class="label label-warning">
+                                                        <span class="priority-indicator priority-urgent"></span> URGENT
+                                                    </span>
+                                                <?php else: ?>
+                                                    <span class="label label-success">
+                                                        <span class="priority-indicator priority-normal"></span> NORMAL
+                                                    </span>
+                                                <?php endif; ?>
+                                            </td>
+                                            
+                                            <!-- Status -->
+                                            <td>
+                                                <?php if ($request['status'] == 'approved'): ?>
+                                                    <span class="label label-info">
+                                                        <i class="fa fa-inbox"></i> Available
+                                                    </span>
+                                                <?php elseif ($request['status'] == 'in_progress'): ?>
+                                                    <span class="label label-primary">
+                                                        <i class="fa fa-spinner fa-spin"></i> In Progress
+                                                    </span>
+                                                <?php elseif ($request['status'] == 'completed'): ?>
+                                                    <span class="label label-success">
+                                                        <i class="fa fa-check-circle"></i> Completed
+                                                    </span>
+                                                <?php endif; ?>
+                                            </td>
+                                            
+                                            <!-- Requested By -->
+                                            <td>
+                                                <small>
+                                                    <?php echo $request['doctor_firstname'] . ' ' . $request['doctor_lastname']; ?>
+                                                </small>
+                                            </td>
+                                            
+                                            <!-- Technician -->
+                                            <td>
+                                                <?php if (!empty($request['technician_firstname'])): ?>
+                                                    <small>
+                                                        <?php echo $request['technician_firstname'] . ' ' . $request['technician_lastname']; ?>
+                                                    </small>
+                                                <?php else: ?>
+                                                    <small class="text-muted">Not assigned</small>
+                                                <?php endif; ?>
+                                            </td>
+                                            
+                                            <!-- Date -->
+                                            <td>
+                                                <small><?php echo date('d M Y', strtotime($request['created_at'])); ?></small><br>
+                                                <small class="text-muted"><?php echo date('h:i A', strtotime($request['created_at'])); ?></small>
+                                            </td>
+                                            
+                                            <!-- Actions -->
+                                            <td class="text-center btn-action-group">
+                                                <a href="<?php echo admin_url('hospital_management/lab_request/' . $request['id']); ?>" 
+                                                   class="btn btn-sm btn-info"
+                                                   data-toggle="tooltip" 
+                                                   title="View Details">
+                                                    <i class="fa fa-eye"></i>
+                                                </a>
                                                 
-                                                <hr style="margin: 10px 0;">
+                                                <?php if ($request['status'] == 'approved'): ?>
+                                                    <button type="button" 
+                                                            class="btn btn-primary btn-sm start-btn" 
+                                                            data-id="<?php echo $request['id']; ?>"
+                                                            data-request="<?php echo $request['request_number']; ?>"
+                                                            data-toggle="tooltip" 
+                                                            title="Start Processing">
+                                                        <i class="fa fa-play"></i>
+                                                    </button>
+                                                <?php endif; ?>
                                                 
-                                                <!-- Request Details -->
-                                                <div class="mtop10">
-                                                    <p class="text-muted no-margin" style="font-size: 13px;">
-                                                        <i class="fa fa-flask"></i> <strong>Category:</strong> 
-                                                        <span class="pull-right"><?php echo $request['category_name']; ?></span>
-                                                    </p>
-                                                    <p class="text-muted no-margin" style="font-size: 13px;">
-                                                        <i class="fa fa-list"></i> <strong>Items:</strong> 
-                                                        <span class="pull-right"><?php echo $request['items_count']; ?> items</span>
-                                                    </p>
-                                                    <p class="text-muted no-margin" style="font-size: 13px;">
-                                                        <i class="fa fa-user-md"></i> <strong>Doctor:</strong> 
-                                                        <span class="pull-right">Dr <?php echo $request['doctor_firstname'] . ' ' . $request['doctor_lastname']; ?></span>
-                                                    </p>
-                                                    <p class="text-muted no-margin" style="font-size: 13px;">
-                                                        <i class="fa fa-calendar"></i> <strong>Date:</strong> 
-                                                        <span class="pull-right"><?php echo _dt($request['created_at']); ?></span>
-                                                    </p>
-                                                </div>
-                                                
-                                                <hr style="margin: 10px 0;">
-                                                
-                                                <!-- Status & Priority -->
-                                                <div class="mtop10">
-                                                    <div class="row">
-                                                        <div class="col-xs-6">
-                                                            <strong style="font-size: 12px;">Priority:</strong><br>
-                                                            <?php if ($request['priority'] == 'emergency'): ?>
-                                                                <span class="label label-danger">
-                                                                    <span class="priority-indicator priority-emergency"></span> EMERGENCY
-                                                                </span>
-                                                            <?php elseif ($request['priority'] == 'urgent'): ?>
-                                                                <span class="label label-warning">
-                                                                    <span class="priority-indicator priority-urgent"></span> URGENT
-                                                                </span>
-                                                            <?php else: ?>
-                                                                <span class="label label-success">
-                                                                    <span class="priority-indicator priority-normal"></span> NORMAL
-                                                                </span>
-                                                            <?php endif; ?>
-                                                        </div>
-                                                        <div class="col-xs-6 text-right">
-                                                            <strong style="font-size: 12px;">Status:</strong><br>
-                                                            <?php if ($request['status'] == 'approved'): ?>
-                                                                <span class="label label-info">
-                                                                    <i class="fa fa-inbox"></i> Available
-                                                                </span>
-                                                            <?php elseif ($request['status'] == 'in_progress'): ?>
-                                                                <span class="label label-primary">
-                                                                    <i class="fa fa-spinner fa-spin"></i> In Progress
-                                                                </span>
-                                                            <?php endif; ?>
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                                
-                                                <!-- Actions -->
-                                                <div class="mtop15 text-right">
-                                                    <a href="<?php echo admin_url('hospital_management/lab_request/' . $request['id']); ?>" 
-                                                       class="btn btn-sm"
-                                                       style="background: #17a2b8; color: white;">
-                                                        <i class="fa fa-eye"></i> View
-                                                    </a>
-                                                    
-                                                    <?php if ($request['status'] == 'approved'): ?>
-                                                        <button type="button" 
-                                                                class="btn btn-info btn-sm start-btn" 
-                                                                data-id="<?php echo $request['id']; ?>"
-                                                                data-request="<?php echo $request['request_number']; ?>">
-                                                            <i class="fa fa-play"></i> Start Work
-                                                        </button>
-                                                    <?php endif; ?>
-                                                    
-                                                    <?php if ($request['status'] == 'in_progress'): ?>
-                                                        <button type="button" 
-                                                                class="btn btn-success btn-sm complete-btn" 
-                                                                data-id="<?php echo $request['id']; ?>"
-                                                                data-request="<?php echo $request['request_number']; ?>">
-                                                            <i class="fa fa-check"></i> Complete
-                                                        </button>
-                                                    <?php endif; ?>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </div>
-                                <?php endforeach; ?>
-                            </div>
-                        <?php endif; ?>
+                                                <?php if ($request['status'] == 'in_progress'): ?>
+                                                    <button type="button" 
+                                                            class="btn btn-success btn-sm complete-btn" 
+                                                            data-id="<?php echo $request['id']; ?>"
+                                                            data-request="<?php echo $request['request_number']; ?>"
+                                                            data-toggle="tooltip" 
+                                                            title="Mark as Complete">
+                                                        <i class="fa fa-check"></i>
+                                                    </button>
+                                                <?php endif; ?>
+                                            </td>
+                                        </tr>
+                                    <?php endforeach; ?>
+                                <?php endif; ?>
+                            </tbody>
+                        </table>
                     </div>
                 </div>
             </div>
@@ -391,6 +339,7 @@
 </div>
 
 <?php init_tail(); ?>
+
 <script>
 var csrfTokenName = '<?php echo $this->security->get_csrf_token_name(); ?>';
 var csrfTokenHash = '<?php echo $this->security->get_csrf_hash(); ?>';
@@ -398,30 +347,36 @@ var csrfTokenHash = '<?php echo $this->security->get_csrf_hash(); ?>';
 $(function() {
     'use strict';
     
-    // Filter buttons
-    $('.filter-btn').on('click', function() {
-        $('.filter-btn').removeClass('active');
-        $(this).addClass('active');
-        
-        var filter = $(this).data('filter');
-        
-        if (filter === 'all') {
-            $('.request-item').slideDown(300);
-        } else {
-            $('.request-item').hide();
-            $('.request-item[data-status="' + filter + '"]').slideDown(300);
+    // Initialize DataTable
+    initDataTable('.table-lab-requests', window.location.href, [10], [10], {
+        "order": [[9, "desc"]], // Order by date column (index 9)
+        "pageLength": 25,
+        "responsive": true,
+        "columnDefs": [
+            {
+                "targets": [10], // Actions column
+                "orderable": false,
+                "searchable": false
+            }
+        ],
+        "drawCallback": function(settings) {
+            // Re-initialize tooltips after table redraw
+            $('[data-toggle="tooltip"]').tooltip();
         }
     });
     
+    // Initialize tooltips
+    $('[data-toggle="tooltip"]').tooltip();
+    
     // Start processing
-    $('.start-btn').on('click', function() {
+    $(document).on('click', '.start-btn', function() {
         var $btn = $(this);
         var id = $btn.data('id');
         var requestNum = $btn.data('request');
         
-        if (confirm('Start processing request ' + requestNum + '?\n\nThis will open the lab report form.')) {
+        if (confirm('Start processing request ' + requestNum + '?\n\nThis will assign the request to you and open the lab report form.')) {
             var originalHtml = $btn.html();
-            $btn.prop('disabled', true).html('<i class="fa fa-spinner fa-spin"></i> Starting...');
+            $btn.prop('disabled', true).html('<i class="fa fa-spinner fa-spin"></i>');
             
             var data = {
                 request_id: id
@@ -466,7 +421,7 @@ $(function() {
     });
     
     // Complete request
-    $('.complete-btn').on('click', function() {
+    $(document).on('click', '.complete-btn', function() {
         var $btn = $(this);
         var id = $btn.data('id');
         var requestNum = $btn.data('request');
@@ -475,7 +430,7 @@ $(function() {
             var notes = prompt('Add completion notes (optional):');
             
             var originalHtml = $btn.html();
-            $btn.prop('disabled', true).html('<i class="fa fa-spinner fa-spin"></i> Completing...');
+            $btn.prop('disabled', true).html('<i class="fa fa-spinner fa-spin"></i>');
             
             var data = {
                 request_id: id,

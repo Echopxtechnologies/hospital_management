@@ -257,6 +257,198 @@ class Hospital_requests_model extends App_Model
         return $this->db->get()->result_array();
     }
     
+
+    /**
+ * Get all surgery requests for reception
+ */
+public function get_all_surgery_requests_for_reception()
+{
+    $this->db->select(
+        'sr.*, ' .
+        'st.surgery_name, ' .
+        'st.surgery_code, ' .
+        'p.patient_number, ' .
+        'p.name as patient_name, ' .
+        'p.mobile_number as patient_mobile, ' .
+        'p.age as patient_age, ' .
+        'p.gender as patient_gender, ' .
+        'p.patient_type, ' .
+        'v.visit_number, ' .
+        'v.visit_date, ' .
+        's.firstname as doctor_firstname, ' .
+        's.lastname as doctor_lastname, ' .
+        'counselor.firstname as counselor_firstname, ' .
+        'counselor.lastname as counselor_lastname'
+    );
+    $this->db->from(db_prefix() . 'hospital_surgery_requests sr');
+    $this->db->join(db_prefix() . 'hospital_surgery_types st', 'st.id = sr.surgery_type_id', 'left');
+    $this->db->join(db_prefix() . 'hospital_visits v', 'v.id = sr.visit_id', 'left');
+    $this->db->join(db_prefix() . 'hospital_patients p', 'p.id = sr.patient_id', 'left');
+    $this->db->join(db_prefix() . 'staff s', 's.staffid = sr.requested_by', 'left');
+    $this->db->join(db_prefix() . 'staff counselor', 'counselor.staffid = sr.counseled_by', 'left');
+    
+    // Show all surgery requests with counseling accepted
+    $this->db->where('sr.counseling_status', 'accepted');
+    $this->db->order_by('sr.requested_at', 'DESC');
+    
+    return $this->db->get()->result_array();
+}
+
+/**
+ * Get surgery statistics for reception
+ */
+public function get_surgery_statistics_for_reception()
+{
+    $stats = [];
+    
+    // Pending payment (counseling accepted, payment not done)
+    $this->db->where('counseling_status', 'accepted');
+    $this->db->where('payment_status', 'unpaid');
+    $stats['pending_payment'] = $this->db->count_all_results(db_prefix() . 'hospital_surgery_requests');
+    
+    // Payment completed (paid but not approved)
+    $this->db->where('payment_status', 'paid');
+    $this->db->where('status', 'pending');
+    $stats['paid'] = $this->db->count_all_results(db_prefix() . 'hospital_surgery_requests');
+    
+    // Approved (ready for surgery)
+    $this->db->where('status', 'approved');
+    $stats['approved'] = $this->db->count_all_results(db_prefix() . 'hospital_surgery_requests');
+    
+    // Today's surgeries
+    $this->db->where('DATE(surgery_date)', date('Y-m-d'));
+    $stats['today_surgeries'] = $this->db->count_all_results(db_prefix() . 'hospital_surgery_requests');
+    
+    // Completed surgeries
+    $this->db->where('status', 'completed');
+    $stats['completed'] = $this->db->count_all_results(db_prefix() . 'hospital_surgery_requests');
+    
+    return $stats;
+}
+/**
+ * Process surgery payment
+ */
+public function process_surgery_payment($data)
+{
+    $request_id = $data['request_id'];
+    
+    // Get surgery request details
+    $this->db->select('sr.*, v.patient_id, p.patient_type');
+    $this->db->from(db_prefix() . 'hospital_surgery_requests sr');
+    $this->db->join(db_prefix() . 'hospital_visits v', 'v.id = sr.visit_id');
+    $this->db->join(db_prefix() . 'hospital_patients p', 'p.id = sr.patient_id');
+    $this->db->where('sr.id', $request_id);
+    $surgery = $this->db->get()->row();
+    
+    if (!$surgery) {
+        return ['success' => false, 'message' => 'Surgery request not found'];
+    }
+    
+    // Check if payment already exists
+    $existing_payment = $this->db->get_where(db_prefix() . 'hospital_payments', [
+        'request_id' => $request_id,
+        'request_type' => 'surgery_request'
+    ])->row();
+    
+    if ($existing_payment && $existing_payment->payment_status == 'paid') {
+        return ['success' => false, 'message' => 'Payment already completed for this surgery request'];
+    }
+    
+    // Generate payment number
+    $payment_number = 'PAY-' . date('Ymd') . '-' . str_pad(rand(1, 99999), 5, '0', STR_PAD_LEFT);
+    
+    // Calculate amounts
+    $quoted_amount = floatval($surgery->quoted_amount);
+    $counseling_discount = floatval($surgery->counseling_discount_amount);
+    $copay_amount = floatval($surgery->copay_amount);
+    
+    // Final amount = quoted_amount - counseling_discount
+    $final_amount = $quoted_amount - $counseling_discount;
+    
+    // Prepare payment data
+   // Prepare payment data
+$payment_data = [
+    'payment_number' => $payment_number,
+    'patient_id' => $surgery->patient_id,
+    'visit_id' => $surgery->visit_id,
+    'visit_request_id' => NULL,                     // NULL for surgery
+    'request_id' => $request_id,                    // Surgery request ID
+    'request_type' => 'surgery_request',            // Points to tblhospital_surgery_requests
+    'subtotal_amount' => $quoted_amount,
+    'discount_percentage' => 0,
+    'discount_amount' => $counseling_discount,
+    'tax_amount' => 0,
+    'final_amount' => $final_amount,
+    'paid_amount' => $data['payment_amount'],
+    'balance_amount' => $final_amount - floatval($data['payment_amount']),
+    'payment_status' => 'paid',
+    'payment_method' => $data['payment_method'],
+    'payment_date' => date('Y-m-d H:i:s'),
+    'transaction_id' => $data['transaction_id'] ?? null,
+    'payment_reference' => $data['payment_reference'] ?? null,
+    'patient_type' => $surgery->patient_type,
+    'discount_reason' => 'Counseling discount applied',
+    'request_category' => 'Surgery',
+    'request_description' => $surgery->surgery_name ?? 'Surgery',
+    'notes' => $data['notes'] ?? null,
+    'collected_by' => $data['collected_by'],
+    'created_by' => get_staff_user_id(),
+    'created_at' => date('Y-m-d H:i:s'),
+    'updated_at' => date('Y-m-d H:i:s')
+];
+    
+    // Insert payment
+    $this->db->insert(db_prefix() . 'hospital_payments', $payment_data);
+    
+    if ($this->db->affected_rows() > 0) {
+        // Update surgery request payment status
+        $this->db->where('id', $request_id);
+        $this->db->update(db_prefix() . 'hospital_surgery_requests', [
+            'payment_status' => 'paid'
+        ]);
+        
+        log_activity('Surgery Payment Processed: Request #' . $request_id . ', Amount: ' . $final_amount);
+        
+        return [
+            'success' => true,
+            'message' => 'Payment processed successfully. Amount: ₹' . number_format($final_amount, 2),
+            'payment_id' => $this->db->insert_id()
+        ];
+    }
+    
+    return ['success' => false, 'message' => 'Failed to process payment'];
+}
+/**
+ * Approve surgery request (after payment)
+ */
+public function approve_surgery_request($request_id)
+{
+    // Check if payment exists and is paid
+   
+    $payment = $this->db->get_where(db_prefix() . 'hospital_payments', [
+        'request_id' => $request_id,
+        'request_type' => 'surgery_request',
+        'payment_status' => 'paid'
+    ])->row();
+        
+    if (!$payment) {
+        return ['success' => false, 'message' => 'Payment must be completed before approval'];
+    }
+    
+    // Update surgery request status
+    $this->db->where('id', $request_id);
+    $this->db->where('payment_status', 'paid');
+    $updated = $this->db->update(db_prefix() . 'hospital_surgery_requests', [
+        'status' => 'approved'
+    ]);
+    
+    if ($updated && $this->db->affected_rows() > 0) {
+        log_activity('Surgery Request #' . $request_id . ' approved by receptionist');
+        return ['success' => true, 'message' => 'Surgery request approved successfully'];
+    }
+    
+    return ['success' => false, 'message' => 'Failed to approve surgery request'];
+}
     // ==========================================
     // TECHNICIAN METHODS - CRITICAL FIX
     // ==========================================
@@ -302,18 +494,19 @@ class Hospital_requests_model extends App_Model
         $this->db->join($this->request_items_table . ' ri', 'ri.request_id = r.id', 'left');
         
         // CRITICAL: Show ALL approved requests + my in_progress requests
+        // Show: approved (available to all) OR in_progress/completed assigned to me
         if ($technician_id) {
-            // Show: approved (available to all) OR in_progress assigned to me
             $this->db->group_start();
                 $this->db->where('r.status', 'approved'); // Available for anyone to pick up
                 $this->db->or_where('(r.status = "in_progress" AND r.assigned_technician_id = ' . (int)$technician_id . ')');
+                $this->db->or_where('(r.status = "completed" AND r.assigned_technician_id = ' . (int)$technician_id . ')');
             $this->db->group_end();
         } else {
-            // If no technician_id, show all approved and in_progress
-            $this->db->where_in('r.status', ['approved', 'in_progress']);
+            // If no technician_id, show all approved, in_progress, and completed
+            $this->db->where_in('r.status', ['approved', 'in_progress', 'completed']);
         }
         
-        $this->db->where_in('r.category_id', [1, 2, 3]); // Lab + Procedure + Diagnostics
+        $this->db->where_in('r.category_id', [1]); // Lab + Procedure + Diagnostics
         
         $this->db->group_by('r.id');
         $this->db->order_by('FIELD(r.priority, "emergency", "urgent", "normal")', '', FALSE);
@@ -423,13 +616,13 @@ class Hospital_requests_model extends App_Model
     
     // Available for pickup (approved requests - not assigned to anyone yet)
     $this->db->where('status', 'approved');
-    $this->db->where_in('category_id', [1, 2, 3]);
+    $this->db->where_in('category_id', [1]);
     $stats['available'] = $this->db->count_all_results($this->requests_table);
     
     // Assigned to me (in progress and assigned to this technician)
     $this->db->where('assigned_technician_id', $technician_id);
     $this->db->where('status', 'in_progress');
-    $this->db->where_in('category_id', [1, 2, 3]);
+    $this->db->where_in('category_id', [1]);
     $stats['assigned'] = $this->db->count_all_results($this->requests_table);
     
     // My in progress (same as assigned)
@@ -438,20 +631,20 @@ class Hospital_requests_model extends App_Model
     // My completed (all time)
     $this->db->where('assigned_technician_id', $technician_id);
     $this->db->where('status', 'completed');
-    $this->db->where_in('category_id', [1, 2, 3]);
+    $this->db->where_in('category_id', [1]);
     $stats['completed'] = $this->db->count_all_results($this->requests_table);
     
     // My today's completed
     $this->db->where('assigned_technician_id', $technician_id);
     $this->db->where('status', 'completed');
     $this->db->where('DATE(completed_at)', date('Y-m-d'));
-    $this->db->where_in('category_id', [1, 2, 3]);
+    $this->db->where_in('category_id', [1]);
     $stats['today_completed'] = $this->db->count_all_results($this->requests_table);
     
     // Urgent available (approved requests with urgent/emergency priority)
     $this->db->where('status', 'approved');
     $this->db->where_in('priority', ['emergency', 'urgent']);
-    $this->db->where_in('category_id', [1, 2, 3]);
+    $this->db->where_in('category_id', [1]);
     $stats['urgent'] = $this->db->count_all_results($this->requests_table);
     
     return $stats;
@@ -546,7 +739,8 @@ class Hospital_requests_model extends App_Model
      */
     public function check_request_payment($request_id)
     {
-        $this->db->where('visit_request_id', $request_id);
+        $this->db->where('request_id', $request_id);
+        $this->db->where('request_type', 'visit_request');
         $this->db->where('payment_status !=', 'cancelled');
         return $this->db->get(db_prefix() . 'hospital_payments')->row();
     }

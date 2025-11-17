@@ -1838,6 +1838,7 @@ public function lab_records()
     $data['title'] = 'Procedures & Lab Records';
     $this->load->view('lab_records', $data);
 }
+
 /**
  * Approve pending request (AJAX)
  */
@@ -1910,7 +1911,69 @@ public function cancel_request()
     
     return $this->json_response($result['success'], $result['message'], [], true);
 }
-
+// recptionsit suregyr view
+public function surgery_patients()
+{
+    if (!is_receptionist() && !has_permission('reception_management', '', 'view')) {
+        access_denied('reception_management');
+    }
+    
+    $this->load->model('hospital_requests_model');
+    
+    $data['surgery_requests'] = $this->hospital_requests_model->get_all_surgery_requests_for_reception();
+    $data['statistics'] = $this->hospital_requests_model->get_surgery_statistics_for_reception();
+    
+    $data['title'] = 'Surgery Patients Management';
+    $this->load->view('receptionist/surgery_patients', $data);
+}
+public function process_surgery_payment()
+{
+    if (!is_receptionist() && !has_permission('reception_management', '', 'view')) {
+        echo json_encode(['success' => false, 'message' => 'Access denied']);
+        return;
+    }
+    
+    $request_id = $this->input->post('request_id');
+    $payment_method = $this->input->post('payment_method');
+    $payment_amount = $this->input->post('payment_amount');
+    $transaction_id = $this->input->post('transaction_id');
+    $payment_reference = $this->input->post('payment_reference');
+    $notes = $this->input->post('notes');
+    
+    $this->load->model('hospital_requests_model');
+    
+    $result = $this->hospital_requests_model->process_surgery_payment([
+        'request_id' => $request_id,
+        'payment_method' => $payment_method,
+        'payment_amount' => $payment_amount,
+        'transaction_id' => $transaction_id,
+        'payment_reference' => $payment_reference,
+        'notes' => $notes,
+        'collected_by' => get_staff_user_id()
+    ]);
+    
+    $result['csrf_token_name'] = $this->security->get_csrf_token_name();
+    $result['csrf_token_hash'] = $this->security->get_csrf_hash();
+    
+    echo json_encode($result);
+}
+public function approve_surgery_request()
+{
+    if (!is_receptionist() && !has_permission('reception_management', '', 'view')) {
+        echo json_encode(['success' => false, 'message' => 'Access denied']);
+        return;
+    }
+    
+    $request_id = $this->input->post('request_id');
+    
+    $this->load->model('hospital_requests_model');
+    $result = $this->hospital_requests_model->approve_surgery_request($request_id);
+    
+    $result['csrf_token_name'] = $this->security->get_csrf_token_name();
+    $result['csrf_token_hash'] = $this->security->get_csrf_hash();
+    
+    echo json_encode($result);
+}
 /**
  * Lab Requests - Technician View
  */
@@ -2352,29 +2415,32 @@ public function save_payment()
     }
     
     // Prepare payment record
-    $insert_data = [
-        'payment_number' => $payment_number,
-        'patient_id' => $payment_calc['patient_id'],
-        'visit_id' => $payment_calc['visit_id'],
-        'visit_request_id' => $request_id,
-        'subtotal_amount' => $subtotal,
-        'discount_percentage' => number_format($discount_percentage, 2, '.', ''),
-        'discount_amount' => number_format($discount_amount, 2, '.', ''),
-        'final_amount' => number_format($final_amount, 2, '.', ''),
-        'paid_amount' => number_format($paid_amount, 2, '.', ''),
-        'balance_amount' => number_format($balance, 2, '.', ''),
-        'payment_status' => $payment_status,
-        'payment_method' => $this->input->post('payment_method'),
-        'payment_date' => date('Y-m-d H:i:s'),
-        'transaction_id' => $this->input->post('transaction_id') ?: null,
-        'payment_reference' => $this->input->post('payment_reference') ?: null,
-        'patient_type' => $payment_calc['patient_type'],
-        'discount_reason' => 'Manual discount applied by receptionist',
-        'request_category' => $payment_calc['category_name'],
-        'notes' => $this->input->post('notes') ?: null,
-        'collected_by' => get_staff_user_id(),
-        'created_by' => get_staff_user_id()
-    ];
+    // Prepare payment record
+$insert_data = [
+    'payment_number' => $payment_number,
+    'patient_id' => $payment_calc['patient_id'],
+    'visit_id' => $payment_calc['visit_id'],
+    'visit_request_id' => $request_id,              // Keep for compatibility
+    'request_id' => $request_id,                    // NEW - Polymorphic ID
+    'request_type' => 'visit_request',              // NEW - Points to tblhospital_visit_requests
+    'subtotal_amount' => $subtotal,
+    'discount_percentage' => number_format($discount_percentage, 2, '.', ''),
+    'discount_amount' => number_format($discount_amount, 2, '.', ''),
+    'final_amount' => number_format($final_amount, 2, '.', ''),
+    'paid_amount' => number_format($paid_amount, 2, '.', ''),
+    'balance_amount' => number_format($balance, 2, '.', ''),
+    'payment_status' => $payment_status,
+    'payment_method' => $this->input->post('payment_method'),
+    'payment_date' => date('Y-m-d H:i:s'),
+    'transaction_id' => $this->input->post('transaction_id') ?: null,
+    'payment_reference' => $this->input->post('payment_reference') ?: null,
+    'patient_type' => $payment_calc['patient_type'],
+    'discount_reason' => 'Manual discount applied by receptionist',
+    'request_category' => $payment_calc['category_name'],
+    'notes' => $this->input->post('notes') ?: null,
+    'collected_by' => get_staff_user_id(),
+    'created_by' => get_staff_user_id()
+];
     
     $this->db->insert(db_prefix() . 'hospital_payments', $insert_data);
     $payment_id = $this->db->insert_id();

@@ -688,3 +688,123 @@ if (!$CI->db->table_exists(db_prefix() . 'hospital_lab_reports')) {
 
 // ALTER TABLE `tblhospital_surgery_requests` 
 // ADD COLUMN `fix_surgery` ENUM('yes', 'no') DEFAULT 'no' AFTER `surgery_consent`;
+
+
+// -- ============================================
+// -- PAYMENT TABLE POLYMORPHIC MIGRATION
+// -- COMPLETE SAFE VERSION - NO ERRORS
+// -- ============================================
+
+// -- Disable foreign key checks temporarily
+// SET FOREIGN_KEY_CHECKS = 0;
+
+// -- ============================================
+// -- STEP 1: DROP FOREIGN KEY CONSTRAINTS
+// -- Try all possible constraint names
+// -- ============================================
+
+// -- Get constraint name and drop it
+// SET @constraint_name = (
+//     SELECT CONSTRAINT_NAME 
+//     FROM information_schema.KEY_COLUMN_USAGE 
+//     WHERE TABLE_SCHEMA = DATABASE()
+//       AND TABLE_NAME = 'tblhospital_payments' 
+//       AND COLUMN_NAME = 'visit_request_id'
+//       AND REFERENCED_TABLE_NAME IS NOT NULL
+//     LIMIT 1
+// );
+
+// -- Drop the constraint if it exists
+// SET @sql = IF(@constraint_name IS NOT NULL,
+//     CONCAT('ALTER TABLE `tblhospital_payments` DROP FOREIGN KEY `', @constraint_name, '`'),
+//     'SELECT "No foreign key constraint found" AS status'
+// );
+
+// PREPARE stmt FROM @sql;
+// EXECUTE stmt;
+// DEALLOCATE PREPARE stmt;
+
+// -- Re-enable foreign key checks
+// SET FOREIGN_KEY_CHECKS = 1;
+
+// -- ============================================
+// -- STEP 2: ADD REQUEST_TYPE COLUMN
+// -- ============================================
+
+// -- Add request_type column if it doesn't exist
+// ALTER TABLE `tblhospital_payments` 
+// ADD COLUMN `request_type` ENUM('visit_request', 'surgery_request') NOT NULL DEFAULT 'visit_request' 
+// COMMENT 'visit_request=tblhospital_visit_requests, surgery_request=tblhospital_surgery_requests';
+
+// -- ============================================
+// -- STEP 3: ADD REQUEST_ID COLUMN
+// -- ============================================
+
+// -- Add request_id column if it doesn't exist
+// ALTER TABLE `tblhospital_payments` 
+// ADD COLUMN `request_id` INT(11) NULL 
+// COMMENT 'Polymorphic ID - refers to tblhospital_visit_requests OR tblhospital_surgery_requests based on request_type';
+
+// -- ============================================
+// -- STEP 4: MIGRATE EXISTING DATA
+// -- ============================================
+
+// -- Copy visit_request_id to request_id for all existing records
+// UPDATE `tblhospital_payments` 
+// SET `request_id` = `visit_request_id`,
+//     `request_type` = 'visit_request'
+// WHERE `visit_request_id` IS NOT NULL;
+
+// -- ============================================
+// -- STEP 5: ADD INDEXES
+// -- ============================================
+
+// -- Add composite index for polymorphic queries
+// ALTER TABLE `tblhospital_payments` 
+// ADD INDEX `idx_polymorphic_request` (`request_id`, `request_type`);
+
+// -- Add individual index for request_type
+// ALTER TABLE `tblhospital_payments` 
+// ADD INDEX `idx_request_type` (`request_type`);
+
+// -- Add individual index for request_id
+// ALTER TABLE `tblhospital_payments` 
+// ADD INDEX `idx_request_id` (`request_id`);
+
+// -- ============================================
+// -- STEP 6: UPDATE TABLE COMMENT
+// -- ============================================
+
+// ALTER TABLE `tblhospital_payments` 
+// COMMENT = 'Polymorphic payment table: visit_request=Lab/Procedure from tblhospital_visit_requests, surgery_request=Surgery from tblhospital_surgery_requests';
+
+// -- ============================================
+// -- VERIFICATION - Check if migration succeeded
+// -- ============================================
+
+// SELECT 'Migration completed successfully!' AS status;
+
+// -- Show updated table structure
+// DESC `tblhospital_payments`;
+
+// -- Show data summary
+// SELECT 
+//     COUNT(*) as total_records,
+//     SUM(CASE WHEN request_type = 'visit_request' THEN 1 ELSE 0 END) as visit_requests,
+//     SUM(CASE WHEN request_type = 'surgery_request' THEN 1 ELSE 0 END) as surgery_requests,
+//     SUM(CASE WHEN request_id IS NOT NULL THEN 1 ELSE 0 END) as with_request_id,
+//     SUM(CASE WHEN visit_request_id IS NOT NULL THEN 1 ELSE 0 END) as with_visit_request_id
+// FROM `tblhospital_payments`;
+
+// -- Show sample records
+// SELECT 
+//     id,
+//     payment_number,
+//     visit_request_id,
+//     request_id,
+//     request_type,
+//     request_category,
+//     payment_status
+// FROM `tblhospital_payments`
+// ORDER BY id DESC
+// LIMIT 5;
