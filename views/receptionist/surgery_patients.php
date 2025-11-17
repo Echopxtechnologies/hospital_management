@@ -1015,7 +1015,198 @@
         </div>
     </div>
 </div>
-
+<!-- APPOINTMENT DETAIL MODAL -->
+<div class="modal fade" id="viewAppointmentModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header" style="background: linear-gradient(135deg, #00BCD4 0%, #0097A7 100%); color: white;">
+                <button type="button" class="close" data-dismiss="modal" style="color: white;">
+                    <span>&times;</span>
+                </button>
+                <h4 class="modal-title">
+                    <i class="fa fa-calendar-check-o"></i> Appointment Details
+                </h4>
+            </div>
+            
+            <div class="modal-body">
+                <!-- Loading -->
+                <div id="apt-loading" class="text-center" style="padding: 40px;">
+                    <i class="fa fa-spinner fa-spin fa-3x" style="color: #00BCD4;"></i>
+                    <p style="margin-top: 15px;">Loading...</p>
+                </div>
+                
+                <!-- Content -->
+                <div id="apt-content" style="display: none;">
+                    <!-- Header -->
+                    <div style="background: #E0F7FA; padding: 15px; border-radius: 6px; margin-bottom: 20px;">
+                        <h4 style="margin: 0; color: #006064;">
+                            <span id="apt-number"></span>
+                            <span id="apt-status-badge" style="float: right;"></span>
+                        </h4>
+                    </div>
+                    
+                    <!-- Tabs -->
+                    <ul class="nav nav-tabs">
+                        <li class="active"><a data-toggle="tab" href="#tab1"><i class="fa fa-info-circle"></i> Appointment</a></li>
+                        <li><a data-toggle="tab" href="#tab2"><i class="fa fa-user"></i> Patient</a></li>
+                        <li><a data-toggle="tab" href="#tab3"><i class="fa fa-user-md"></i> Doctor</a></li>
+                        <li><a data-toggle="tab" href="#tab4"><i class="fa fa-stethoscope"></i> Visit</a></li>
+                        <li id="tab5-header" style="display:none;"><a data-toggle="tab" href="#tab5"><i class="fa fa-heartbeat"></i> Surgery</a></li>
+                    </ul>
+                    
+                    <div class="tab-content" style="padding: 20px 0;">
+                        <!-- Tab 1: Appointment -->
+                        <div id="tab1" class="tab-pane active">
+                            <table class="table table-bordered">
+                                <tr>
+                                    <td width="30%" style="font-weight: 600;">Appointment Date</td>
+                                    <td id="apt-date"></td>
+                                </tr>
+                                <tr>
+                                    <td style="font-weight: 600;">Appointment Time</td>
+                                    <td id="apt-time"></td>
+                                </tr>
+                                <tr>
+                                    <td style="font-weight: 600;">Time Reported</td>
+                                    <td id="apt-time-reported"></td>
+                                </tr>
+                                <tr>
+                                    <td style="font-weight: 600;">Status</td>
+                                    <td id="apt-status"></td>
+                                </tr>
+                                <tr>
+                                    <td style="font-weight: 600;">Reason</td>
+                                    <td id="apt-reason" style="font-style: italic;"></td>
+                                </tr>
+                                <tr id="apt-notes-row" style="display: none;">
+                                    <td style="font-weight: 600;">Notes</td>
+                                    <td id="apt-notes" style="background: #FFF9C4;"></td>
+                                </tr>
+                                <tr>
+                                    <td style="font-weight: 600;">Created By</td>
+                                    <td id="apt-creator"></td>
+                                </tr>
+                            </table>
+                        </div>
+                        
+                        <!-- Tab 2: Patient -->
+                        <div id="tab2" class="tab-pane">
+                            <table class="table table-bordered">
+                                <tr>
+                                    <td width="30%" style="font-weight: 600;">Patient Name</td>
+                                    <td id="patient-name" style="color: #00BCD4; font-weight: 600; font-size: 16px;"></td>
+                                </tr>
+                                <tr>
+                                    <td style="font-weight: 600;">Patient Number</td>
+                                    <td id="patient-number"></td>
+                                </tr>
+                                <tr>
+                                    <td style="font-weight: 600;">Mobile</td>
+                                    <td id="patient-mobile"></td>
+                                </tr>
+                                <tr>
+                                    <td style="font-weight: 600;">Age</td>
+                                    <td id="patient-age"></td>
+                                </tr>
+                                <tr>
+                                    <td style="font-weight: 600;">Gender</td>
+                                    <td id="patient-gender"></td>
+                                </tr>
+                                <tr>
+                                    <td style="font-weight: 600;">Patient Type</td>
+                                    <td id="patient-type"></td>
+                                </tr>
+                            </table>
+                        </div>
+                        
+                        <!-- Tab 3: Doctor -->
+                        <div id="tab3" class="tab-pane">
+                            <div style="background: linear-gradient(135deg, #F3E5F5 0%, #E1BEE7 100%); padding: 20px; border-radius: 6px; margin-bottom: 20px;">
+                                <h4 style="color: #4A148C; margin: 0 0 10px 0;">
+                                    <i class="fa fa-user-md fa-2x" style="vertical-align: middle;"></i>
+                                    <span id="doctor-name"></span>
+                                </h4>
+                                <p style="margin: 5px 0;"><strong>Email:</strong> <span id="doctor-email"></span></p>
+                                <p style="margin: 5px 0;"><strong>Role:</strong> <span id="doctor-role"></span></p>
+                                <p style="margin: 5px 0;"><strong>Staff ID:</strong> <span id="doctor-staffid"></span></p>
+                            </div>
+                            
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <div class="text-center" style="background: white; padding: 15px; border: 2px solid #E1BEE7; border-radius: 6px;">
+                                        <h3 id="doctor-total-apt" style="color: #7B1FA2; margin: 0;">-</h3>
+                                        <small>Total Appointments</small>
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="text-center" style="background: white; padding: 15px; border: 2px solid #E1BEE7; border-radius: 6px;">
+                                        <h3 id="doctor-today-apt" style="color: #00BCD4; margin: 0;">-</h3>
+                                        <small>Today's Appointments</small>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Tab 4: Visit -->
+                        <div id="tab4" class="tab-pane">
+                            <div id="visit-exists" style="display: none;">
+                                <table class="table table-bordered">
+                                    <tr>
+                                        <td width="30%" style="font-weight: 600;">Visit Number</td>
+                                        <td id="visit-number" style="color: #00BCD4; font-weight: 600;"></td>
+                                    </tr>
+                                    <tr>
+                                        <td style="font-weight: 600;">Visit Date</td>
+                                        <td id="visit-date"></td>
+                                    </tr>
+                                    <tr>
+                                        <td style="font-weight: 600;">Visit Time</td>
+                                        <td id="visit-time"></td>
+                                    </tr>
+                                    <tr>
+                                        <td style="font-weight: 600;">Visit Type</td>
+                                        <td id="visit-type"></td>
+                                    </tr>
+                                    <tr>
+                                        <td style="font-weight: 600;">Status</td>
+                                        <td id="visit-status"></td>
+                                    </tr>
+                                    <tr>
+                                        <td style="font-weight: 600;">Reason</td>
+                                        <td id="visit-reason" style="font-style: italic;"></td>
+                                    </tr>
+                                    <tr>
+                                        <td style="font-weight: 600;">Fee Payment</td>
+                                        <td id="visit-fee"></td>
+                                    </tr>
+                                    <tr id="visit-fee-amount-row" style="display: none;">
+                                        <td style="font-weight: 600;">Fee Amount</td>
+                                        <td id="visit-fee-amount" style="color: #00C853; font-weight: 600;"></td>
+                                    </tr>
+                                </table>
+                            </div>
+                            <div id="visit-not-exists" class="text-center" style="padding: 30px; display: none;">
+                                <i class="fa fa-exclamation-triangle fa-3x" style="color: #FFB300;"></i>
+                                <p style="margin-top: 15px; color: #78909C;">No visit record found</p>
+                            </div>
+                        </div>
+                        
+                        <!-- Tab 5: Surgery -->
+                        <div id="tab5" class="tab-pane">
+                            <div id="surgery-content"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="modal-footer">
+                <button type="button" class="btn btn-default" data-dismiss="modal">
+                    <i class="fa fa-times"></i> Close
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
 <?php init_tail(); ?>
 
 <script>
@@ -1234,4 +1425,5 @@ $(function() {
         $(this).removeClass('table-hover-active');
     });
 });
+
 </script>
