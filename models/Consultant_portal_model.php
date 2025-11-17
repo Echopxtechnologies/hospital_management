@@ -83,14 +83,71 @@ public function get_appointments($staff_id, $is_jc = false, $from_date = null, $
         $this->db->where($this->appointments_table . '.appointment_date >=', $from_date);
         $this->db->where($this->appointments_table . '.appointment_date <=', $to_date);
     }
- 
-   
-     $this->db->where($this->appointments_table . '.status !=', 'pending');
+    $this->db->where($this->visits_table . '.reason !=', 'surgery');
+    $this->db->where($this->appointments_table . '.status !=', 'pending');
     $this->db->order_by($this->appointments_table . '.appointment_date', 'DESC');
     $this->db->order_by($this->appointments_table . '.appointment_time', 'DESC');
     
     return $this->db->get()->result_array();
 }
+
+/**
+ * Get surgery appointments for consultant only (NOT for junior consultants)
+ * 
+ * @param int $staff_id Consultant Staff ID
+ * @return array Surgery appointments list with full details
+ */
+public function get_consultant_surgery_appointments($staff_id)
+{
+    $this->db->select(
+        'sr.*, ' .
+        'sr.id as surgery_request_id, ' .
+        'sr.quoted_amount, ' .
+        'sr.counseling_discount_amount, ' .
+        'sr.copay_amount, ' .
+        'sr.payment_status, ' .
+        'sr.status as surgery_status, ' .
+        'sr.surgery_date, ' .
+        // REMOVED: sr.surgery_time (column doesn't exist)
+        'sr.request_type, ' .
+        'sr.requested_at, ' .
+        'sr.counseling_status, ' .
+        'st.surgery_name, ' .
+        'st.surgery_code, ' .
+        'st.category as surgery_category, ' .
+        'p.patient_number, ' .
+        'p.name as patient_name, ' .
+        'p.mobile_number as patient_mobile, ' .
+        'p.age as patient_age, ' .
+        'p.gender as patient_gender, ' .
+        'p.patient_type, ' .
+        'v.visit_number, ' .
+        'v.visit_date, ' .
+        'v.appointment_id, ' .
+        'a.appointment_number, ' .
+        'a.appointment_date, ' .
+        'a.appointment_time, ' .
+        'counselor.firstname as counselor_firstname, ' .
+        'counselor.lastname as counselor_lastname'
+    );
+    
+    $this->db->from(db_prefix() . 'hospital_surgery_requests sr');
+    $this->db->join(db_prefix() . 'hospital_surgery_types st', 'st.id = sr.surgery_type_id', 'left');
+    $this->db->join(db_prefix() . 'hospital_visits v', 'v.id = sr.visit_id', 'left');
+    $this->db->join(db_prefix() . 'hospital_appointments a', 'a.id = v.appointment_id', 'left');
+    $this->db->join(db_prefix() . 'hospital_patients p', 'p.id = sr.patient_id', 'left');
+    $this->db->join(db_prefix() . 'staff counselor', 'counselor.staffid = sr.counseled_by', 'left');
+    
+    // CRITICAL: Only show THIS consultant's surgery appointments
+    $this->db->where('sr.requested_by', $staff_id);
+    
+    // Show counseling accepted surgeries
+    $this->db->where('sr.counseling_status', 'accepted');
+    
+    $this->db->order_by('sr.requested_at', 'DESC');
+    
+    return $this->db->get()->result_array();
+}  
     /**
      * Get single appointment with full details including visit info
      * 

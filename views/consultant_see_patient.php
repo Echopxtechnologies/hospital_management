@@ -564,6 +564,12 @@
             <button class="btn btn-sm btn-primary btn-history" data-toggle="modal" data-target="#historyModal">
                 <i class="fa fa-history"></i> History
             </button>
+            <a href="<?php echo admin_url('hospital_management/consultant_appointments'); ?>" 
+                           class="btn btn-default btn-with-tooltip" 
+                           data-toggle="tooltip" 
+                           title="Back to My Appointments">
+                            <i class="fa fa-arrow-left"></i> Back to List
+                        </a>
         </div>
         <!-- ============================================
              CONSULTATION TABS
@@ -582,18 +588,22 @@
                 <li role="presentation">
                     <a href="#diagnosis" data-toggle="tab">Diagnosis and Plan of Care</a>
                 </li>
+                <?php if (!is_junior_consultant()): ?>
                 <li role="presentation">
                     <a href="#medicine" data-toggle="tab">Medicine Prescription</a>
                 </li>
+                <?php endif; ?>
                 <li role="presentation">
                     <a href="#spectacle" data-toggle="tab">Spectacle Prescription</a>
                 </li>
                 <li role="presentation">
                     <a href="#pediatric" data-toggle="tab">Pediatric</a>
                 </li>
+                <?php if (!is_junior_consultant()): ?>
                 <li role="presentation">
                     <a href="#request" data-toggle="tab">Request</a>
                 </li>
+                 <?php endif; ?>
                 <li role="presentation">
                     <a href="#images" data-toggle="tab">Images</a>
                 </li>
@@ -1938,6 +1948,10 @@ function viewSurgeryDetails(surgeryId) {
              ACTION BUTTONS (Bottom)
         ============================================ -->
         <div class="action-buttons">
+                <a href="<?php echo admin_url('hospital_management/consultant_appointments'); ?>" 
+                                   class="btn btn-default">
+                                    <i class="fa fa-arrow-left"></i> Back to Appointments
+                                </a>
             <button class="btn btn-lg btn-success" onclick="saveVisit()">
                 <i class="fa fa-save"></i> Save Visit
             </button>
@@ -1947,6 +1961,9 @@ function viewSurgeryDetails(surgeryId) {
             <button class="btn btn-lg btn-info">
                 <i class="fa fa-exchange"></i> Transfer Patient
             </button>
+           
+         
+           
             <button class="btn btn-lg btn-primary" onclick="closeVisit()">
                 <i class="fa fa-check-circle"></i> Close Visit
             </button>

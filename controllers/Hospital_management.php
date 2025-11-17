@@ -2765,4 +2765,171 @@ public function save_counseling()
     
     return $this->json_response(false, 'Failed to save counseling data');
 }
+
+/**
+ * Surgery Appointments for Consultant (NOT for Junior Consultant)
+ */
+public function consultant_surgery_appointments()
+{
+    // ONLY for consultants, NOT junior consultants
+    if (!is_consultant() || is_junior_consultant()) {
+        access_denied('Consultant Portal');
+    }
+    
+    $staff_id = get_staff_user_id();
+    
+    // Load model
+    $this->load->model('consultant_portal_model');
+    
+    // Get consultant's own surgery appointments
+    $surgery_appointments = $this->consultant_portal_model->get_consultant_surgery_appointments($staff_id);
+    
+    // Prepare data for view
+    $data = [
+        'surgery_appointments' => $surgery_appointments,
+        'title' => 'My Surgery Appointments'
+    ];
+    
+    $this->load->view('consultant_surgery_appointments', $data);
+}
+/**
+ * Mark surgery as scheduled (manual workflow)
+ */
+public function mark_surgery_scheduled()
+{
+    if ($this->input->is_ajax_request()) {
+        $request_id = $this->input->post('request_id');
+        
+        if (empty($request_id)) {
+            echo json_encode([
+                'success' => false,
+                'message' => 'Invalid request ID',
+                'csrf_token_name' => $this->security->get_csrf_token_name(),
+                'csrf_token_hash' => $this->security->get_csrf_hash()
+            ]);
+            return;
+        }
+        
+        // Check payment status
+        $this->db->select('payment_status');
+        $this->db->where('id', $request_id);
+        $surgery = $this->db->get(db_prefix() . 'hospital_surgery_requests')->row();
+        
+        if (!$surgery || $surgery->payment_status !== 'paid') {
+            echo json_encode([
+                'success' => false,
+                'message' => 'Payment must be completed first',
+                'csrf_token_name' => $this->security->get_csrf_token_name(),
+                'csrf_token_hash' => $this->security->get_csrf_hash()
+            ]);
+            return;
+        }
+        
+        // Mark as scheduled
+        $this->db->where('id', $request_id);
+        $this->db->update(db_prefix() . 'hospital_surgery_requests', [
+            'status' => 'scheduled',
+            'surgery_date' => date('Y-m-d')
+        ]);
+        
+        log_activity('Surgery #' . $request_id . ' marked as scheduled');
+        
+        echo json_encode([
+            'success' => true,
+            'message' => 'Surgery marked as scheduled successfully',
+            'csrf_token_name' => $this->security->get_csrf_token_name(),
+            'csrf_token_hash' => $this->security->get_csrf_hash()
+        ]);
+    }
+}
+
+/**
+ * Link surgery to appointment via appointment number
+ */
+public function link_surgery_appointment()
+{
+    if ($this->input->is_ajax_request()) {
+        $surgery_id = $this->input->post('surgery_id');
+        $appointment_number = trim(strtoupper($this->input->post('appointment_number')));
+        
+        if (empty($surgery_id) || empty($appointment_number)) {
+            echo json_encode([
+                'success' => false,
+                'message' => 'Surgery ID and Appointment Number are required',
+                'csrf_token_name' => $this->security->get_csrf_token_name(),
+                'csrf_token_hash' => $this->security->get_csrf_hash()
+            ]);
+            return;
+        }
+        
+        // Validate appointment number exists
+        $this->db->select('id, appointment_date, patient_id');
+        $this->db->where('appointment_number', $appointment_number);
+        $appointment = $this->db->get(db_prefix() . 'hospital_appointments')->row();
+        
+        if (!$appointment) {
+            echo json_encode([
+                'success' => false,
+                'message' => 'Appointment number not found: ' . $appointment_number,
+                'csrf_token_name' => $this->security->get_csrf_token_name(),
+                'csrf_token_hash' => $this->security->get_csrf_hash()
+            ]);
+            return;
+        }
+        
+        // Verify surgery exists and payment is completed
+        $this->db->select('payment_status, patient_id');
+        $this->db->where('id', $surgery_id);
+        $surgery = $this->db->get(db_prefix() . 'hospital_surgery_requests')->row();
+        
+        if (!$surgery) {
+            echo json_encode([
+                'success' => false,
+                'message' => 'Surgery request not found',
+                'csrf_token_name' => $this->security->get_csrf_token_name(),
+                'csrf_token_hash' => $this->security->get_csrf_hash()
+            ]);
+            return;
+        }
+        
+        if ($surgery->payment_status !== 'paid') {
+            echo json_encode([
+                'success' => false,
+                'message' => 'Payment must be completed before scheduling',
+                'csrf_token_name' => $this->security->get_csrf_token_name(),
+                'csrf_token_hash' => $this->security->get_csrf_hash()
+            ]);
+            return;
+        }
+        
+        // Verify patient matches
+        if ($surgery->patient_id != $appointment->patient_id) {
+            echo json_encode([
+                'success' => false,
+                'message' => 'Patient mismatch! The appointment belongs to a different patient.',
+                'csrf_token_name' => $this->security->get_csrf_token_name(),
+                'csrf_token_hash' => $this->security->get_csrf_hash()
+            ]);
+            return;
+        }
+        
+        // Update surgery with appointment link
+        $this->db->where('id', $surgery_id);
+        $this->db->update(db_prefix() . 'hospital_surgery_requests', [
+            'appointment_id' => $appointment->id,
+            'status' => 'scheduled',
+            'surgery_date' => $appointment->appointment_date
+        ]);
+        
+        log_activity('Surgery #' . $surgery_id . ' linked to Appointment ' . $appointment_number . ' and marked as scheduled');
+        
+        echo json_encode([
+            'success' => true,
+            'message' => 'Surgery successfully linked to ' . $appointment_number . ' and marked as scheduled',
+            'csrf_token_name' => $this->security->get_csrf_token_name(),
+            'csrf_token_hash' => $this->security->get_csrf_hash()
+        ]);
+    }
+}
+
 }

@@ -265,6 +265,7 @@ public function get_all_surgery_requests_for_reception()
 {
     $this->db->select(
         'sr.*, ' .
+        'sr.appointment_id,' .
         'st.surgery_name, ' .
         'st.surgery_code, ' .
         'p.patient_number, ' .
@@ -278,7 +279,9 @@ public function get_all_surgery_requests_for_reception()
         's.firstname as doctor_firstname, ' .
         's.lastname as doctor_lastname, ' .
         'counselor.firstname as counselor_firstname, ' .
-        'counselor.lastname as counselor_lastname'
+        'counselor.lastname as counselor_lastname, ' .
+        'apt.appointment_number, ' .  // ← ADD THIS
+        'apt.appointment_date'         // ← ADD THIS
     );
     $this->db->from(db_prefix() . 'hospital_surgery_requests sr');
     $this->db->join(db_prefix() . 'hospital_surgery_types st', 'st.id = sr.surgery_type_id', 'left');
@@ -286,6 +289,7 @@ public function get_all_surgery_requests_for_reception()
     $this->db->join(db_prefix() . 'hospital_patients p', 'p.id = sr.patient_id', 'left');
     $this->db->join(db_prefix() . 'staff s', 's.staffid = sr.requested_by', 'left');
     $this->db->join(db_prefix() . 'staff counselor', 'counselor.staffid = sr.counseled_by', 'left');
+    $this->db->join(db_prefix() . 'hospital_appointments apt', 'apt.id = sr.appointment_id', 'left'); // ← ADD THIS LINE
     
     // Show all surgery requests with counseling accepted
     $this->db->where('sr.counseling_status', 'accepted');

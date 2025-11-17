@@ -2155,4 +2155,53 @@ function useExistingPatient(patientId) {
     $('#mobile_number').val('');
     alert_float('success', 'Existing patient selected');
 }
+
+// ============================================================================
+// AUTO-FILL FOR SURGERY APPOINTMENTS
+// ============================================================================
+
+// Check URL parameters
+const urlParams = new URLSearchParams(window.location.search);
+const surgeryId = urlParams.get('surgery_id');
+const patientId = urlParams.get('patient_id');
+const consultantId = urlParams.get('consultant_id');
+const reason = urlParams.get('reason');
+
+if (surgeryId && patientId && reason === 'surgery') {
+    // Auto-open modal after short delay
+    setTimeout(function() {
+        // Open modal
+        $('#appointmentModal').modal('show');
+        
+        // Select existing patient option
+        $('input[name="patient_type_option"][value="existing"]').prop('checked', true).trigger('change');
+        
+        // Select the patient
+        $('#existing_patient_dropdown').val(patientId).selectpicker('refresh').trigger('change');
+        
+        // Wait for patient data to load, then set walk-in mode
+        setTimeout(function() {
+            // Set to walk-in mode (or appointment mode if you prefer)
+            $('input[name="existing_mode_option"][value="walk_in"]').prop('checked', true).trigger('change');
+            
+            // Set reason to surgery
+            $('#reason_for_appointment').val('surgery').selectpicker('refresh');
+            
+            // Set consultant
+            if (consultantId) {
+                $('#consultant_id').val(consultantId).selectpicker('refresh');
+            }
+            
+            // Add hidden field for surgery_id
+            if ($('#hidden_surgery_id').length === 0) {
+                $('#appointmentForm').append('<input type="hidden" id="hidden_surgery_id" name="surgery_id" value="' + surgeryId + '">');
+            }
+            
+            // Show info message
+            alert_float('info', 'Creating surgery appointment. Please select date and time.');
+            
+        }, 1500);
+        
+    }, 800);
+}
 </script>

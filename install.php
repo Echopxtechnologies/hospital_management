@@ -808,3 +808,8 @@ if (!$CI->db->table_exists(db_prefix() . 'hospital_lab_reports')) {
 // FROM `tblhospital_payments`
 // ORDER BY id DESC
 // LIMIT 5;
+
+
+// ALTER TABLE `tblhospital_surgery_requests` 
+// ADD COLUMN `appointment_id` INT(11) NULL COMMENT 'Linked appointment ID' AFTER `surgery_date`,
+// ADD INDEX `idx_appointment_id` (`appointment_id`);

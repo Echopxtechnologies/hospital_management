@@ -477,6 +477,15 @@ function hospital_management_init()
             'href'     => admin_url('hospital_management/consultant_appointments'),
             'position' => 1,
         ]);
+         if (is_consultant() && !is_junior_consultant()) {
+            $CI->app_menu->add_sidebar_children_item('consultant-portal', [
+                'slug'     => 'surgery-appointments',
+                'name'     => 'Surgery Appointments',
+                'icon'     => 'fa fa-procedures',
+                'href'     => admin_url('hospital_management/consultant_surgery_appointments'),
+                'position' => 2,
+            ]);
+        }
     }
     // ============================================
     // TECHNICIAN PORTAL MENU - NEW ADDITION
