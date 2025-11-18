@@ -27,7 +27,7 @@
                 <!-- Admission Form -->
                 <div class="panel_s">
                     <div class="panel-body">
-                        <?php echo form_open('', ['id' => 'admission-form']); ?>
+                        <?php echo form_open(admin_url('hospital_management/save_admission'), ['id' => 'admission-form']); ?>
                         <input type="hidden" name="surgery_request_id" value="<?php echo $surgery_request->id; ?>">
                         
                         <!-- Patient Info (Read-only) -->
@@ -141,23 +141,39 @@
 $(function() {
     'use strict';
     
+    // Initialize selectpicker
+    $('.selectpicker').selectpicker('refresh');
+    
     // Admission Form Submit
     $('#admission-form').on('submit', function(e) {
         e.preventDefault();
         
-        var formData = $(this).serialize();
-        var url = '<?php echo admin_url("hospital_management/save_admission"); ?>';
+        var $submitBtn = $('#admit-btn, #update-btn');
+        var originalBtnText = $submitBtn.html();
         
-        $.post(url, formData).done(function(response) {
-            response = JSON.parse(response);
-            
-            if(response.success) {
-                alert_float('success', response.message);
-                setTimeout(function() {
-                    window.location.href = '<?php echo admin_url("hospital_management/nursing_dashboard"); ?>';
-                }, 1500);
-            } else {
-                alert_float('danger', response.message);
+        // Disable button and show loading
+        $submitBtn.prop('disabled', true).html('<i class="fa fa-spinner fa-spin"></i> Processing...');
+        
+        $.ajax({
+            url: $(this).attr('action'),
+            type: 'POST',
+            data: $(this).serialize(),
+            dataType: 'json',
+            success: function(response) {
+                if(response.success) {
+                    alert_float('success', response.message);
+                    setTimeout(function() {
+                        window.location.href = '<?php echo admin_url("hospital_management/nursing_dashboard"); ?>';
+                    }, 1500);
+                } else {
+                    alert_float('danger', response.message || 'An error occurred');
+                    $submitBtn.prop('disabled', false).html(originalBtnText);
+                }
+            },
+            error: function(xhr, status, error) {
+                console.error('Ajax Error:', status, error);
+                alert_float('danger', 'Failed to process request. Please try again.');
+                $submitBtn.prop('disabled', false).html(originalBtnText);
             }
         });
     });
@@ -168,26 +184,42 @@ $(function() {
             return false;
         }
         
+        var $dischargeBtn = $(this);
+        var originalBtnText = $dischargeBtn.html();
+        
+        // Disable button and show loading
+        $dischargeBtn.prop('disabled', true).html('<i class="fa fa-spinner fa-spin"></i> Discharging...');
+        
         var formData = {
             surgery_request_id: $('input[name="surgery_request_id"]').val(),
             discharge_date: '<?php echo date("Y-m-d"); ?>',
             discharge_time: '<?php echo date("H:i:s"); ?>',
-            discharge_notes: $('#admission_notes').val()
+            discharge_notes: $('#admission_notes').val(),
+            <?php echo $this->security->get_csrf_token_name(); ?>: '<?php echo $this->security->get_csrf_hash(); ?>'
         };
         
-        $.post('<?php echo admin_url("hospital_management/discharge_patient"); ?>', formData).done(function(response) {
-            response = JSON.parse(response);
-            
-            if(response.success) {
-                alert_float('success', response.message);
-                setTimeout(function() {
-                    window.location.href = '<?php echo admin_url("hospital_management/nursing_dashboard"); ?>';
-                }, 1500);
-            } else {
-                alert_float('danger', response.message);
+        $.ajax({
+            url: '<?php echo admin_url("hospital_management/discharge_patient"); ?>',
+            type: 'POST',
+            data: formData,
+            dataType: 'json',
+            success: function(response) {
+                if(response.success) {
+                    alert_float('success', response.message);
+                    setTimeout(function() {
+                        window.location.href = '<?php echo admin_url("hospital_management/nursing_dashboard"); ?>';
+                    }, 1500);
+                } else {
+                    alert_float('danger', response.message || 'Failed to discharge patient');
+                    $dischargeBtn.prop('disabled', false).html(originalBtnText);
+                }
+            },
+            error: function(xhr, status, error) {
+                console.error('Discharge Error:', status, error);
+                alert_float('danger', 'Failed to discharge patient. Please try again.');
+                $dischargeBtn.prop('disabled', false).html(originalBtnText);
             }
         });
     });
 });
 </script>
-`

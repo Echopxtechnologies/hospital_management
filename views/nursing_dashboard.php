@@ -51,7 +51,7 @@
                         <hr>
                         
                         <div class="table-responsive">
-                            <table class="table table-striped dt-table">
+                            <table class="table table-striped" id="non-admitted-table">
                                 <thead>
                                     <tr>
                                         <th>Patient Info</th>
@@ -88,10 +88,10 @@
                                                     <?php echo $patient['requested_room_type']; ?>
                                                 </span>
                                             </td>
-                                            <td>
+                                            <td data-order="<?php echo strtotime($patient['surgery_date']); ?>">
                                                 <?php echo date('d M Y', strtotime($patient['surgery_date'])); ?>
                                             </td>
-                                            <td>
+                                            <td data-order="<?php echo $patient['quoted_amount']; ?>">
                                                 ₹<?php echo number_format($patient['quoted_amount'], 2); ?>
                                             </td>
                                             <td>
@@ -102,10 +102,6 @@
                                             </td>
                                         </tr>
                                         <?php endforeach; ?>
-                                    <?php else: ?>
-                                        <tr>
-                                            <td colspan="7" class="text-center text-muted">No patients awaiting admission</td>
-                                        </tr>
                                     <?php endif; ?>
                                 </tbody>
                             </table>
@@ -122,7 +118,7 @@
                         <hr>
                         
                         <div class="table-responsive">
-                            <table class="table table-striped dt-table">
+                            <table class="table table-striped" id="admitted-table">
                                 <thead>
                                     <tr>
                                         <th>Patient Info</th>
@@ -154,10 +150,10 @@
                                                 <strong><?php echo $patient['ward_name']; ?></strong><br>
                                                 <small class="text-muted">Room: <?php echo $patient['room_number']; ?></small>
                                             </td>
-                                            <td>
+                                            <td data-order="<?php echo strtotime($patient['admission_date']); ?>">
                                                 <?php echo date('d M Y', strtotime($patient['admission_date'])); ?>
                                             </td>
-                                            <td>
+                                            <td data-order="<?php echo strtotime($patient['surgery_date']); ?>">
                                                 <?php echo date('d M Y', strtotime($patient['surgery_date'])); ?>
                                             </td>
                                             <td>
@@ -168,10 +164,6 @@
                                             </td>
                                         </tr>
                                         <?php endforeach; ?>
-                                    <?php else: ?>
-                                        <tr>
-                                            <td colspan="6" class="text-center text-muted">No admitted patients</td>
-                                        </tr>
                                     <?php endif; ?>
                                 </tbody>
                             </table>
@@ -185,3 +177,50 @@
 </div>
 
 <?php init_tail(); ?>
+
+<script>
+$(function() {
+    'use strict';
+    
+    // Initialize DataTables after DOM is fully loaded
+    // Use unique IDs instead of class to avoid multiple initialization
+    
+    // Non-Admitted Patients Table
+    if ($.fn.DataTable.isDataTable('#non-admitted-table')) {
+        $('#non-admitted-table').DataTable().destroy();
+    }
+    
+    $('#non-admitted-table').DataTable({
+        "language": <?php echo json_encode(perfex_datatable_language()); ?>,
+        "order": [[4, "asc"]], // Sort by Surgery Date ascending
+        "pageLength": 25,
+        "responsive": true,
+        "columnDefs": [
+            {
+                "targets": [6], // Action column
+                "orderable": false,
+                "searchable": false
+            }
+        ]
+    });
+    
+    // Admitted Patients Table
+    if ($.fn.DataTable.isDataTable('#admitted-table')) {
+        $('#admitted-table').DataTable().destroy();
+    }
+    
+    $('#admitted-table').DataTable({
+        "language": <?php echo json_encode(perfex_datatable_language()); ?>,
+        "order": [[3, "desc"]], // Sort by Admission Date descending
+        "pageLength": 25,
+        "responsive": true,
+        "columnDefs": [
+            {
+                "targets": [5], // Action column
+                "orderable": false,
+                "searchable": false
+            }
+        ]
+    });
+});
+</script>

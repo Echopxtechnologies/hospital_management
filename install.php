@@ -428,7 +428,208 @@ if (!$CI->db->table_exists(db_prefix() . 'hospital_visit_request_items')) {
 }
 
 // ==========================================
-// TABLE 12: hospital_payments (NEW)
+// TABLE 12: hospital_medicines
+// ==========================================
+if (!$CI->db->table_exists(db_prefix() . 'hospital_medicines')) {
+    
+    $CI->db->query("CREATE TABLE `" . db_prefix() . "hospital_medicines` (
+        `id` INT(11) NOT NULL AUTO_INCREMENT,
+        `medicine_name` VARCHAR(255) NOT NULL,
+        `generic_name` VARCHAR(255) DEFAULT NULL,
+        `category` ENUM('eye_drop', 'tablet', 'capsule', 'injection', 'ointment', 'syrup', 'other') NOT NULL DEFAULT 'eye_drop',
+        `strength` VARCHAR(100) DEFAULT NULL,
+        `unit` VARCHAR(50) DEFAULT NULL,
+        `manufacturer` VARCHAR(255) DEFAULT NULL,
+        `price` DECIMAL(10,2) NOT NULL DEFAULT 0.00,
+        `description` TEXT DEFAULT NULL,
+        `side_effects` TEXT DEFAULT NULL,
+        `is_active` TINYINT(1) NOT NULL DEFAULT 1,
+        `display_order` INT(11) DEFAULT 0,
+        `created_at` DATETIME DEFAULT CURRENT_TIMESTAMP,
+        `updated_at` DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+        PRIMARY KEY (`id`)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb3 COLLATE=utf8mb3_general_ci;");
+    
+    log_activity('Hospital Management - Table Created: hospital_medicines');
+}
+
+// ==========================================
+// TABLE 13: hospital_surgery_types
+// ==========================================
+if (!$CI->db->table_exists(db_prefix() . 'hospital_surgery_types')) {
+    
+    $CI->db->query("CREATE TABLE `" . db_prefix() . "hospital_surgery_types` (
+        `id` INT(11) NOT NULL AUTO_INCREMENT,
+        `surgery_name` VARCHAR(255) NOT NULL,
+        `surgery_code` VARCHAR(100) DEFAULT NULL,
+        `category` VARCHAR(100) DEFAULT NULL,
+        `description` TEXT DEFAULT NULL,
+        `is_active` TINYINT(1) NOT NULL DEFAULT 1,
+        `display_order` INT(11) DEFAULT 0,
+        `created_at` DATETIME DEFAULT CURRENT_TIMESTAMP,
+        PRIMARY KEY (`id`)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;");
+    
+    log_activity('Hospital Management - Table Created: hospital_surgery_types');
+}
+
+// ==========================================
+// TABLE 14: hospital_wards
+// ==========================================
+if (!$CI->db->table_exists(db_prefix() . 'hospital_wards')) {
+    
+    $CI->db->query("CREATE TABLE `" . db_prefix() . "hospital_wards` (
+        `id` INT(11) NOT NULL AUTO_INCREMENT,
+        `ward_name` VARCHAR(100) NOT NULL COMMENT 'General Ward, Private Room, ICU, etc',
+        `ward_type` ENUM('general', 'semi-private', 'private', 'icu', 'deluxe') NOT NULL DEFAULT 'general',
+        `room_number` VARCHAR(50) DEFAULT NULL,
+        `floor_number` VARCHAR(20) DEFAULT NULL,
+        `capacity` INT(11) DEFAULT 1 COMMENT 'Number of beds',
+        `available_beds` INT(11) DEFAULT 1,
+        `base_charge_per_day` DECIMAL(10,2) DEFAULT 0.00,
+        `is_active` TINYINT(1) DEFAULT 1,
+        `created_at` DATETIME DEFAULT CURRENT_TIMESTAMP,
+        PRIMARY KEY (`id`),
+        UNIQUE KEY `unique_room` (`room_number`, `floor_number`),
+        KEY `idx_ward_type` (`ward_type`),
+        KEY `idx_is_active` (`is_active`)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb3 COLLATE=utf8mb3_general_ci;");
+    
+    // Insert sample wards
+    $CI->db->insert_batch(db_prefix() . 'hospital_wards', [
+        ['ward_name' => 'General Ward - Room 101', 'ward_type' => 'general', 'room_number' => '101', 'floor_number' => '1', 'capacity' => 4, 'base_charge_per_day' => 500.00, 'is_active' => 1],
+        ['ward_name' => 'General Ward - Room 102', 'ward_type' => 'general', 'room_number' => '102', 'floor_number' => '1', 'capacity' => 4, 'base_charge_per_day' => 500.00, 'is_active' => 1],
+        ['ward_name' => 'Private Room 201', 'ward_type' => 'private', 'room_number' => '201', 'floor_number' => '2', 'capacity' => 1, 'base_charge_per_day' => 1500.00, 'is_active' => 1],
+        ['ward_name' => 'Private Room 202', 'ward_type' => 'private', 'room_number' => '202', 'floor_number' => '2', 'capacity' => 1, 'base_charge_per_day' => 1500.00, 'is_active' => 1],
+        ['ward_name' => 'Semi-Private Room 203', 'ward_type' => 'semi-private', 'room_number' => '203', 'floor_number' => '2', 'capacity' => 2, 'base_charge_per_day' => 1000.00, 'is_active' => 1],
+        ['ward_name' => 'ICU - Bed 1', 'ward_type' => 'icu', 'room_number' => 'ICU-1', 'floor_number' => '3', 'capacity' => 1, 'base_charge_per_day' => 3000.00, 'is_active' => 1],
+        ['ward_name' => 'ICU - Bed 2', 'ward_type' => 'icu', 'room_number' => 'ICU-2', 'floor_number' => '3', 'capacity' => 1, 'base_charge_per_day' => 3000.00, 'is_active' => 1],
+        ['ward_name' => 'Deluxe Room 301', 'ward_type' => 'deluxe', 'room_number' => '301', 'floor_number' => '3', 'capacity' => 1, 'base_charge_per_day' => 2500.00, 'is_active' => 1]
+    ]);
+    
+    log_activity('Hospital Management - Table Created: hospital_wards');
+}
+
+// ==========================================
+// TABLE 15: hospital_surgery_requests
+// ==========================================
+if (!$CI->db->table_exists(db_prefix() . 'hospital_surgery_requests')) {
+    
+    $CI->db->query("CREATE TABLE `" . db_prefix() . "hospital_surgery_requests` (
+        `id` INT(11) NOT NULL AUTO_INCREMENT,
+        `visit_id` INT(11) DEFAULT NULL,
+        `patient_id` INT(11) NOT NULL,
+        `request_type` ENUM('simple', 'detailed') NOT NULL DEFAULT 'simple',
+        `surgery_type_id` INT(11) DEFAULT NULL,
+        `surgery_details` TEXT DEFAULT NULL,
+        `doing_surgery` VARCHAR(255) DEFAULT NULL,
+        `surgery_name` VARCHAR(255) DEFAULT NULL,
+        `lens_preference` VARCHAR(255) DEFAULT NULL,
+        `standby_lens` VARCHAR(255) DEFAULT NULL,
+        `disposables_instruments` TEXT DEFAULT NULL,
+        `admission_hours_before` INT(11) DEFAULT NULL,
+        `overnight_admission` TINYINT(1) DEFAULT 0,
+        `special_instructions` TEXT DEFAULT NULL,
+        `nil_oral_instructions` TEXT DEFAULT NULL,
+        `preferred_datetime` DATETIME DEFAULT NULL,
+        `lens_power` VARCHAR(100) DEFAULT NULL,
+        `a_constant_used` VARCHAR(100) DEFAULT NULL,
+        `formula_used` VARCHAR(100) DEFAULT NULL,
+        `anesthesia` VARCHAR(100) DEFAULT NULL,
+        `total_amount` DECIMAL(10,2) NOT NULL DEFAULT 0.00,
+        `discount_amount` DECIMAL(10,2) DEFAULT 0.00,
+        `final_amount` DECIMAL(10,2) NOT NULL DEFAULT 0.00,
+        `payment_status` ENUM('unpaid', 'partial', 'paid', 'waived', 'cancelled') NOT NULL DEFAULT 'unpaid',
+        `status` ENUM('pending', 'scheduled', 'completed', 'cancelled') DEFAULT 'pending',
+        `requested_by` INT(11) DEFAULT NULL,
+        `requested_at` DATETIME DEFAULT NULL,
+        `notes` TEXT DEFAULT NULL,
+        `op_number` VARCHAR(50) DEFAULT NULL,
+        `iol_type` VARCHAR(100) DEFAULT NULL,
+        `anaesthesia_type` VARCHAR(100) DEFAULT NULL,
+        `assigned_consultant_id` INT(11) DEFAULT NULL,
+        `surgery_date` DATE DEFAULT NULL,
+        `surgery_consent` ENUM('yes', 'no') DEFAULT 'no',
+        `fix_surgery` ENUM('yes', 'no') DEFAULT 'no',
+        `room_type` VARCHAR(50) DEFAULT NULL,
+        `counseling_remarks` TEXT DEFAULT NULL,
+        `counseling_status` ENUM('pending', 'accepted', 'rejected') DEFAULT 'pending',
+        `payment_type` ENUM('cash', 'cashless') DEFAULT 'cash',
+        `surgery_amount` DECIMAL(10,2) DEFAULT 0.00,
+        `counseling_discount_amount` DECIMAL(10,2) DEFAULT 0.00,
+        `quoted_amount` DECIMAL(10,2) DEFAULT 0.00,
+        `copay_amount` DECIMAL(10,2) DEFAULT 0.00,
+        `counseled_by` INT(11) DEFAULT NULL,
+        `counseled_at` DATETIME DEFAULT NULL,
+        `appointment_id` INT(11) DEFAULT NULL COMMENT 'Linked appointment ID',
+        `created_at` DATETIME DEFAULT CURRENT_TIMESTAMP,
+        `updated_at` DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+        PRIMARY KEY (`id`),
+        KEY `visit_id` (`visit_id`),
+        KEY `patient_id` (`patient_id`),
+        KEY `surgery_type_id` (`surgery_type_id`),
+        KEY `idx_appointment_id` (`appointment_id`),
+        CONSTRAINT `fk_surgery_request_visit` FOREIGN KEY (`visit_id`) 
+            REFERENCES `" . db_prefix() . "hospital_visits` (`id`) 
+            ON DELETE SET NULL ON UPDATE CASCADE,
+        CONSTRAINT `fk_surgery_request_patient` FOREIGN KEY (`patient_id`) 
+            REFERENCES `" . db_prefix() . "hospital_patients` (`id`) 
+            ON DELETE CASCADE ON UPDATE CASCADE,
+        CONSTRAINT `fk_surgery_request_type` FOREIGN KEY (`surgery_type_id`) 
+            REFERENCES `" . db_prefix() . "hospital_surgery_types` (`id`) 
+            ON DELETE SET NULL ON UPDATE CASCADE
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;");
+    
+    log_activity('Hospital Management - Table Created: hospital_surgery_requests');
+}
+
+// ==========================================
+// TABLE 16: hospital_surgery_admissions
+// ==========================================
+if (!$CI->db->table_exists(db_prefix() . 'hospital_surgery_admissions')) {
+    
+    $CI->db->query("CREATE TABLE `" . db_prefix() . "hospital_surgery_admissions` (
+        `id` INT(11) NOT NULL AUTO_INCREMENT,
+        `surgery_request_id` INT(11) NOT NULL,
+        `patient_id` INT(11) NOT NULL,
+        `ward_id` INT(11) DEFAULT NULL COMMENT 'FK to tblhospital_wards',
+        `admission_date` DATE NOT NULL,
+        `admission_time` TIME DEFAULT NULL,
+        `expected_discharge_date` DATE DEFAULT NULL,
+        `actual_discharge_date` DATE DEFAULT NULL,
+        `discharge_time` TIME DEFAULT NULL,
+        `total_days` INT(11) DEFAULT 0,
+        `room_charges` DECIMAL(10,2) DEFAULT 0.00,
+        `additional_charges` DECIMAL(10,2) DEFAULT 0.00,
+        `admission_status` ENUM('scheduled', 'admitted', 'discharged', 'cancelled') DEFAULT 'scheduled',
+        `admission_notes` TEXT DEFAULT NULL,
+        `admitted_by` INT(11) DEFAULT NULL COMMENT 'Staff ID who processed admission',
+        `discharged_by` INT(11) DEFAULT NULL COMMENT 'Staff ID who processed discharge',
+        `created_at` DATETIME DEFAULT CURRENT_TIMESTAMP,
+        `updated_at` DATETIME DEFAULT NULL ON UPDATE CURRENT_TIMESTAMP,
+        PRIMARY KEY (`id`),
+        UNIQUE KEY `unique_surgery_admission` (`surgery_request_id`),
+        KEY `idx_surgery_request` (`surgery_request_id`),
+        KEY `idx_patient` (`patient_id`),
+        KEY `idx_ward` (`ward_id`),
+        KEY `idx_admission_date` (`admission_date`),
+        KEY `idx_status` (`admission_status`),
+        CONSTRAINT `fk_admission_surgery` FOREIGN KEY (`surgery_request_id`) 
+            REFERENCES `" . db_prefix() . "hospital_surgery_requests` (`id`) 
+            ON DELETE CASCADE,
+        CONSTRAINT `fk_admission_patient` FOREIGN KEY (`patient_id`) 
+            REFERENCES `" . db_prefix() . "hospital_patients` (`id`) 
+            ON DELETE CASCADE,
+        CONSTRAINT `fk_admission_ward` FOREIGN KEY (`ward_id`) 
+            REFERENCES `" . db_prefix() . "hospital_wards` (`id`) 
+            ON DELETE SET NULL
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb3 COLLATE=utf8mb3_general_ci;");
+    
+    log_activity('Hospital Management - Table Created: hospital_surgery_admissions');
+}
+
+// ==========================================
+// TABLE 17: hospital_payments (POLYMORPHIC)
 // ==========================================
 if (!$CI->db->table_exists(db_prefix() . 'hospital_payments')) {
     
@@ -437,7 +638,9 @@ if (!$CI->db->table_exists(db_prefix() . 'hospital_payments')) {
         `payment_number` VARCHAR(50) NOT NULL,
         `patient_id` INT(11) NOT NULL,
         `visit_id` INT(11) DEFAULT NULL,
-        `visit_request_id` INT(11) DEFAULT NULL,
+        `visit_request_id` INT(11) DEFAULT NULL COMMENT 'DEPRECATED - Use request_id and request_type instead',
+        `request_type` ENUM('visit_request', 'surgery_request') NOT NULL DEFAULT 'visit_request' COMMENT 'visit_request=tblhospital_visit_requests, surgery_request=tblhospital_surgery_requests',
+        `request_id` INT(11) DEFAULT NULL COMMENT 'Polymorphic ID - refers to tblhospital_visit_requests OR tblhospital_surgery_requests based on request_type',
         `subtotal_amount` DECIMAL(10,2) NOT NULL DEFAULT 0.00,
         `discount_percentage` DECIMAL(5,2) DEFAULT 0.00,
         `discount_amount` DECIMAL(10,2) DEFAULT 0.00,
@@ -470,457 +673,101 @@ if (!$CI->db->table_exists(db_prefix() . 'hospital_payments')) {
         KEY `patient_id` (`patient_id`),
         KEY `visit_id` (`visit_id`),
         KEY `visit_request_id` (`visit_request_id`),
+        KEY `idx_polymorphic_request` (`request_id`, `request_type`),
+        KEY `idx_request_type` (`request_type`),
+        KEY `idx_request_id` (`request_id`),
         CONSTRAINT `fk_payment_patient` FOREIGN KEY (`patient_id`) 
             REFERENCES `" . db_prefix() . "hospital_patients` (`id`) 
             ON DELETE CASCADE ON UPDATE CASCADE,
         CONSTRAINT `fk_payment_visit` FOREIGN KEY (`visit_id`) 
             REFERENCES `" . db_prefix() . "hospital_visits` (`id`) 
-            ON DELETE SET NULL ON UPDATE CASCADE,
-        CONSTRAINT `fk_payment_visit_request` FOREIGN KEY (`visit_request_id`) 
-            REFERENCES `" . db_prefix() . "hospital_visit_requests` (`id`) 
             ON DELETE SET NULL ON UPDATE CASCADE
-    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb3 COLLATE=utf8mb3_general_ci;");
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb3 COLLATE=utf8mb3_general_ci 
+    COMMENT='Polymorphic payment table: visit_request=Lab/Procedure from tblhospital_visit_requests, surgery_request=Surgery from tblhospital_surgery_requests';");
     
-    log_activity('Hospital Management - Table Created: hospital_payments');
+    log_activity('Hospital Management - Table Created: hospital_payments (Polymorphic)');
 }
 
 // ==========================================
-// TABLE 13: hospital_medicines
-// ==========================================
-if (!$CI->db->table_exists(db_prefix() . 'hospital_medicines')) {
-    
-    $CI->db->query("CREATE TABLE `" . db_prefix() . "hospital_medicines` (
-        `id` INT(11) NOT NULL AUTO_INCREMENT,
-        `medicine_name` VARCHAR(255) NOT NULL,
-        `generic_name` VARCHAR(255) DEFAULT NULL,
-        `category` ENUM('eye_drop', 'tablet', 'capsule', 'injection', 'ointment', 'syrup', 'other') NOT NULL DEFAULT 'eye_drop',
-        `strength` VARCHAR(100) DEFAULT NULL,
-        `unit` VARCHAR(50) DEFAULT NULL,
-        `manufacturer` VARCHAR(255) DEFAULT NULL,
-        `price` DECIMAL(10,2) NOT NULL DEFAULT 0.00,
-        `description` TEXT DEFAULT NULL,
-        `side_effects` TEXT DEFAULT NULL,
-        `is_active` TINYINT(1) NOT NULL DEFAULT 1,
-        `display_order` INT(11) DEFAULT 0,
-        `created_at` DATETIME DEFAULT CURRENT_TIMESTAMP,
-        `updated_at` DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-        PRIMARY KEY (`id`)
-    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb3 COLLATE=utf8mb3_general_ci;");
-    
-    log_activity('Hospital Management - Table Created: hospital_medicines');
-}
-
-// ==========================================
-// TABLE 14: hospital_surgery_types (NEW)
-// ==========================================
-if (!$CI->db->table_exists(db_prefix() . 'hospital_surgery_types')) {
-    
-    $CI->db->query("CREATE TABLE `" . db_prefix() . "hospital_surgery_types` (
-        `id` INT(11) NOT NULL AUTO_INCREMENT,
-        `surgery_name` VARCHAR(255) NOT NULL,
-        `surgery_code` VARCHAR(100) DEFAULT NULL,
-        `category` VARCHAR(100) DEFAULT NULL,
-        `description` TEXT DEFAULT NULL,
-        `is_active` TINYINT(1) NOT NULL DEFAULT 1,
-        `display_order` INT(11) DEFAULT 0,
-        `created_at` DATETIME DEFAULT CURRENT_TIMESTAMP,
-        PRIMARY KEY (`id`)
-    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;");
-    
-    log_activity('Hospital Management - Table Created: hospital_surgery_types');
-}
-
-// ==========================================
-// TABLE 15: hospital_surgery_requests (NEW)
-// ==========================================
-if (!$CI->db->table_exists(db_prefix() . 'hospital_surgery_requests')) {
-    
-    $CI->db->query("CREATE TABLE `" . db_prefix() . "hospital_surgery_requests` (
-        `id` INT(11) NOT NULL AUTO_INCREMENT,
-        `visit_id` INT(11) DEFAULT NULL,
-        `patient_id` INT(11) NOT NULL,
-        `request_type` ENUM('simple', 'detailed') NOT NULL DEFAULT 'simple',
-        `surgery_type_id` INT(11) DEFAULT NULL,
-        `surgery_details` TEXT DEFAULT NULL,
-        `doing_surgery` VARCHAR(255) DEFAULT NULL,
-        `surgery_name` VARCHAR(255) DEFAULT NULL,
-        `lens_preference` VARCHAR(255) DEFAULT NULL,
-        `standby_lens` VARCHAR(255) DEFAULT NULL,
-        `disposables_instruments` TEXT DEFAULT NULL,
-        `admission_hours_before` INT(11) DEFAULT NULL,
-        `overnight_admission` TINYINT(1) DEFAULT 0,
-        `special_instructions` TEXT DEFAULT NULL,
-        `nil_oral_instructions` TEXT DEFAULT NULL,
-        `preferred_datetime` DATETIME DEFAULT NULL,
-        `lens_power` VARCHAR(100) DEFAULT NULL,
-        `a_constant_used` VARCHAR(100) DEFAULT NULL,
-        `formula_used` VARCHAR(100) DEFAULT NULL,
-        `anesthesia` VARCHAR(100) DEFAULT NULL,
-        `total_amount` DECIMAL(10,2) NOT NULL DEFAULT 0.00,
-        `discount_amount` DECIMAL(10,2) DEFAULT 0.00,
-        `final_amount` DECIMAL(10,2) NOT NULL DEFAULT 0.00,
-        `payment_status` ENUM('unpaid', 'partial', 'paid', 'waived', 'cancelled') NOT NULL DEFAULT 'unpaid',
-        `status` ENUM('pending', 'scheduled', 'completed', 'cancelled') DEFAULT 'pending',
-        `requested_by` INT(11) DEFAULT NULL,
-        `requested_at` DATETIME DEFAULT NULL,
-        `created_at` DATETIME DEFAULT CURRENT_TIMESTAMP,
-        `updated_at` DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-        PRIMARY KEY (`id`),
-        KEY `visit_id` (`visit_id`),
-        KEY `patient_id` (`patient_id`),
-        KEY `surgery_type_id` (`surgery_type_id`),
-        CONSTRAINT `fk_surgery_request_visit` FOREIGN KEY (`visit_id`) 
-            REFERENCES `" . db_prefix() . "hospital_visits` (`id`) 
-            ON DELETE SET NULL ON UPDATE CASCADE,
-        CONSTRAINT `fk_surgery_request_patient` FOREIGN KEY (`patient_id`) 
-            REFERENCES `" . db_prefix() . "hospital_patients` (`id`) 
-            ON DELETE CASCADE ON UPDATE CASCADE,
-        CONSTRAINT `fk_surgery_request_type` FOREIGN KEY (`surgery_type_id`) 
-            REFERENCES `" . db_prefix() . "hospital_surgery_types` (`id`) 
-            ON DELETE SET NULL ON UPDATE CASCADE
-    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;");
-    
-    log_activity('Hospital Management - Table Created: hospital_surgery_requests');
-}
-
-log_activity('Hospital Management Module - Installation Complete');
-
-// ==========================================
-// TABLE 16: hospital_lab_reports
+// TABLE 18: hospital_lab_reports
 // ==========================================
 if (!$CI->db->table_exists(db_prefix() . 'hospital_lab_reports')) {
     
-    $CI->db->query("CREATE TABLE " . db_prefix() . "hospital_lab_reports (
-        id INT(11) NOT NULL AUTO_INCREMENT,
-        request_id INT(11) NOT NULL,
-        visit_id INT(11) NOT NULL,
-        patient_id INT(11) NOT NULL,
-        technician_id INT(11) NOT NULL,
-        report_date DATETIME DEFAULT CURRENT_TIMESTAMP,
+    $CI->db->query("CREATE TABLE `" . db_prefix() . "hospital_lab_reports` (
+        `id` INT(11) NOT NULL AUTO_INCREMENT,
+        `request_id` INT(11) NOT NULL,
+        `visit_id` INT(11) NOT NULL,
+        `patient_id` INT(11) NOT NULL,
+        `technician_id` INT(11) NOT NULL,
+        `report_date` DATETIME DEFAULT CURRENT_TIMESTAMP,
         
         -- BIO-CHEMISTRY
-        fasting_blood_sugar VARCHAR(50) DEFAULT NULL,
-        postprandial_blood_sugar VARCHAR(50) DEFAULT NULL,
-        blood_urea VARCHAR(50) DEFAULT NULL,
-        serum_creatinine VARCHAR(50) DEFAULT NULL,
+        `fasting_blood_sugar` VARCHAR(50) DEFAULT NULL,
+        `postprandial_blood_sugar` VARCHAR(50) DEFAULT NULL,
+        `blood_urea` VARCHAR(50) DEFAULT NULL,
+        `serum_creatinine` VARCHAR(50) DEFAULT NULL,
         
         -- SEROLOGY
-        hiv_1_2 VARCHAR(50) DEFAULT NULL,
-        hbsag VARCHAR(50) DEFAULT NULL,
-        hcv VARCHAR(50) DEFAULT NULL,
+        `hiv_1_2` VARCHAR(50) DEFAULT NULL,
+        `hbsag` VARCHAR(50) DEFAULT NULL,
+        `hcv` VARCHAR(50) DEFAULT NULL,
         
         -- HAEMATOLOGY
-        haemoglobin VARCHAR(50) DEFAULT NULL,
-        total_wbc_count VARCHAR(50) DEFAULT NULL,
-        neutrophils VARCHAR(50) DEFAULT NULL,
-        lymphocytes VARCHAR(50) DEFAULT NULL,
-        eosinophils VARCHAR(50) DEFAULT NULL,
-        monocytes VARCHAR(50) DEFAULT NULL,
-        basophils VARCHAR(50) DEFAULT NULL,
-        rbc VARCHAR(50) DEFAULT NULL,
-        platelet_count VARCHAR(50) DEFAULT NULL,
-        pcv VARCHAR(50) DEFAULT NULL,
-        mcv VARCHAR(50) DEFAULT NULL,
-        mch VARCHAR(50) DEFAULT NULL,
-        mchc VARCHAR(50) DEFAULT NULL,
-        bleeding_time VARCHAR(50) DEFAULT NULL,
-        clotting_time VARCHAR(50) DEFAULT NULL,
+        `haemoglobin` VARCHAR(50) DEFAULT NULL,
+        `total_wbc_count` VARCHAR(50) DEFAULT NULL,
+        `neutrophils` VARCHAR(50) DEFAULT NULL,
+        `lymphocytes` VARCHAR(50) DEFAULT NULL,
+        `eosinophils` VARCHAR(50) DEFAULT NULL,
+        `monocytes` VARCHAR(50) DEFAULT NULL,
+        `basophils` VARCHAR(50) DEFAULT NULL,
+        `rbc` VARCHAR(50) DEFAULT NULL,
+        `platelet_count` VARCHAR(50) DEFAULT NULL,
+        `pcv` VARCHAR(50) DEFAULT NULL,
+        `mcv` VARCHAR(50) DEFAULT NULL,
+        `mch` VARCHAR(50) DEFAULT NULL,
+        `mchc` VARCHAR(50) DEFAULT NULL,
+        `bleeding_time` VARCHAR(50) DEFAULT NULL,
+        `clotting_time` VARCHAR(50) DEFAULT NULL,
         
         -- URINE ANALYSIS
-        urine_colour VARCHAR(50) DEFAULT NULL,
-        urine_ph VARCHAR(50) DEFAULT NULL,
-        urine_sp_gravity VARCHAR(50) DEFAULT NULL,
-        urine_protein VARCHAR(50) DEFAULT NULL,
-        urine_glucose VARCHAR(50) DEFAULT NULL,
-        pus_cells VARCHAR(50) DEFAULT NULL,
-        epithelial_cells VARCHAR(50) DEFAULT NULL,
-        rbc_urine VARCHAR(50) DEFAULT NULL,
+        `urine_colour` VARCHAR(50) DEFAULT NULL,
+        `urine_ph` VARCHAR(50) DEFAULT NULL,
+        `urine_sp_gravity` VARCHAR(50) DEFAULT NULL,
+        `urine_protein` VARCHAR(50) DEFAULT NULL,
+        `urine_glucose` VARCHAR(50) DEFAULT NULL,
+        `pus_cells` VARCHAR(50) DEFAULT NULL,
+        `epithelial_cells` VARCHAR(50) DEFAULT NULL,
+        `rbc_urine` VARCHAR(50) DEFAULT NULL,
         
         -- NOTES
-        technician_notes TEXT DEFAULT NULL,
+        `technician_notes` TEXT DEFAULT NULL,
         
-        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-        updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+        `created_at` DATETIME DEFAULT CURRENT_TIMESTAMP,
+        `updated_at` DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
         
-        PRIMARY KEY (id),
-        UNIQUE KEY request_id (request_id),
-        KEY visit_id (visit_id),
-        KEY patient_id (patient_id),
-        KEY technician_id (technician_id),
-        CONSTRAINT fk_lab_report_request FOREIGN KEY (request_id) 
-            REFERENCES " . db_prefix() . "hospital_visit_requests (id) 
+        PRIMARY KEY (`id`),
+        UNIQUE KEY `request_id` (`request_id`),
+        KEY `visit_id` (`visit_id`),
+        KEY `patient_id` (`patient_id`),
+        KEY `technician_id` (`technician_id`),
+        CONSTRAINT `fk_lab_report_request` FOREIGN KEY (`request_id`) 
+            REFERENCES `" . db_prefix() . "hospital_visit_requests` (`id`) 
             ON DELETE CASCADE ON UPDATE CASCADE,
-        CONSTRAINT fk_lab_report_visit FOREIGN KEY (visit_id) 
-            REFERENCES " . db_prefix() . "hospital_visits (id) 
+        CONSTRAINT `fk_lab_report_visit` FOREIGN KEY (`visit_id`) 
+            REFERENCES `" . db_prefix() . "hospital_visits` (`id`) 
             ON DELETE CASCADE ON UPDATE CASCADE,
-        CONSTRAINT fk_lab_report_patient FOREIGN KEY (patient_id) 
-            REFERENCES " . db_prefix() . "hospital_patients (id) 
+        CONSTRAINT `fk_lab_report_patient` FOREIGN KEY (`patient_id`) 
+            REFERENCES `" . db_prefix() . "hospital_patients` (`id`) 
             ON DELETE CASCADE ON UPDATE CASCADE,
-        CONSTRAINT fk_lab_report_technician FOREIGN KEY (technician_id) 
-            REFERENCES " . db_prefix() . "staff (staffid) 
+        CONSTRAINT `fk_lab_report_technician` FOREIGN KEY (`technician_id`) 
+            REFERENCES `" . db_prefix() . "staff` (`staffid`) 
             ON DELETE RESTRICT ON UPDATE CASCADE
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb3 COLLATE=utf8mb3_general_ci;");
     
     log_activity('Hospital Management - Table Created: hospital_lab_reports');
 }
 
-
-
-// -- Add Counseling Fields to tblhospital_surgery_requests
-// ALTER TABLE `tblhospital_surgery_requests` 
-// ADD COLUMN `op_number` VARCHAR(50) NULL AFTER `notes`,
-// ADD COLUMN `iol_type` VARCHAR(100) NULL AFTER `op_number`,
-// ADD COLUMN `anaesthesia_type` VARCHAR(100) NULL AFTER `iol_type`,
-// ADD COLUMN `assigned_consultant_id` INT NULL AFTER `anaesthesia_type`,
-// ADD COLUMN `admission_date` DATE NULL AFTER `assigned_consultant_id`,
-// ADD COLUMN `surgery_date` DATE NULL AFTER `admission_date`,
-// ADD COLUMN `surgery_consent` ENUM('yes', 'no') DEFAULT 'no' AFTER `surgery_date`,
-// ADD COLUMN `room_type` VARCHAR(100) NULL AFTER `surgery_consent`,
-// ADD COLUMN `counseling_remarks` TEXT NULL AFTER `room_type`,
-// ADD COLUMN `counseling_status` ENUM('pending', 'accepted', 'rejected') DEFAULT 'pending' AFTER `counseling_remarks`,
-// ADD COLUMN `payment_type` ENUM('cash', 'cashless') DEFAULT 'cash' AFTER `counseling_status`,
-// ADD COLUMN `surgery_amount` DECIMAL(10,2) DEFAULT 0.00 AFTER `payment_type`,
-// ADD COLUMN `counseling_discount_amount` DECIMAL(10,2) DEFAULT 0.00 AFTER `surgery_amount`,
-// ADD COLUMN `quoted_amount` DECIMAL(10,2) DEFAULT 0.00 AFTER `counseling_discount_amount`,
-// ADD COLUMN `copay_amount` DECIMAL(10,2) DEFAULT 0.00 AFTER `quoted_amount`,
-// ADD COLUMN `counseled_by` INT NULL AFTER `copay_amount`,
-// ADD COLUMN `counseled_at` DATETIME NULL AFTER `counseled_by`;
-
-// ALTER TABLE `tblhospital_surgery_requests` 
-// ADD COLUMN `fix_surgery` ENUM('yes', 'no') DEFAULT 'no' AFTER `surgery_consent`;
-
-
-// -- ============================================
-// -- PAYMENT TABLE POLYMORPHIC MIGRATION
-// -- COMPLETE SAFE VERSION - NO ERRORS
-// -- ============================================
-
-// -- Disable foreign key checks temporarily
-// SET FOREIGN_KEY_CHECKS = 0;
-
-// -- ============================================
-// -- STEP 1: DROP FOREIGN KEY CONSTRAINTS
-// -- Try all possible constraint names
-// -- ============================================
-
-// -- Get constraint name and drop it
-// SET @constraint_name = (
-//     SELECT CONSTRAINT_NAME 
-//     FROM information_schema.KEY_COLUMN_USAGE 
-//     WHERE TABLE_SCHEMA = DATABASE()
-//       AND TABLE_NAME = 'tblhospital_payments' 
-//       AND COLUMN_NAME = 'visit_request_id'
-//       AND REFERENCED_TABLE_NAME IS NOT NULL
-//     LIMIT 1
-// );
-
-// -- Drop the constraint if it exists
-// SET @sql = IF(@constraint_name IS NOT NULL,
-//     CONCAT('ALTER TABLE `tblhospital_payments` DROP FOREIGN KEY `', @constraint_name, '`'),
-//     'SELECT "No foreign key constraint found" AS status'
-// );
-
-// PREPARE stmt FROM @sql;
-// EXECUTE stmt;
-// DEALLOCATE PREPARE stmt;
-
-// -- Re-enable foreign key checks
-// SET FOREIGN_KEY_CHECKS = 1;
-
-// -- ============================================
-// -- STEP 2: ADD REQUEST_TYPE COLUMN
-// -- ============================================
-
-// -- Add request_type column if it doesn't exist
-// ALTER TABLE `tblhospital_payments` 
-// ADD COLUMN `request_type` ENUM('visit_request', 'surgery_request') NOT NULL DEFAULT 'visit_request' 
-// COMMENT 'visit_request=tblhospital_visit_requests, surgery_request=tblhospital_surgery_requests';
-
-// -- ============================================
-// -- STEP 3: ADD REQUEST_ID COLUMN
-// -- ============================================
-
-// -- Add request_id column if it doesn't exist
-// ALTER TABLE `tblhospital_payments` 
-// ADD COLUMN `request_id` INT(11) NULL 
-// COMMENT 'Polymorphic ID - refers to tblhospital_visit_requests OR tblhospital_surgery_requests based on request_type';
-
-// -- ============================================
-// -- STEP 4: MIGRATE EXISTING DATA
-// -- ============================================
-
-// -- Copy visit_request_id to request_id for all existing records
-// UPDATE `tblhospital_payments` 
-// SET `request_id` = `visit_request_id`,
-//     `request_type` = 'visit_request'
-// WHERE `visit_request_id` IS NOT NULL;
-
-// -- ============================================
-// -- STEP 5: ADD INDEXES
-// -- ============================================
-
-// -- Add composite index for polymorphic queries
-// ALTER TABLE `tblhospital_payments` 
-// ADD INDEX `idx_polymorphic_request` (`request_id`, `request_type`);
-
-// -- Add individual index for request_type
-// ALTER TABLE `tblhospital_payments` 
-// ADD INDEX `idx_request_type` (`request_type`);
-
-// -- Add individual index for request_id
-// ALTER TABLE `tblhospital_payments` 
-// ADD INDEX `idx_request_id` (`request_id`);
-
-// -- ============================================
-// -- STEP 6: UPDATE TABLE COMMENT
-// -- ============================================
-
-// ALTER TABLE `tblhospital_payments` 
-// COMMENT = 'Polymorphic payment table: visit_request=Lab/Procedure from tblhospital_visit_requests, surgery_request=Surgery from tblhospital_surgery_requests';
-
-// -- ============================================
-// -- VERIFICATION - Check if migration succeeded
-// -- ============================================
-
-// SELECT 'Migration completed successfully!' AS status;
-
-// -- Show updated table structure
-// DESC `tblhospital_payments`;
-
-// -- Show data summary
-// SELECT 
-//     COUNT(*) as total_records,
-//     SUM(CASE WHEN request_type = 'visit_request' THEN 1 ELSE 0 END) as visit_requests,
-//     SUM(CASE WHEN request_type = 'surgery_request' THEN 1 ELSE 0 END) as surgery_requests,
-//     SUM(CASE WHEN request_id IS NOT NULL THEN 1 ELSE 0 END) as with_request_id,
-//     SUM(CASE WHEN visit_request_id IS NOT NULL THEN 1 ELSE 0 END) as with_visit_request_id
-// FROM `tblhospital_payments`;
-
-// -- Show sample records
-// SELECT 
-//     id,
-//     payment_number,
-//     visit_request_id,
-//     request_id,
-//     request_type,
-//     request_category,
-//     payment_status
-// FROM `tblhospital_payments`
-// ORDER BY id DESC
-// LIMIT 5;
-
-
-// ALTER TABLE `tblhospital_surgery_requests` 
-// ADD COLUMN `appointment_id` INT(11) NULL COMMENT 'Linked appointment ID' AFTER `surgery_date`,
-// ADD INDEX `idx_appointment_id` (`appointment_id`);
-
-// CREATE TABLE `tblhospital_wards` (
-//   `id` int(11) NOT NULL AUTO_INCREMENT,
-//   `ward_name` varchar(100) NOT NULL COMMENT 'General Ward, Private Room, ICU, etc',
-//   `ward_type` enum('general','semi-private','private','icu','deluxe') NOT NULL DEFAULT 'general',
-//   `room_number` varchar(50) DEFAULT NULL,
-//   `floor_number` varchar(20) DEFAULT NULL,
-//   `capacity` int(11) DEFAULT 1 COMMENT 'Number of beds',
-//   `available_beds` int(11) DEFAULT 1,
-//   `base_charge_per_day` decimal(10,2) DEFAULT 0.00,
-//   `is_active` tinyint(1) DEFAULT 1,
-//   `created_at` datetime DEFAULT CURRENT_TIMESTAMP,
-//   PRIMARY KEY (`id`),
-//   UNIQUE KEY `unique_room` (`room_number`,`floor_number`),
-//   KEY `idx_ward_type` (`ward_type`),
-//   KEY `idx_is_active` (`is_active`)
-// ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
-
-// CREATE TABLE `tblhospital_surgery_admissions` (
-//   `id` int(11) NOT NULL AUTO_INCREMENT,
-//   `surgery_request_id` int(11) NOT NULL,
-//   `patient_id` int(11) NOT NULL,
-//   `ward_id` int(11) DEFAULT NULL COMMENT 'FK to tblhospital_wards',
-//   `admission_date` date NOT NULL,
-//   `admission_time` time DEFAULT NULL,
-//   `expected_discharge_date` date DEFAULT NULL,
-//   `actual_discharge_date` date DEFAULT NULL,
-//   `discharge_time` time DEFAULT NULL,
-//   `total_days` int(11) DEFAULT 0,
-//   `room_charges` decimal(10,2) DEFAULT 0.00,
-//   `additional_charges` decimal(10,2) DEFAULT 0.00,
-//   `admission_status` enum('scheduled','admitted','discharged','cancelled') DEFAULT 'scheduled',
-//   `admission_notes` text,
-//   `admitted_by` int(11) DEFAULT NULL COMMENT 'Staff ID who processed admission',
-//   `discharged_by` int(11) DEFAULT NULL COMMENT 'Staff ID who processed discharge',
-//   `created_at` datetime DEFAULT CURRENT_TIMESTAMP,
-//   `updated_at` datetime DEFAULT NULL ON UPDATE CURRENT_TIMESTAMP,
-//   PRIMARY KEY (`id`),
-//   UNIQUE KEY `unique_surgery_admission` (`surgery_request_id`),
-//   KEY `idx_surgery_request` (`surgery_request_id`),
-//   KEY `idx_patient` (`patient_id`),
-//   KEY `idx_ward` (`ward_id`),
-//   KEY `idx_admission_date` (`admission_date`),
-//   KEY `idx_status` (`admission_status`),
-//   CONSTRAINT `fk_admission_surgery` FOREIGN KEY (`surgery_request_id`) 
-//     REFERENCES `tblhospital_surgery_requests` (`id`) ON DELETE CASCADE,
-//   CONSTRAINT `fk_admission_patient` FOREIGN KEY (`patient_id`) 
-//     REFERENCES `tblhospital_patients` (`id`) ON DELETE CASCADE,
-//   CONSTRAINT `fk_admission_ward` FOREIGN KEY (`ward_id`) 
-//     REFERENCES `tblhospital_wards` (`id`) ON DELETE SET NULL
-// ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
-
-
-// -- Step 1: Add temporary columns for data migration
-// ALTER TABLE `tblhospital_surgery_requests` 
-// ADD COLUMN `_temp_room_type` varchar(50) DEFAULT NULL AFTER `room_type`,
-// ADD COLUMN `_temp_admission_date` date DEFAULT NULL AFTER `admission_date`;
-
-// -- Step 2: Copy data to temp columns
-// UPDATE `tblhospital_surgery_requests` 
-// SET `_temp_room_type` = `room_type`,
-//     `_temp_admission_date` = `admission_date`;
-
-// -- Step 3: Drop the old columns
-// ALTER TABLE `tblhospital_surgery_requests` 
-// DROP COLUMN `room_type`,
-// DROP COLUMN `admission_date`;
-
-
-// -- Insert sample wards first
-// INSERT INTO `tblhospital_wards` (`ward_name`, `ward_type`, `room_number`, `floor_number`, `capacity`, `base_charge_per_day`, `is_active`) VALUES
-// ('General Ward - Room 101', 'general', '101', '1', 4, 500.00, 1),
-// ('General Ward - Room 102', 'general', '102', '1', 4, 500.00, 1),
-// ('Private Room 201', 'private', '201', '2', 1, 1500.00, 1),
-// ('Private Room 202', 'private', '202', '2', 1, 1500.00, 1),
-// ('Semi-Private Room 203', 'semi-private', '203', '2', 2, 1000.00, 1),
-// ('ICU - Bed 1', 'icu', 'ICU-1', '3', 1, 3000.00, 1),
-// ('ICU - Bed 2', 'icu', 'ICU-2', '3', 1, 3000.00, 1),
-// ('Deluxe Room 301', 'deluxe', '301', '3', 1, 2500.00, 1);
-
-// -- Migrate existing surgery requests to admission table
-// INSERT INTO `tblhospital_surgery_admissions` 
-// (`surgery_request_id`, `patient_id`, `ward_id`, `admission_date`, `admission_status`, `created_at`)
-// SELECT 
-//     sr.id,
-//     sr.patient_id,
-//     (
-//         -- Try to match room type to ward
-//         SELECT w.id FROM tblhospital_wards w 
-//         WHERE LOWER(w.ward_type) = LOWER(sr._temp_room_type)
-//         LIMIT 1
-//     ) as ward_id,
-//     sr._temp_admission_date,
-//     CASE 
-//         WHEN sr._temp_admission_date <= CURDATE() THEN 'admitted'
-//         ELSE 'scheduled'
-//     END as admission_status,
-//     sr.requested_at
-// FROM `tblhospital_surgery_requests` sr
-// WHERE sr._temp_admission_date IS NOT NULL
-//   AND sr.status NOT IN ('cancelled', 'rejected');
-  
-// -- Clean up temp columns
-// ALTER TABLE `tblhospital_surgery_requests` 
-// DROP COLUMN `_temp_room_type`,
-// DROP COLUMN `_temp_admission_date`;
-
-// -- Add room_type column
-// ALTER TABLE `tblhospital_surgery_requests` 
-// ADD COLUMN `room_type` varchar(50) DEFAULT NULL 
-// AFTER `fix_surgery`;
+// ==========================================
+// FINAL LOG
+// ==========================================
+log_activity('Hospital Management Module - Installation Complete - All Tables Created Successfully');
