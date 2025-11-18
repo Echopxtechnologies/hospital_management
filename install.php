@@ -813,3 +813,114 @@ if (!$CI->db->table_exists(db_prefix() . 'hospital_lab_reports')) {
 // ALTER TABLE `tblhospital_surgery_requests` 
 // ADD COLUMN `appointment_id` INT(11) NULL COMMENT 'Linked appointment ID' AFTER `surgery_date`,
 // ADD INDEX `idx_appointment_id` (`appointment_id`);
+
+// CREATE TABLE `tblhospital_wards` (
+//   `id` int(11) NOT NULL AUTO_INCREMENT,
+//   `ward_name` varchar(100) NOT NULL COMMENT 'General Ward, Private Room, ICU, etc',
+//   `ward_type` enum('general','semi-private','private','icu','deluxe') NOT NULL DEFAULT 'general',
+//   `room_number` varchar(50) DEFAULT NULL,
+//   `floor_number` varchar(20) DEFAULT NULL,
+//   `capacity` int(11) DEFAULT 1 COMMENT 'Number of beds',
+//   `available_beds` int(11) DEFAULT 1,
+//   `base_charge_per_day` decimal(10,2) DEFAULT 0.00,
+//   `is_active` tinyint(1) DEFAULT 1,
+//   `created_at` datetime DEFAULT CURRENT_TIMESTAMP,
+//   PRIMARY KEY (`id`),
+//   UNIQUE KEY `unique_room` (`room_number`,`floor_number`),
+//   KEY `idx_ward_type` (`ward_type`),
+//   KEY `idx_is_active` (`is_active`)
+// ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
+
+// CREATE TABLE `tblhospital_surgery_admissions` (
+//   `id` int(11) NOT NULL AUTO_INCREMENT,
+//   `surgery_request_id` int(11) NOT NULL,
+//   `patient_id` int(11) NOT NULL,
+//   `ward_id` int(11) DEFAULT NULL COMMENT 'FK to tblhospital_wards',
+//   `admission_date` date NOT NULL,
+//   `admission_time` time DEFAULT NULL,
+//   `expected_discharge_date` date DEFAULT NULL,
+//   `actual_discharge_date` date DEFAULT NULL,
+//   `discharge_time` time DEFAULT NULL,
+//   `total_days` int(11) DEFAULT 0,
+//   `room_charges` decimal(10,2) DEFAULT 0.00,
+//   `additional_charges` decimal(10,2) DEFAULT 0.00,
+//   `admission_status` enum('scheduled','admitted','discharged','cancelled') DEFAULT 'scheduled',
+//   `admission_notes` text,
+//   `admitted_by` int(11) DEFAULT NULL COMMENT 'Staff ID who processed admission',
+//   `discharged_by` int(11) DEFAULT NULL COMMENT 'Staff ID who processed discharge',
+//   `created_at` datetime DEFAULT CURRENT_TIMESTAMP,
+//   `updated_at` datetime DEFAULT NULL ON UPDATE CURRENT_TIMESTAMP,
+//   PRIMARY KEY (`id`),
+//   UNIQUE KEY `unique_surgery_admission` (`surgery_request_id`),
+//   KEY `idx_surgery_request` (`surgery_request_id`),
+//   KEY `idx_patient` (`patient_id`),
+//   KEY `idx_ward` (`ward_id`),
+//   KEY `idx_admission_date` (`admission_date`),
+//   KEY `idx_status` (`admission_status`),
+//   CONSTRAINT `fk_admission_surgery` FOREIGN KEY (`surgery_request_id`) 
+//     REFERENCES `tblhospital_surgery_requests` (`id`) ON DELETE CASCADE,
+//   CONSTRAINT `fk_admission_patient` FOREIGN KEY (`patient_id`) 
+//     REFERENCES `tblhospital_patients` (`id`) ON DELETE CASCADE,
+//   CONSTRAINT `fk_admission_ward` FOREIGN KEY (`ward_id`) 
+//     REFERENCES `tblhospital_wards` (`id`) ON DELETE SET NULL
+// ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
+
+
+// -- Step 1: Add temporary columns for data migration
+// ALTER TABLE `tblhospital_surgery_requests` 
+// ADD COLUMN `_temp_room_type` varchar(50) DEFAULT NULL AFTER `room_type`,
+// ADD COLUMN `_temp_admission_date` date DEFAULT NULL AFTER `admission_date`;
+
+// -- Step 2: Copy data to temp columns
+// UPDATE `tblhospital_surgery_requests` 
+// SET `_temp_room_type` = `room_type`,
+//     `_temp_admission_date` = `admission_date`;
+
+// -- Step 3: Drop the old columns
+// ALTER TABLE `tblhospital_surgery_requests` 
+// DROP COLUMN `room_type`,
+// DROP COLUMN `admission_date`;
+
+
+// -- Insert sample wards first
+// INSERT INTO `tblhospital_wards` (`ward_name`, `ward_type`, `room_number`, `floor_number`, `capacity`, `base_charge_per_day`, `is_active`) VALUES
+// ('General Ward - Room 101', 'general', '101', '1', 4, 500.00, 1),
+// ('General Ward - Room 102', 'general', '102', '1', 4, 500.00, 1),
+// ('Private Room 201', 'private', '201', '2', 1, 1500.00, 1),
+// ('Private Room 202', 'private', '202', '2', 1, 1500.00, 1),
+// ('Semi-Private Room 203', 'semi-private', '203', '2', 2, 1000.00, 1),
+// ('ICU - Bed 1', 'icu', 'ICU-1', '3', 1, 3000.00, 1),
+// ('ICU - Bed 2', 'icu', 'ICU-2', '3', 1, 3000.00, 1),
+// ('Deluxe Room 301', 'deluxe', '301', '3', 1, 2500.00, 1);
+
+// -- Migrate existing surgery requests to admission table
+// INSERT INTO `tblhospital_surgery_admissions` 
+// (`surgery_request_id`, `patient_id`, `ward_id`, `admission_date`, `admission_status`, `created_at`)
+// SELECT 
+//     sr.id,
+//     sr.patient_id,
+//     (
+//         -- Try to match room type to ward
+//         SELECT w.id FROM tblhospital_wards w 
+//         WHERE LOWER(w.ward_type) = LOWER(sr._temp_room_type)
+//         LIMIT 1
+//     ) as ward_id,
+//     sr._temp_admission_date,
+//     CASE 
+//         WHEN sr._temp_admission_date <= CURDATE() THEN 'admitted'
+//         ELSE 'scheduled'
+//     END as admission_status,
+//     sr.requested_at
+// FROM `tblhospital_surgery_requests` sr
+// WHERE sr._temp_admission_date IS NOT NULL
+//   AND sr.status NOT IN ('cancelled', 'rejected');
+  
+// -- Clean up temp columns
+// ALTER TABLE `tblhospital_surgery_requests` 
+// DROP COLUMN `_temp_room_type`,
+// DROP COLUMN `_temp_admission_date`;
+
+// -- Add room_type column
+// ALTER TABLE `tblhospital_surgery_requests` 
+// ADD COLUMN `room_type` varchar(50) DEFAULT NULL 
+// AFTER `fix_surgery`;

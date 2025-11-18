@@ -235,6 +235,7 @@ public function get_visit_with_details($visit_id)
         $this->visit_details_table . '.review_period, ' .
         $this->visit_details_table . '.systematic_exam_ordered, ' .
         $this->visit_details_table . '.medicine_prescription_details, ' .
+        $this->visit_details_table . '.medicine_instructions, ' .
         $this->visit_details_table . '.fee_amount, ' .
         $this->visit_details_table . '.total_fee, ' .
         $this->visit_details_table . '.spectacle_right_sph, ' .

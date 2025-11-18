@@ -2640,12 +2640,31 @@ function saveVisit() {
                 formData.append('systematic_exam_ordered', jQuery('[name="systematic_exam_ordered"]').val() || '');
                 break;
                 
-            case 'medicine':
-                jQuery('[name^="medicines"]').each(function() {
-                    formData.append(jQuery(this).attr('name'), jQuery(this).val() || '');
-                });
-                break;
+           case 'medicine':
+            // Collect all medicine rows properly
+            var medicinesData = [];
+            jQuery('.medicine-row').each(function() {
+                var rowId = jQuery(this).data('id');
+                var medicineId = jQuery('[name="medicines[' + rowId + '][medicine_id]"]').val();
                 
+                if (medicineId) {
+                    medicinesData.push({
+                        medicine_id: medicineId,
+                        eye: jQuery('[name="medicines[' + rowId + '][eye]"]').val(),
+                        dose: jQuery('[name="medicines[' + rowId + '][dose]"]').val(),
+                        unit: jQuery('[name="medicines[' + rowId + '][unit]"]').val(),
+                        interval: jQuery('[name="medicines[' + rowId + '][interval]"]').val(),
+                        frequency: jQuery('[name="medicines[' + rowId + '][frequency]"]').val(),
+                        instructions: jQuery('[name="medicines[' + rowId + '][instructions]"]').val()
+                    });
+                }
+            });
+            
+            // Send as JSON string (same as saveTab)
+            formData.append('medicines', JSON.stringify(medicinesData));
+            formData.append('medicine_instructions', jQuery('[name="medicine_instructions"]').val() || '');
+            break;
+                        
             case 'spectacle':
                 formData.append('right_sph', jQuery('[name="right_sph"]').val() || '');
                 formData.append('right_cyl', jQuery('[name="right_cyl"]').val() || '');

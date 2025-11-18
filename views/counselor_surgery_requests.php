@@ -65,6 +65,7 @@
                                         <th>Visit #</th>
                                         <th>Surgery Name</th>
                                         <th>Surgery Details</th>
+                                        <th>Ward/Room</th>
                                         <th>Counseling Status</th>
                                         <th>Payment Status</th>
                                         <th>Status</th>
@@ -128,6 +129,15 @@
                                                     </div>
                                                 <?php else: ?>
                                                     <span class="text-muted">No details</span>
+                                                <?php endif; ?>
+                                            </td>
+                                            <td>
+                                                <?php if(!empty($request['room_type'])): ?>
+                                                    <span class="label label-info">
+                                                        <?php echo $request['room_type']; ?>
+                                                    </span>
+                                                <?php else: ?>
+                                                    <span class="text-muted">Not assigned</span>
                                                 <?php endif; ?>
                                             </td>
                                             <td>

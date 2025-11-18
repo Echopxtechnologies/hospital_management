@@ -1283,6 +1283,24 @@ public function save_visit_details()
                         'fee_amount' => $total_fee,
                         'total_fee' => $total_fee
                     ];
+                     // ✅ NEW: Get patient_id from visit record BEFORE calling prescription save
+    $this->db->select('patient_id');
+    $this->db->where('id', $visit_id);
+    $visit_record = $this->db->get(db_prefix() . 'hospital_visits')->row();
+    
+    // ✅ NEW: ALSO save to prescriptions table for billing
+    if ($visit_record) {
+        $general_instructions = $this->input->post('medicine_instructions');
+        $medicines_json_for_billing = json_encode($medicines_detailed);
+        
+        $this->save_prescription_for_billing(
+            $visit_id, 
+            $visit_record->patient_id,  // ← FIXED: Use correct variable
+            $medicines_json_for_billing,  // ← FIXED: Use correct variable
+            $general_instructions
+        );
+    }
+    
                     break;
                     
                 case 'spectacle':
@@ -2698,7 +2716,12 @@ public function view_patient_counseling($surgery_request_id)
         'Peribulbar',
         'Retrobulbar'
     ];
-    
+    // Get admission details if exists (from admissions table)
+$this->db->select('admission_date, admission_status, ward_id');
+$this->db->where('surgery_request_id', $surgery_request_id);
+$admission = $this->db->get(db_prefix() . 'hospital_surgery_admissions')->row();
+$data['admission'] = $admission;
+
     $data['title'] = 'Patient Counseling - ' . $data['surgery_request']->patient_name;
     $this->load->view('patient_counseling', $data);
 }
@@ -2736,7 +2759,7 @@ public function save_counseling()
         'anaesthesia_type' => $this->input->post('anaesthesia_type'),
         'fix_surgery' => $this->input->post('fix_surgery') ?: 'no',
         'assigned_consultant_id' => $this->input->post('assigned_consultant_id') ?: null,
-        'admission_date' => $this->input->post('admission_date') ?: null,
+        
         'surgery_date' => $this->input->post('surgery_date') ?: null,
         'surgery_consent' => $this->input->post('surgery_consent') ?: 'no',
         'room_type' => $this->input->post('room_type'),
@@ -2931,5 +2954,288 @@ public function link_surgery_appointment()
         ]);
     }
 }
+/**
+ * Save prescription to tblhospital_prescriptions (for billing)
+ * Called automatically when saving medicines
+ */
+private function save_prescription_for_billing($visit_id, $patient_id, $medicines_json, $general_instructions = '')
+{
+    // Get visit details
+    $this->db->select('appointment_id');
+    $this->db->where('id', $visit_id);
+    $visit = $this->db->get(db_prefix() . 'hospital_visits')->row();
+    
+    if (!$visit) {
+        return false;
+    }
+    
+    // Get appointment details for consultant_id
+    $this->db->select('consultant_id');
+    $this->db->where('id', $visit->appointment_id);
+    $appointment = $this->db->get(db_prefix() . 'hospital_appointments')->row();
+    
+    if (!$appointment) {
+        return false;
+    }
+    
+    // Decode medicines from visits format
+    $medicines_from_visit = json_decode($medicines_json, true);
+    
+    if (empty($medicines_from_visit)) {
+        return false;
+    }
+    
+    // Transform medicines to prescription format with full details
+    $medicines_for_prescription = [];
+    
+    foreach ($medicines_from_visit as $med) {
+        // Get medicine details from database
+        $this->db->select('medicine_name, strength, category, price');
+        $this->db->where('id', $med['medicine_id']);
+        $medicine = $this->db->get(db_prefix() . 'hospital_medicines')->row();
+        
+        if ($medicine) {
+            $medicines_for_prescription[] = [
+                'medicine_id' => $med['medicine_id'],
+                'medicine_name' => $medicine->medicine_name . ' (' . $medicine->strength . ')',
+                'dosage' => ($med['dose'] ?? '1') . ' ' . ($med['unit'] ?? 'drop'),
+                'frequency' => $this->format_frequency($med['frequency'] ?? ''),
+                'duration' => $med['interval'] ?? '',
+                'quantity' => $med['dose'] ?? '1',
+                'instructions' => $med['instructions'] ?? '',
+                'price' => $medicine->price ?? 0,
+                'eye' => $med['eye'] ?? 'both', // Extra field for hospital use
+                'category' => $medicine->category ?? ''
+            ];
+        }
+    }
+    
+    // Check if prescription already exists for this visit
+    $this->db->select('id');
+    $this->db->where('visit_id', $visit_id);
+    $existing = $this->db->get(db_prefix() . 'hospital_prescriptions')->row();
+    
+    $medicines_json_final = json_encode($medicines_for_prescription);
+    
+    if ($existing) {
+        // UPDATE existing prescription
+        $update_data = [
+            'medicines' => $medicines_json_final,
+            'general_instructions' => $general_instructions,
+            'prescription_date' => date('Y-m-d'),
+            'updated_at' => date('Y-m-d H:i:s')
+        ];
+        
+        $this->db->where('id', $existing->id);
+        $this->db->update(db_prefix() . 'hospital_prescriptions', $update_data);
+        
+        log_activity('Prescription Updated for Billing - Visit ID: ' . $visit_id);
+        
+    } else {
+        // INSERT new prescription
+        $prescription_number = $this->generate_prescription_number();
+        
+        $insert_data = [
+            'prescription_number' => $prescription_number,
+            'visit_id' => $visit_id,
+            'patient_id' => $patient_id,
+            'prescribed_by' => $appointment->consultant_id,
+            'prescription_date' => date('Y-m-d'),
+            'medicines' => $medicines_json_final,
+            'general_instructions' => $general_instructions,
+            'status' => 'active',
+            'created_by' => get_staff_user_id(),
+            'created_at' => date('Y-m-d H:i:s')
+        ];
+        
+        $this->db->insert(db_prefix() . 'hospital_prescriptions', $insert_data);
+        
+        log_activity('Prescription Created for Billing: ' . $prescription_number . ' - Visit ID: ' . $visit_id);
+    }
+    
+    return true;
+}
 
+/**
+ * Helper: Format frequency from code to readable text
+ */
+private function format_frequency($freq_code)
+{
+    $frequency_map = [
+        'day' => 'Once daily',
+        '3_times_a_day' => '3 times a day',
+        '4_times_a_day' => '4 times a day',
+        'every_2_hours' => 'Every 2 hours',
+        'every_4_hours' => 'Every 4 hours'
+    ];
+    
+    return $frequency_map[$freq_code] ?? $freq_code;
+}
+
+/**
+ * Helper: Generate unique prescription number
+ */
+private function generate_prescription_number()
+{
+    $date = date('Ymd');
+    $prefix = 'RX-' . $date . '-';
+    
+    // Get last prescription number for today
+    $this->db->select('prescription_number');
+    $this->db->from(db_prefix() . 'hospital_prescriptions');
+    $this->db->like('prescription_number', $prefix, 'after');
+    $this->db->order_by('id', 'DESC');
+    $this->db->limit(1);
+    
+    $last = $this->db->get()->row();
+    
+    if ($last) {
+        $last_number = (int) substr($last->prescription_number, -4);
+        $new_number = str_pad($last_number + 1, 4, '0', STR_PAD_LEFT);
+    } else {
+        $new_number = '0001';
+    }
+    
+    return $prefix . $new_number;
+}
+
+// ==========================================
+// NURSING PORTAL
+// ==========================================
+
+/**
+ * Nursing Dashboard - Main portal for nurses
+ */
+public function nursing_dashboard()
+{
+    // Permission check
+    if (!is_nurse() && !has_permission('hospital_management', '', 'view')) {
+        access_denied('Nursing Portal');
+    }
+    
+    $this->load->model('nursing_model');
+    
+    // Get patients
+    $data['non_admitted_patients'] = $this->nursing_model->get_non_admitted_patients();
+    $data['admitted_patients'] = $this->nursing_model->get_admitted_patients();
+    
+    // Statistics
+    $data['stats'] = [
+        'total_paid' => count($this->nursing_model->get_paid_surgery_requests()),
+        'non_admitted' => count($data['non_admitted_patients']),
+        'admitted' => count($data['admitted_patients'])
+    ];
+    
+    $data['title'] = 'Nursing Portal - Patient Management';
+    $this->load->view('nursing_dashboard', $data);
+}
+
+/**
+ * Manage Admission Form (Admit or view admitted patient)
+ */
+public function manage_admission($surgery_request_id)
+{
+    // Permission check
+    if (!is_nurse() && !has_permission('hospital_management', '', 'edit')) {
+        access_denied('Nursing Portal');
+    }
+    
+    $this->load->model('nursing_model');
+    
+    // Get surgery request details
+    $this->db->select('
+        sr.*,
+        sr.room_type as requested_room_type,
+        p.patient_number,
+        p.name as patient_name,
+        p.mobile_number,
+        p.age,
+        p.gender,
+        st.surgery_name,
+        consultant.firstname as consultant_firstname,
+        consultant.lastname as consultant_lastname
+    ');
+    $this->db->from(db_prefix() . 'hospital_surgery_requests sr');
+    $this->db->join(db_prefix() . 'hospital_patients p', 'p.id = sr.patient_id', 'left');
+    $this->db->join(db_prefix() . 'hospital_surgery_types st', 'st.id = sr.surgery_type_id', 'left');
+    $this->db->join(db_prefix() . 'staff consultant', 'consultant.staffid = sr.assigned_consultant_id', 'left');
+    $this->db->where('sr.id', $surgery_request_id);
+    $data['surgery_request'] = $this->db->get()->row();
+    
+    if (!$data['surgery_request']) {
+        show_404();
+    }
+    
+    // Get admission details if exists
+    $data['admission'] = $this->nursing_model->get_admission($surgery_request_id);
+    
+    // Get available wards
+    $data['wards'] = $this->nursing_model->get_available_wards();
+    
+    $data['title'] = 'Manage Admission - ' . $data['surgery_request']->patient_name;
+    $this->load->view('manage_admission', $data);
+}
+
+/**
+ * Save Admission (AJAX)
+ */
+public function save_admission()
+{
+    $this->ajax_only();
+    
+    // Permission check
+    if (!is_nurse() && !has_permission('hospital_management', '', 'edit')) {
+        ajax_access_denied();
+    }
+    
+    $surgery_request_id = $this->input->post('surgery_request_id');
+    
+    if (!$surgery_request_id) {
+        return $this->json_response(false, 'Invalid surgery request');
+    }
+    
+    $this->load->model('nursing_model');
+    
+    $admission_data = [
+        'ward_id' => $this->input->post('ward_id'),
+        'admission_date' => $this->input->post('admission_date'),
+        'admission_time' => $this->input->post('admission_time'),
+        'admission_notes' => $this->input->post('admission_notes')
+    ];
+    
+    $result = $this->nursing_model->save_admission($surgery_request_id, $admission_data);
+    
+    return $this->json_response($result['success'], $result['message']);
+}
+
+/**
+ * Discharge Patient (AJAX)
+ */
+public function discharge_patient()
+{
+    $this->ajax_only();
+    
+    // Permission check
+    if (!is_nurse() && !has_permission('hospital_management', '', 'edit')) {
+        ajax_access_denied();
+    }
+    
+    $surgery_request_id = $this->input->post('surgery_request_id');
+    
+    if (!$surgery_request_id) {
+        return $this->json_response(false, 'Invalid surgery request');
+    }
+    
+    $this->load->model('nursing_model');
+    
+    $discharge_data = [
+        'discharge_date' => $this->input->post('discharge_date'),
+        'discharge_time' => $this->input->post('discharge_time'),
+        'discharge_notes' => $this->input->post('discharge_notes')
+    ];
+    
+    $result = $this->nursing_model->discharge_patient($surgery_request_id, $discharge_data);
+    
+    return $this->json_response($result['success'], $result['message']);
+}
 }

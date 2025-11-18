@@ -695,4 +695,82 @@ public function start_jc_consultation($visit_id, $jc_staff_id)
         'message' => 'Failed to record consultation start'
     ];
 }
+
+// Location: Add BEFORE the closing class bracket } at the END of file
+
+// ==========================================
+// WARD & ADMISSION MANAGEMENT
+// ==========================================
+
+/**
+ * Get all active wards
+ */
+public function get_wards($active_only = true)
+{
+    if ($active_only) {
+        $this->db->where('is_active', 1);
+    }
+    $this->db->order_by('ward_type', 'ASC');
+    $this->db->order_by('room_number', 'ASC');
+    return $this->db->get(db_prefix() . 'hospital_wards')->result_array();
+}
+
+/**
+ * Get available wards (with capacity)
+ */
+public function get_available_wards()
+{
+    $this->db->where('is_active', 1);
+    $this->db->where('available_beds >', 0);
+    $this->db->order_by('base_charge_per_day', 'ASC');
+    return $this->db->get(db_prefix() . 'hospital_wards')->result_array();
+}
+
+/**
+ * Create admission record when surgery is scheduled
+ */
+public function create_admission($data)
+{
+    // Validate required fields
+    if (empty($data['surgery_request_id']) || empty($data['patient_id'])) {
+        return false;
+    }
+    
+    // Set defaults
+    $admission_data = [
+        'surgery_request_id' => $data['surgery_request_id'],
+        'patient_id' => $data['patient_id'],
+        'ward_id' => $data['ward_id'] ?? null,
+        'admission_date' => $data['admission_date'] ?? date('Y-m-d'),
+        'admission_status' => 'scheduled',
+        'admitted_by' => get_staff_user_id(),
+        'created_at' => date('Y-m-d H:i:s')
+    ];
+    
+    $this->db->insert(db_prefix() . 'hospital_surgery_admissions', $admission_data);
+    return $this->db->insert_id();
+}
+
+/**
+ * Get admission details for a surgery request
+ */
+public function get_admission_by_surgery($surgery_request_id)
+{
+    $this->db->select('
+        a.*,
+        w.ward_name,
+        w.ward_type,
+        w.room_number,
+        w.floor_number,
+        w.base_charge_per_day,
+        CONCAT(s1.firstname, " ", s1.lastname) as admitted_by_name,
+        CONCAT(s2.firstname, " ", s2.lastname) as discharged_by_name
+    ');
+    $this->db->from(db_prefix() . 'hospital_surgery_admissions a');
+    $this->db->join(db_prefix() . 'hospital_wards w', 'w.id = a.ward_id', 'left');
+    $this->db->join(db_prefix() . 'staff s1', 's1.staffid = a.admitted_by', 'left');
+    $this->db->join(db_prefix() . 'staff s2', 's2.staffid = a.discharged_by', 'left');
+    $this->db->where('a.surgery_request_id', $surgery_request_id);
+    return $this->db->get()->row_array();
+}
 }

@@ -221,8 +221,23 @@
                                     <div class="col-md-6">
                                         <div class="form-group">
                                             <label for="admission_date">Admission Date</label>
-                                            <input type="date" class="form-control" name="admission_date" id="admission_date"
-                                                   value="<?php echo $surgery_request->admission_date ?? ''; ?>">
+                                            <?php if(!empty($admission) && !empty($admission->admission_date)): ?>
+                                                <!-- Admission already scheduled by nursing staff -->
+                                                <input type="text" class="form-control" 
+                                                    value="<?php echo date('d M Y', strtotime($admission->admission_date)); ?> 
+                                                            (<?php echo ucfirst($admission->admission_status); ?>)" 
+                                                    readonly>
+                                                <small class="text-success">
+                                                    <i class="fa fa-check-circle"></i> Admission scheduled by nursing staff
+                                                </small>
+                                            <?php else: ?>
+                                                <!-- Not yet scheduled -->
+                                                <input type="text" class="form-control" 
+                                                    value="Not scheduled yet" readonly>
+                                                <small class="text-muted">
+                                                    <i class="fa fa-info-circle"></i> Nursing staff will schedule admission after payment
+                                                </small>
+                                            <?php endif; ?>
                                         </div>
                                     </div>
                                     <div class="col-md-6">
@@ -245,20 +260,32 @@
                                             </select>
                                         </div>
                                     </div>
-                                    <div class="col-md-6">
-                                        <div class="form-group">
-                                            <label for="room_type">Type of Room <span class="text-danger">*</span></label>
-                                            <select class="form-control selectpicker" name="room_type" id="room_type" required>
-                                                <option value="">Select Room Type</option>
-                                                <?php foreach($room_types as $room): ?>
-                                                    <option value="<?php echo $room; ?>"
-                                                        <?php echo ($surgery_request->room_type == $room) ? 'selected' : ''; ?>>
-                                                        <?php echo $room; ?>
-                                                    </option>
-                                                <?php endforeach; ?>
-                                            </select>
-                                        </div>
-                                    </div>
+                                  <div class="col-md-6">
+    <div class="form-group">
+        <label for="room_type">Ward Type <span class="text-danger">*</span></label>
+        <select class="form-control selectpicker" name="room_type" id="room_type" 
+                data-live-search="true" required>
+            <option value="">Select Ward Type</option>
+            <?php if(!empty($room_types)): ?>
+                <?php foreach($room_types as $room): ?>
+                    <option value="<?php echo $room; ?>"
+                        <?php echo (isset($surgery_request->room_type) && $surgery_request->room_type == $room) ? 'selected' : ''; ?>>
+                        <?php echo $room; ?>
+                    </option>
+                <?php endforeach; ?>
+            <?php else: ?>
+                <option value="General Ward">General Ward</option>
+                <option value="Semi-Private">Semi-Private</option>
+                <option value="Private">Private</option>
+                <option value="Deluxe">Deluxe</option>
+                <option value="ICU">ICU</option>
+            <?php endif; ?>
+        </select>
+        <small class="text-muted">
+            <i class="fa fa-info-circle"></i> Specific room/bed assignment will be done by nursing staff
+        </small>
+    </div>
+</div>
                                 </div>
 
                                 <!-- Row 6: Remarks & Status -->
